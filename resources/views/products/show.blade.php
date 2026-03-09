@@ -32,7 +32,8 @@
             <dt class="col-sm-3">Hình ảnh:</dt>
             <dd class="col-sm-9">
                 @if($product->image)
-                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-width: 200px;">
+                    <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-width: 200px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <span class="text-muted" style="display:none;">Không tải được ảnh</span>
                 @else
                     <span class="text-muted">Không có ảnh</span>
                 @endif

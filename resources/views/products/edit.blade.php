@@ -58,7 +58,7 @@
                 <label for="image"><strong>Hình ảnh:</strong></label>
                 @if($product->image)
                     <div class="mb-2">
-                        <img src="{{ asset('storage/' . $product->image) }}" alt="" class="img-thumbnail" style="max-height: 80px;">
+                        <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-height: 80px;">
                         <span class="text-muted small d-block">Ảnh hiện tại. Chọn file mới để thay thế.</span>
                     </div>
                 @endif

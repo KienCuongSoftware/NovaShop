@@ -44,6 +44,7 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only(['category_id', 'name', 'description', 'price', 'quantity']);
+        $data['category_id'] = (int) $request->input('category_id');
         $data['is_active'] = $request->boolean('is_active');
 
         if ($request->hasFile('image')) {

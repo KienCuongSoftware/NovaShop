@@ -43,7 +43,7 @@
                         <td class="text-center align-middle">{{ $product->quantity }}</td>
                         <td class="text-center align-middle">
                             @if($product->image)
-                                <img src="{{ asset('storage/' . $product->image) }}" alt="" class="img-thumbnail" style="max-height: 40px; max-width: 50px; object-fit: cover;">
+                                <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-height: 40px; max-width: 50px; object-fit: cover;" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22%23ddd%22%3E%3Crect width=%2224%22 height=%2224%22/%3E%3C/svg%3E';">
                             @else
                                 <span class="text-muted">—</span>
                             @endif
