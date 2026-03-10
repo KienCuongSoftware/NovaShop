@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     git \
     curl
 
-RUN docker-php-ext-install pdo pdo_pgsql
+RUN docker-php-ext-install pdo_pgsql
 
 WORKDIR /var/www
 
