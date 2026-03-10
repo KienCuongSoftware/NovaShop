@@ -19,10 +19,6 @@
                     </div>
                 @endif
 
-                @if (session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
-                @endif
-
                 <form method="POST" action="{{ route('register') }}">
                     @csrf
                     <div class="form-group">
