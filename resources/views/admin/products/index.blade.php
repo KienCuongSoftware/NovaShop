@@ -17,7 +17,7 @@
             <table class="table table-bordered table-hover mb-0">
                 <thead class="thead-light">
                     <tr>
-                        <th class="text-center" style="width: 60px;">ID</th>
+                        <th class="text-center" style="width: 60px;">STT</th>
                         <th style="width: 160px;">Tên</th>
                         <th style="width: 120px;">Danh mục</th>
                         <th class="text-right" style="width: 100px;">Giá</th>
@@ -29,7 +29,7 @@
                 <tbody>
                     @forelse ($products as $product)
                     <tr>
-                        <td class="text-center align-middle">{{ $product->id }}</td>
+                        <td class="text-center align-middle">{{ $loop->iteration }}</td>
                         <td class="align-middle">{{ $product->name }}</td>
                         <td class="align-middle">{{ $product->category->name ?? '—' }}</td>
                         <td class="text-right align-middle">{{ number_format($product->price, 0, ',', '.') }}₫</td>

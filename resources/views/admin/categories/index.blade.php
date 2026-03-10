@@ -17,7 +17,7 @@
             <table class="table table-bordered table-hover mb-0">
                 <thead class="thead-light">
                     <tr>
-                        <th class="text-center" style="width: 80px;">ID</th>
+                        <th class="text-center" style="width: 80px;">STT</th>
                         <th style="width: 200px; max-width: 200px;">Tên</th>
                         <th class="text-center" style="width: 1%; white-space: nowrap;">Thao tác</th>
                     </tr>
@@ -25,7 +25,7 @@
                 <tbody>
                     @foreach ($categories as $category)
                     <tr>
-                        <td class="text-center align-middle">{{ $category->id }}</td>
+                        <td class="text-center align-middle">{{ $loop->iteration }}</td>
                         <td class="align-middle">{{ $category->name }}</td>
                         <td class="text-center align-middle text-nowrap">
                             <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category->id) }}">Xem</a>
