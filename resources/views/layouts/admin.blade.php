@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Trang quản trị') - MyShop</title>
+    <title>@yield('title', 'Trang quản trị') - NovaShop</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { overflow-x: hidden; }
@@ -63,7 +63,7 @@
         <!-- Navbar bên trái - cố định, không đổi khi chuyển trang -->
         <aside class="admin-sidebar">
             <div class="brand">
-                <a href="{{ route('admin.dashboard') }}">MyShop - Quản trị</a>
+                <a href="{{ route('admin.dashboard') }}">NovaShop - Quản trị</a>
             </div>
             <nav class="nav">
                 <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
