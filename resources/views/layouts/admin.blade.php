@@ -11,7 +11,7 @@
         .admin-sidebar {
             width: 250px;
             min-width: 250px;
-            background: #343a40;
+            background: linear-gradient(180deg, #c62828, #b71c1c);
             color: #fff;
             flex-shrink: 0;
             position: fixed;
@@ -25,32 +25,32 @@
             padding: 1.25rem;
             font-size: 1.25rem;
             font-weight: 600;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.15);
         }
         .admin-sidebar .brand a { color: #fff; text-decoration: none; }
         .admin-sidebar .brand a:hover { color: #fff; opacity: 0.9; }
         .admin-sidebar .nav { flex-direction: column; padding: 1rem 0; }
         .admin-sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.9);
             padding: 0.6rem 1.25rem;
             border-left: 3px solid transparent;
         }
-        .admin-sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .admin-sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
         .admin-sidebar .nav-link.active {
             color: #fff;
-            background: rgba(255,255,255,0.1);
-            border-left-color: #007bff;
+            background: rgba(255,255,255,0.15);
+            border-left-color: #fff;
         }
         .admin-sidebar .nav-divider {
             height: 1px;
             margin: 0.5rem 1rem;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.15);
         }
         .admin-main {
             flex: 1;
             margin-left: 250px;
             padding: 1.5rem 2rem;
-            background: #f8f9fa;
+            background: #ffffff;
             min-height: 100vh;
         }
         .admin-main .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }

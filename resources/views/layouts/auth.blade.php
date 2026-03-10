@@ -12,7 +12,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f7eee7; /* nâu nhạt */
+            background: #fff5f5;
         }
         .auth-wrapper {
             width: 100%;
@@ -21,12 +21,12 @@
         }
         .auth-card {
             border-radius: 0.9rem;
-            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.1);
+            box-shadow: 0 0.5rem 1.5rem rgba(220, 53, 69, 0.15);
             overflow: hidden;
             background: #ffffff;
         }
         .auth-header {
-            background: linear-gradient(90deg, #bf8058, #8d6e63); /* nâu nhạt hơn */
+            background: linear-gradient(90deg, #dc3545, #c62828);
             color: #fff;
             padding: 1rem 1.5rem;
             font-weight: 600;
@@ -46,20 +46,20 @@
         }
         .form-control:hover,
         .form-control:focus {
-            border-color: #bf8058;
-            box-shadow: 0 0 0 0.2rem rgba(191, 128, 88, 0.25);
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
             outline: 0;
         }
         .btn-auth-primary {
-            background: #bf8058;
-            border-color: #bf8058;
+            background: #dc3545;
+            border-color: #dc3545;
             border-radius: 0.6rem;
             font-weight: 500;
             color: #fff;
         }
         .btn-auth-primary:hover {
-            background: #a5663f;
-            border-color: #a5663f;
+            background: #c82333;
+            border-color: #bd2130;
             color: #fff;
         }
     </style>

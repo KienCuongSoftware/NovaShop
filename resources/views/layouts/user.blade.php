@@ -15,17 +15,17 @@
         footer { margin-top: auto; }
 
         main .btn-primary {
-            background: #bf8058;
-            border-color: #bf8058;
+            background: #dc3545;
+            border-color: #dc3545;
             border-radius: 0.5rem;
         }
         main .btn-primary:hover {
-            background: #a5663f;
-            border-color: #a5663f;
+            background: #c82333;
+            border-color: #bd2130;
         }
 
         header .navbar {
-            background: linear-gradient(90deg, #bf8058, #8d6e63); /* nâu nhạt hơn */
+            background: linear-gradient(90deg, #dc3545, #c62828);
         }
         header .navbar .navbar-brand,
         header .navbar .nav-link {
@@ -37,7 +37,7 @@
         }
 
         footer.bg-novashop {
-            background: #8d6e63;
+            background: #c62828;
             color: #fff;
         }
 
@@ -47,19 +47,19 @@
             font-weight: 500;
         }
         .btn-primary.btn-view-detail {
-            background: #bf8058;
-            border-color: #bf8058;
+            background: #dc3545;
+            border-color: #dc3545;
         }
         .btn-primary.btn-view-detail:hover {
-            background: #a5663f;
-            border-color: #a5663f;
+            background: #c82333;
+            border-color: #bd2130;
         }
         .btn-outline-primary.btn-view-detail {
-            color: #bf8058;
-            border-color: #bf8058;
+            color: #dc3545;
+            border-color: #dc3545;
         }
         .btn-outline-primary.btn-view-detail:hover {
-            background: #bf8058;
+            background: #dc3545;
             color: #fff;
         }
 
@@ -108,7 +108,7 @@
         }
         .product-card-price {
             font-weight: 700;
-            color: #4a3428;
+            color: #c62828;
         }
     </style>
 </head>
