@@ -12,7 +12,7 @@
     <div class="card mb-4">
         <div class="card-body text-center">
             @if($product->image)
-                <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-fluid mb-2" style="max-height: 120px; object-fit: contain;">
+                <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-fluid mb-2" style="max-height: 120px; object-fit: contain;" loading="lazy">
             @endif
             <h5 class="card-title">{{ $product->name }}</h5>
             <p class="card-text">{{ Str::limit($product->description, 80) }}</p>

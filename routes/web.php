@@ -28,16 +28,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
 });
 
-// Serve product images from storage
+// Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)
 Route::get('/images/products/{filename}', function (string $filename) {
     $path = 'products/' . $filename;
     if (!Storage::disk('public')->exists($path)) {
         abort(404);
     }
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
     $file = Storage::disk('public')->get($path);
-    $fullPath = Storage::disk('public')->path($path);
-    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
-    return response($file, 200)->header('Content-Type', $mime);
+    return response($file, 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'public, max-age=31536000');
 })->where('filename', '[a-zA-Z0-9._-]+')->name('storage.products.image');
 
 // Route cho người dùng bình thường (đã đăng nhập)
