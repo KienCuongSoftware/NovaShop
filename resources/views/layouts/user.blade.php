@@ -6,7 +6,7 @@
     <title>@yield('title', 'NovaShop')</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 56px; }
+        body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 72px; }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
         .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); border-radius: 0.75rem; overflow: hidden; }
@@ -24,16 +24,184 @@
             border-color: #bd2130;
         }
 
-        header .navbar {
-            background: linear-gradient(90deg, #dc3545, #c62828);
+        header .navbar-shopee {
+            background: #dc3545;
+            padding: 0;
+            flex-wrap: wrap;
         }
-        header .navbar .navbar-brand,
-        header .navbar .nav-link {
+        .navbar-top {
+            width: 100%;
+            padding: 0.5rem 0;
+        }
+        .navbar-top .navbar-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+        }
+        .navbar-top .navbar-brand-wrap {
+            flex-shrink: 0;
+        }
+        .navbar-top .navbar-spacer {
+            flex: 1;
+            min-width: 0.5rem;
+        }
+        .navbar-top .navbar-search-wrap {
+            flex-shrink: 0;
+            width: 100%;
+            max-width: 520px;
+            margin: 0 0.5rem;
+        }
+        @media (max-width: 991px) {
+            .navbar-top .navbar-row { flex-wrap: wrap; }
+            .navbar-top .navbar-spacer { display: none; }
+            .navbar-top .navbar-search-wrap { order: 3; width: 100%; max-width: none; margin: 0.5rem 0 0; }
+        }
+        .navbar-top .navbar-brand,
+        .navbar-top .nav-link {
             color: #fff !important;
         }
-        header .navbar .nav-link.active {
+        .navbar-brand-logo {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: #fff !important;
+            font-size: 2.1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            padding-top: 0.25rem;
+        }
+        .navbar-brand-logo:hover {
+            color: #fff !important;
+            text-decoration: none;
+            opacity: 0.95;
+        }
+        .navbar-brand-logo .navbar-brand-icon {
+            width: 2.6rem;
+            height: 2.6rem;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .navbar-brand-logo .navbar-brand-icon svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .navbar-top .nav-link.active {
             font-weight: 600;
             text-decoration: underline;
+        }
+        .navbar-search-wrap.has-dropdown {
+            position: relative;
+        }
+        .search-history-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 1050;
+            display: none;
+        }
+        .search-history-dropdown.show {
+            display: block;
+        }
+        .search-history-dropdown .dropdown-title {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .search-history-dropdown .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.6rem 1rem;
+            color: #212529;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .search-history-dropdown .dropdown-item:hover {
+            background: #f8f9fa;
+        }
+        .search-history-dropdown .history-item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            color: #212529;
+            font-size: 0.95rem;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        .search-history-dropdown .history-item-row:hover {
+            background: #f8f9fa;
+        }
+        .search-history-dropdown .history-item-row .history-item-text {
+            flex: 1;
+            min-width: 0;
+        }
+        .search-history-dropdown .history-item-row .history-item-delete {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .search-history-dropdown .history-item-row .history-item-delete:hover {
+            text-decoration: underline;
+        }
+        .search-history-dropdown .dropdown-item-clear {
+            color: #6c757d;
+            font-size: 0.85rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .navbar-search-wrap {
+            position: relative;
+            width: 100%;
+        }
+        .navbar-search-wrap .form-control {
+            border-radius: 999px;
+            padding-left: 1.25rem;
+            padding-right: 2.75rem;
+            height: 44px;
+            font-size: 1rem;
+        }
+        .navbar-search-wrap .btn-search-inside {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: #666;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .navbar-search-wrap .btn-search-inside:hover {
+            background: rgba(0,0,0,0.06);
+            color: #333;
+        }
+        .navbar-search-wrap .btn-search-inside svg {
+            width: 18px;
+            height: 18px;
         }
 
         footer.bg-novashop {
@@ -121,41 +289,68 @@
 </head>
 <body>
     <header>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-        <div class="container">
-                <a class="navbar-brand" href="{{ url('/') }}">NovaShop</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item {{ request()->routeIs('welcome') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ url('/') }}">Trang chủ</a>
-                </li>
-                @guest
-                <li class="nav-item">
-                            <a class="nav-link" href="{{ route('register') }}">Đăng ký</a>
-                </li>
-                <li class="nav-item">
-                            <a class="nav-link" href="{{ route('login') }}">Đăng nhập</a>
-                </li>
-                @else
-                @if(auth()->user()->is_admin ?? false)
-                <li class="nav-item">
-                            <a class="nav-link" href="{{ route('admin.dashboard') }}">Quản trị</a>
-                </li>
-                @else
-                <li class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('products.index') }}">Sản phẩm</a>
-                </li>
-                @endif
-                <li class="nav-item">
-                            <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
-                </li>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
-                @endguest
-            </ul>
-        </div>
+    <nav class="navbar navbar-shopee navbar-expand-lg navbar-light fixed-top">
+        {{-- Một hàng: Logo + Ô tìm kiếm + Nav (như Shopee) --}}
+        <div class="navbar-top w-100">
+            <div class="container">
+                <div class="navbar-row">
+                    <div class="navbar-brand-wrap">
+                        <a class="navbar-brand navbar-brand-logo py-0 mb-0" href="{{ url('/') }}" title="Về trang chủ">
+                            <span class="navbar-brand-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                            </span>
+                            <span class="navbar-brand-text">NovaShop</span>
+                        </a>
+                    </div>
+                    <div class="navbar-spacer" aria-hidden="true"></div>
+                    <div class="navbar-search-wrap has-dropdown">
+                        <form action="{{ route('search') }}" method="GET" id="search-form">
+                            <input type="text" name="q" id="search-input" class="form-control" placeholder="Tìm sản phẩm..." value="{{ request('q') }}" aria-label="Tìm kiếm" autocomplete="off">
+                            <button type="submit" class="btn-search-inside" aria-label="Tìm kiếm">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            </button>
+                        </form>
+                        <div class="search-history-dropdown" id="search-history-dropdown" role="listbox">
+                            <div class="dropdown-title">Lịch sử tìm kiếm</div>
+                            <div id="search-history-list"></div>
+                            <button type="button" class="dropdown-item dropdown-item-clear" id="search-history-clear">Xóa lịch sử</button>
+                        </div>
+                    </div>
+                    <div class="navbar-spacer d-none d-lg-block" aria-hidden="true"></div>
+                    <button class="navbar-toggler border-0 py-2 ml-auto" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon" style="filter: brightness(0) invert(1);"></span>
+                    </button>
+                    <div class="collapse navbar-collapse ml-auto" id="navbarNav">
+                        <ul class="navbar-nav ml-auto">
+                            <li class="nav-item {{ request()->routeIs('welcome') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ url('/') }}">Trang chủ</a>
+                            </li>
+                            @guest
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('register') }}">Đăng ký</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('login') }}">Đăng nhập</a>
+                            </li>
+                            @else
+                            @if(auth()->user()->is_admin ?? false)
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('admin.dashboard') }}">Quản trị</a>
+                            </li>
+                            @else
+                            <li class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                                <a class="nav-link" href="{{ route('products.index') }}">Sản phẩm</a>
+                            </li>
+                            @endif
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
+                            </li>
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
+                            @endguest
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
     </header>
@@ -202,6 +397,117 @@
         $(function() {
             setTimeout(function() { $('.alert').alert('close'); }, 3000);
         });
+        (function() {
+            var STORAGE_KEY = 'novashop_search_history';
+            var MAX_ITEMS = 10;
+            var input = document.getElementById('search-input');
+            var form = document.getElementById('search-form');
+            var dropdown = document.getElementById('search-history-dropdown');
+            var listEl = document.getElementById('search-history-list');
+            var clearBtn = document.getElementById('search-history-clear');
+            var hideTimeout = null;
+
+            function getHistory() {
+                try {
+                    var raw = localStorage.getItem(STORAGE_KEY);
+                    return raw ? JSON.parse(raw) : [];
+                } catch (e) { return []; }
+            }
+            function setHistory(arr) {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr.slice(0, MAX_ITEMS)));
+                } catch (e) {}
+            }
+            function addToHistory(q) {
+                q = (q || '').trim();
+                if (!q) return;
+                var arr = getHistory();
+                arr = arr.filter(function(item) { return item !== q; });
+                arr.unshift(q);
+                setHistory(arr);
+            }
+            function removeFromHistory(q) {
+                var arr = getHistory().filter(function(item) { return item !== q; });
+                setHistory(arr);
+                renderHistory();
+            }
+            function renderHistory() {
+                var arr = getHistory();
+                listEl.innerHTML = '';
+                if (arr.length === 0) {
+                    listEl.innerHTML = '<div class="dropdown-item" style="color:#999;cursor:default;">Chưa có lịch sử</div>';
+                    return;
+                }
+                arr.forEach(function(text) {
+                    var row = document.createElement('button');
+                    row.type = 'button';
+                    row.className = 'history-item-row';
+                    row.setAttribute('role', 'option');
+                    var spanText = document.createElement('span');
+                    spanText.className = 'history-item-text';
+                    spanText.textContent = text;
+                    var spanDelete = document.createElement('span');
+                    spanDelete.className = 'history-item-delete';
+                    spanDelete.textContent = 'Xóa';
+                    spanDelete.setAttribute('aria-label', 'Xóa mục này');
+                    row.appendChild(spanText);
+                    row.appendChild(spanDelete);
+                    row.addEventListener('mousedown', function(e) {
+                        if (e.target === spanDelete || spanDelete.contains(e.target)) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        input.value = text;
+                        dropdown.classList.remove('show');
+                        window.location.href = form.action + '?q=' + encodeURIComponent(text);
+                    });
+                    spanDelete.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removeFromHistory(text);
+                    });
+                    listEl.appendChild(row);
+                });
+            }
+            function showDropdown() {
+                clearTimeout(hideTimeout);
+                renderHistory();
+                if (getHistory().length > 0) {
+                    dropdown.classList.add('show');
+                } else {
+                    dropdown.classList.remove('show');
+                }
+            }
+            function hideDropdown() {
+                hideTimeout = setTimeout(function() {
+                    dropdown.classList.remove('show');
+                }, 200);
+            }
+
+            if (input) {
+                input.addEventListener('focus', showDropdown);
+                input.addEventListener('blur', hideDropdown);
+            }
+            if (form) {
+                form.addEventListener('submit', function() {
+                    addToHistory(input.value);
+                });
+            }
+            if (clearBtn) {
+                clearBtn.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    setHistory([]);
+                    renderHistory();
+                });
+            }
+            if (dropdown) {
+                dropdown.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                });
+            }
+            if (input && input.value.trim()) {
+                addToHistory(input.value.trim());
+            }
+        })();
     </script>
     @stack('scripts')
 </body>

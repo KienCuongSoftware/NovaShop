@@ -5,6 +5,9 @@
 @section('content')
 <div class="mb-4">
     <h1 class="mb-4">Chào mừng bạn đến với NovaShop</h1>
+    @if(isset($q) && $q !== '')
+        <p class="text-muted">Kết quả tìm kiếm: <strong>{{ $q }}</strong></p>
+    @endif
 </div>
 
 <div class="row">

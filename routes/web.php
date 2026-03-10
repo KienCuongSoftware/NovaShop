@@ -11,6 +11,7 @@ use App\Http\Controllers\WelcomeController;
 
 // Trang chủ welcome
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
+Route::get('/search', [WelcomeController::class, 'search'])->name('search');
 
 // Xác thực và phân quyền - Route đăng ký và đăng nhập người dùng
 Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register');
