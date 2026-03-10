@@ -1,11 +1,11 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Chi tiết sản phẩm')
 
 @section('content')
 <div class="page-header">
     <h2>Chi tiết sản phẩm</h2>
-    <a class="btn btn-primary" href="{{ route('products.index') }}">Quay lại</a>
+    <a class="btn btn-primary" href="{{ route('admin.products.index') }}">Quay lại</a>
 </div>
 
 <div class="card">

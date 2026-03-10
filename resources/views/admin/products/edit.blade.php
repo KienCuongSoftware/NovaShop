@@ -1,11 +1,11 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Sửa sản phẩm')
 
 @section('content')
 <div class="page-header">
     <h2>Sửa sản phẩm</h2>
-    <a class="btn btn-primary" href="{{ route('products.index') }}">Quay lại</a>
+    <a class="btn btn-primary" href="{{ route('admin.products.index') }}">Quay lại</a>
 </div>
 
 <div class="card">
@@ -20,7 +20,7 @@
             </div>
         @endif
 
-        <form action="{{ route('products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             <div class="form-group">

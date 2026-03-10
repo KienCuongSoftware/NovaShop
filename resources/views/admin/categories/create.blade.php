@@ -1,18 +1,16 @@
-<!-- resources/views/categories/create.blade.php -->
-<!-- Trang thêm danh mục (Create Categories) -->
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Tạo danh mục mới')
 
 @section('content')
 <div class="page-header">
     <h2>Tạo danh mục mới</h2>
-    <a class="btn btn-primary" href="{{ route('categories.index') }}">Quay lại</a>
+    <a class="btn btn-primary" href="{{ route('admin.categories.index') }}">Quay lại</a>
 </div>
 
 <div class="card">
     <div class="card-body">
-        <form action="{{ route('categories.store') }}" method="POST">
+        <form action="{{ route('admin.categories.store') }}" method="POST">
             @csrf
             <div class="form-group">
                 <label for="name"><strong>Tên:</strong></label>

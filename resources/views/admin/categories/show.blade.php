@@ -1,12 +1,11 @@
-<!-- resources/views/categories/show.blade.php -->
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Chi tiết danh mục')
 
 @section('content')
 <div class="page-header">
     <h2>Chi tiết danh mục</h2>
-    <a class="btn btn-primary" href="{{ route('categories.index') }}">Quay lại</a>
+    <a class="btn btn-primary" href="{{ route('admin.categories.index') }}">Quay lại</a>
 </div>
 
 <div class="card">

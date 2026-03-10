@@ -1,18 +1,16 @@
-<!-- resources/views/categories/edit.blade.php -->
-<!-- Trang sửa danh mục (Update Categories) -->
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Sửa danh mục')
 
 @section('content')
 <div class="page-header">
     <h2>Sửa danh mục</h2>
-    <a class="btn btn-primary" href="{{ route('categories.index') }}">Quay lại</a>
+    <a class="btn btn-primary" href="{{ route('admin.categories.index') }}">Quay lại</a>
 </div>
 
 <div class="card">
     <div class="card-body">
-        <form action="{{ route('categories.update', $category->id) }}" method="POST">
+        <form action="{{ route('admin.categories.update', $category->id) }}" method="POST">
             @csrf
             @method('PUT')
             <div class="form-group">

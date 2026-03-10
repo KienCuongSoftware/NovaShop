@@ -9,16 +9,24 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
+    protected function isAdminContext(): bool
+    {
+        return request()->routeIs('admin.*');
+    }
+
     public function index()
     {
         $products = Product::with('category')->latest()->get();
+        if ($this->isAdminContext()) {
+            return view('admin.products.index', compact('products'));
+        }
         return view('products.index', compact('products'));
     }
 
     public function create()
     {
         $categories = Category::orderBy('name')->get();
-        return view('products.create', compact('categories'));
+        return view('admin.products.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -53,11 +61,18 @@ class ProductController extends Controller
 
         Product::create($data);
 
-        return redirect()->route('products.index')
+        return redirect()->route('admin.products.index')
             ->with('success', 'Đã thêm sản phẩm thành công.');
     }
 
     public function show(Product $product)
+    {
+        $product->load('category');
+        return view('admin.products.show', compact('product'));
+    }
+
+    /** Trả về view cho người dùng bình thường */
+    public function show_normal(Product $product)
     {
         $product->load('category');
         return view('products.show', compact('product'));
@@ -66,7 +81,7 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Category::orderBy('name')->get();
-        return view('products.edit', compact('product', 'categories'));
+        return view('admin.products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Product $product)
@@ -103,7 +118,7 @@ class ProductController extends Controller
 
         $product->update($data);
 
-        return redirect()->route('products.index')
+        return redirect()->route('admin.products.index')
             ->with('success', 'Đã cập nhật sản phẩm thành công.');
     }
 
@@ -114,7 +129,7 @@ class ProductController extends Controller
         }
         $product->delete();
 
-        return redirect()->route('products.index')
+        return redirect()->route('admin.products.index')
             ->with('success', 'Đã xóa sản phẩm thành công.');
     }
 }

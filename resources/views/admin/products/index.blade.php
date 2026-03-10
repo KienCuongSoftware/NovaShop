@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Sản phẩm')
 
@@ -6,8 +6,8 @@
 <div class="page-header">
     <h2>Sản phẩm</h2>
     <div>
-        <a class="btn btn-outline-primary mr-2" href="{{ route('categories.index') }}">Danh mục</a>
-        <a class="btn btn-success" href="{{ route('products.create') }}">Thêm sản phẩm</a>
+        <a class="btn btn-outline-primary mr-2" href="{{ route('admin.categories.index') }}">Danh mục</a>
+        <a class="btn btn-success" href="{{ route('admin.products.create') }}">Thêm sản phẩm</a>
     </div>
 </div>
 
@@ -49,9 +49,9 @@
                             @endif
                         </td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('products.show', $product->id) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('products.edit', $product->id) }}">Sửa</a>
-                            <form id="delete-form-{{ $product->id }}" action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline">
+                            <a class="btn btn-info btn-sm" href="{{ route('admin.products.show', $product->id) }}">Xem</a>
+                            <a class="btn btn-primary btn-sm" href="{{ route('admin.products.edit', $product->id) }}">Sửa</a>
+                            <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
                                 <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
@@ -95,7 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var deleteItemName = document.getElementById('deleteItemName');
     var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     var formToDelete = null;
-
     document.querySelectorAll('.btn-delete').forEach(function(btn) {
         btn.addEventListener('click', function() {
             formToDelete = document.getElementById(this.getAttribute('data-form-id'));
@@ -103,11 +102,8 @@ document.addEventListener('DOMContentLoaded', function() {
             $(deleteModal).modal('show');
         });
     });
-
     confirmDeleteBtn.addEventListener('click', function() {
-        if (formToDelete) {
-            formToDelete.submit();
-        }
+        if (formToDelete) formToDelete.submit();
         $(deleteModal).modal('hide');
     });
 });

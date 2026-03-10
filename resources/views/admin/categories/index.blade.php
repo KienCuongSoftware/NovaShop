@@ -1,14 +1,13 @@
-<!-- resources/views/categories/index.blade.php -->
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Danh mục')
 
 @section('content')
 <div class="page-header">
     <h2>Danh mục</h2>
-    <div>
-        <a class="btn btn-outline-primary mr-2" href="{{ route('products.index') }}">Sản phẩm</a>
-        <a class="btn btn-success" href="{{ route('categories.create') }}">Tạo danh mục mới</a>
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <a class="btn btn-outline-primary mr-2" href="{{ route('admin.products.index') }}">Sản phẩm</a>
+        <a class="btn btn-success mr-2" href="{{ route('admin.categories.create') }}">Tạo danh mục mới</a>
     </div>
 </div>
 
@@ -36,9 +35,9 @@
                         <td class="text-center align-middle">{{ $category->id }}</td>
                         <td class="align-middle">{{ $category->name }}</td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('categories.show', $category->id) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('categories.edit', $category->id) }}">Sửa</a>
-                            <form id="delete-form-{{ $category->id }}" action="{{ route('categories.destroy', $category->id) }}" method="POST" class="d-inline">
+                            <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category->id) }}">Xem</a>
+                            <a class="btn btn-primary btn-sm" href="{{ route('admin.categories.edit', $category->id) }}">Sửa</a>
+                            <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
                                 <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $category->id }}" data-name="{{ $category->name }}">Xóa</button>
@@ -52,7 +51,6 @@
     </div>
 </div>
 
-<!-- Modal xác nhận xóa -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -79,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var deleteCategoryName = document.getElementById('deleteCategoryName');
     var confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     var formToDelete = null;
-
     document.querySelectorAll('.btn-delete').forEach(function(btn) {
         btn.addEventListener('click', function() {
             formToDelete = document.getElementById(this.getAttribute('data-form-id'));
@@ -87,11 +84,8 @@ document.addEventListener('DOMContentLoaded', function() {
             $(deleteModal).modal('show');
         });
     });
-
     confirmDeleteBtn.addEventListener('click', function() {
-        if (formToDelete) {
-            formToDelete.submit();
-        }
+        if (formToDelete) formToDelete.submit();
         $(deleteModal).modal('hide');
     });
 });
