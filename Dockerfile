@@ -16,4 +16,7 @@ COPY . .
 RUN curl -sS https://getcomposer.org/installer | php
 RUN php composer.phar install --no-dev --optimize-autoloader
 
-CMD php artisan serve --host=0.0.0.0 --port=10000
+RUN php artisan config:clear
+RUN php artisan cache:clear
+
+CMD php artisan serve --host=0.0.0.0 --port=$PORT
