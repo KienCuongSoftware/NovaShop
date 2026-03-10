@@ -29,7 +29,7 @@
                 <tbody>
                     @forelse ($products as $product)
                     <tr>
-                        <td class="text-center align-middle">{{ $loop->iteration }}</td>
+                        <td class="text-center align-middle">{{ ($products->currentPage() - 1) * $products->perPage() + $loop->iteration }}</td>
                         <td class="align-middle">{{ $product->name }}</td>
                         <td class="align-middle">{{ $product->category->name ?? '—' }}</td>
                         <td class="text-right align-middle">{{ number_format($product->price, 0, ',', '.') }}₫</td>
@@ -60,6 +60,11 @@
             </table>
         </div>
     </div>
+    @if ($products->hasPages())
+    <div class="card-footer">
+        {{ $products->links() }}
+    </div>
+    @endif
 </div>
 
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">

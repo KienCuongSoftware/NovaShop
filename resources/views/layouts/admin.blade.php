@@ -87,9 +87,19 @@
 
         <!-- Nội dung chính - chỉ phần này đổi khi chuyển trang -->
         <main class="admin-main">
-            @if (session('success'))
+            @php
+                $successMessage = session()->pull('success');
+                $errorMessage = session()->pull('error');
+            @endphp
+            @if ($successMessage)
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
+                    {{ $successMessage }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Đóng"><span aria-hidden="true">&times;</span></button>
+                </div>
+            @endif
+            @if ($errorMessage)
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ $errorMessage }}
                     <button type="button" class="close" data-dismiss="alert" aria-label="Đóng"><span aria-hidden="true">&times;</span></button>
                 </div>
             @endif

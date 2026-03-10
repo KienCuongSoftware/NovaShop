@@ -9,7 +9,7 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::oldest()->get();
+        $categories = Category::oldest()->paginate(7);
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -60,6 +60,11 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        if ($category->products()->exists()) {
+            return redirect()->route('admin.categories.index')
+                             ->with('error', 'Không thể xóa danh mục đang có sản phẩm. Vui lòng xóa hoặc chuyển sản phẩm sang danh mục khác trước.');
+        }
+
         $category->delete();
 
         return redirect()->route('admin.categories.index')

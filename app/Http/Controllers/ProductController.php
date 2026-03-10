@@ -16,10 +16,11 @@ class ProductController extends Controller
 
     public function index()
     {
-        $products = Product::with('category')->oldest()->get();
         if ($this->isAdminContext()) {
+            $products = Product::with('category')->oldest()->paginate(7);
             return view('admin.products.index', compact('products'));
         }
+        $products = Product::with('category')->oldest()->get();
         return view('products.index', compact('products'));
     }
 
