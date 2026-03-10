@@ -37,6 +37,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'old_price' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'quantity' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
@@ -55,6 +56,7 @@ class ProductController extends Controller
         $data = $request->only(['category_id', 'name', 'description', 'price', 'quantity']);
         $data['category_id'] = (int) $request->input('category_id');
         $data['is_active'] = $request->boolean('is_active');
+        $data['old_price'] = $request->filled('old_price') ? $request->input('old_price') : null;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
@@ -92,6 +94,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
+            'old_price' => 'nullable|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'quantity' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
@@ -109,6 +112,7 @@ class ProductController extends Controller
 
         $data = $request->only(['category_id', 'name', 'description', 'price', 'quantity']);
         $data['is_active'] = $request->boolean('is_active');
+        $data['old_price'] = $request->filled('old_price') ? $request->input('old_price') : null;
 
         if ($request->hasFile('image')) {
             if ($product->image) {

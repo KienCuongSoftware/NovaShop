@@ -23,7 +23,12 @@
                     <h5 class="card-title product-card-title">{{ $product->name }}</h5>
                     <p class="card-text small product-card-desc">{{ Str::limit($product->description, 80) }}</p>
                 </div>
-                <p class="card-text mb-1 product-card-price">{{ number_format($product->price, 0, ',', '.') }}₫</p>
+                <p class="card-text mb-1">
+                    @if($product->old_price !== null)
+                        <span class="product-card-price-old">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                    @endif
+                    <span class="product-card-price-new">{{ number_format($product->price, 0, ',', '.') }}₫</span>
+                </p>
                 <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                 @auth
                 <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>

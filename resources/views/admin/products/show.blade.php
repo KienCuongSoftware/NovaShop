@@ -20,8 +20,17 @@
             <dt class="col-sm-3">Mô tả:</dt>
             <dd class="col-sm-9">{{ $product->description ?: '—' }}</dd>
 
-            <dt class="col-sm-3">Giá:</dt>
-            <dd class="col-sm-9">{{ number_format($product->price, 0, ',', '.') }}₫</dd>
+            <dt class="col-sm-3">Giá cũ:</dt>
+            <dd class="col-sm-9">
+                @if($product->old_price !== null)
+                    <span style="text-decoration: line-through;" class="text-muted small">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                @else
+                    —
+                @endif
+            </dd>
+
+            <dt class="col-sm-3">Giá mới:</dt>
+            <dd class="col-sm-9"><strong class="text-danger" style="font-size: 1.1rem;">{{ number_format($product->price, 0, ',', '.') }}₫</strong></dd>
 
             <dt class="col-sm-3">Số lượng:</dt>
             <dd class="col-sm-9">{{ $product->quantity }}</dd>

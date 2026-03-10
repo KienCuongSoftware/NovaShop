@@ -106,9 +106,16 @@
             font-weight: 500;
             color: #0d0d0d;
         }
-        .product-card-price {
+        .product-card-price-old {
+            font-size: 0.85rem;
+            color: #888;
+            text-decoration: line-through;
+            margin-right: 0.35rem;
+        }
+        .product-card-price-new {
+            font-size: 1.15rem;
             font-weight: 700;
-            color: #c62828;
+            color: #dc3545;
         }
     </style>
 </head>

@@ -40,13 +40,19 @@
                 <textarea name="description" id="description" class="form-control" rows="3" placeholder="Mô tả sản phẩm">{{ old('description') }}</textarea>
             </div>
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="form-group">
-                        <label for="price"><strong>Giá (₫):</strong></label>
+                        <label for="price"><strong>Giá mới (₫):</strong></label>
                         <input type="number" name="price" id="price" class="form-control" placeholder="0" value="{{ old('price', 0) }}" min="0" step="1000" required>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="old_price"><strong>Giá cũ (₫):</strong></label>
+                        <input type="number" name="old_price" id="old_price" class="form-control" placeholder="Không có" value="{{ old('old_price') }}" min="0" step="1000">
+                    </div>
+                </div>
+                <div class="col-md-4">
                     <div class="form-group">
                         <label for="quantity"><strong>Số lượng:</strong></label>
                         <input type="number" name="quantity" id="quantity" class="form-control" placeholder="0" value="{{ old('quantity', 0) }}" min="0" required>

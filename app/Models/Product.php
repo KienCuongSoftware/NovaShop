@@ -12,6 +12,7 @@ class Product extends Model
         'name',
         'description',
         'price',
+        'old_price',
         'image',
         'quantity',
         'is_active',
@@ -19,6 +20,7 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'old_price' => 'decimal:2',
         'quantity' => 'integer',
         'is_active' => 'boolean',
     ];

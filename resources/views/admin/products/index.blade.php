@@ -20,7 +20,8 @@
                         <th class="text-center" style="width: 60px;">STT</th>
                         <th style="width: 160px;">Tên</th>
                         <th style="width: 120px;">Danh mục</th>
-                        <th class="text-right" style="width: 100px;">Giá</th>
+                        <th class="text-right" style="width: 90px;">Giá cũ</th>
+                        <th class="text-right" style="width: 90px;">Giá mới</th>
                         <th class="text-center" style="width: 80px;">Số lượng</th>
                         <th class="text-center" style="width: 80px;">Hình ảnh</th>
                         <th class="text-center" style="width: 1%; white-space: nowrap;">Thao tác</th>
@@ -32,7 +33,14 @@
                         <td class="text-center align-middle">{{ ($products->currentPage() - 1) * $products->perPage() + $loop->iteration }}</td>
                         <td class="align-middle">{{ $product->name }}</td>
                         <td class="align-middle">{{ $product->category->name ?? '—' }}</td>
-                        <td class="text-right align-middle">{{ number_format($product->price, 0, ',', '.') }}₫</td>
+                        <td class="text-right align-middle small text-muted">
+                            @if($product->old_price !== null)
+                                <span style="text-decoration: line-through;">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td class="text-right align-middle"><strong class="text-danger" style="font-size: 1.05rem;">{{ number_format($product->price, 0, ',', '.') }}₫</strong></td>
                         <td class="text-center align-middle">{{ $product->quantity }}</td>
                         <td class="text-center align-middle">
                             @if($product->image)
@@ -53,7 +61,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
+                        <td colspan="8" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
                     </tr>
                     @endforelse
                 </tbody>
