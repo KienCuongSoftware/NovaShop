@@ -35,9 +35,9 @@
                         </td>
                         <td class="align-middle">{{ $category->name }}</td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category->id) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('admin.categories.edit', $category->id) }}">Sửa</a>
-                            <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category->id) }}" method="POST" class="d-inline">
+                            <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category) }}">Xem</a>
+                            <a class="btn btn-primary btn-sm" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>
+                            <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
                                 <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $category->id }}" data-name="{{ $category->name }}">Xóa</button>

@@ -56,7 +56,7 @@
                 </p>
                 <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                 @auth
-                <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
+                <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
                 @else
                 <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
                 @endauth
@@ -147,7 +147,7 @@
                     </p>
                     <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                     @auth
-                    <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
+                    <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
                     @else
                     <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
                     @endauth

@@ -49,9 +49,9 @@
                             @endif
                         </td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('admin.products.show', $product->id) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('admin.products.edit', $product->id) }}">Sửa</a>
-                            <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline">
+                            <a class="btn btn-info btn-sm" href="{{ route('admin.products.show', $product) }}">Xem</a>
+                            <a class="btn btn-primary btn-sm" href="{{ route('admin.products.edit', $product) }}">Sửa</a>
+                            <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
                                 <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
