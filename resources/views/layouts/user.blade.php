@@ -285,6 +285,79 @@
             font-weight: 700;
             color: #dc3545;
         }
+        /* Div bọc danh mục - nền trắng, mép trái/phải thẳng hàng với lưới sản phẩm (cùng canh với .row) */
+        .categories-wrapper {
+            background: #fff;
+            margin-left: -15px;
+            margin-right: -15px;
+            padding: 1.25rem 15px;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.0625rem 0.125rem rgba(0,0,0,0.05);
+        }
+        /* Danh mục (categories) - dưới header, trên sản phẩm */
+        .categories-section {
+            width: 100%;
+        }
+        .categories-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #212529;
+            letter-spacing: 0.02em;
+            text-align: center;
+        }
+        .categories-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.25rem 1.5rem;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .category-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 5.5rem;
+            min-height: 5rem;
+            padding: 0.6rem 0.4rem;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            color: #212529;
+            text-decoration: none;
+            text-align: center;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .category-item:hover {
+            border-color: #dc3545;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+            color: #212529;
+        }
+        .category-item.active {
+            border-color: #dc3545;
+            background: #fff5f5;
+            color: #c82333;
+        }
+        .category-item-icon {
+            width: 2rem;
+            height: 2rem;
+            margin-bottom: 0.35rem;
+            color: #6c757d;
+        }
+        .category-item.active .category-item-icon {
+            color: #dc3545;
+        }
+        .category-item-icon svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .category-item-name {
+            font-size: 0.75rem;
+            font-weight: 500;
+            line-height: 1.2;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>

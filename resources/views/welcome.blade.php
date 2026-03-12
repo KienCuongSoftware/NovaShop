@@ -10,6 +10,31 @@
     @endif
 </div>
 
+{{-- Danh mục (dưới header, trên danh sách sản phẩm) - div nền trắng thẳng hàng với lưới sản phẩm --}}
+@if(isset($categories) && $categories->isNotEmpty())
+<div class="categories-wrapper mb-4">
+    <section class="categories-section">
+        <h2 class="categories-section-title mb-3">DANH MỤC</h2>
+        <div class="categories-grid">
+        <a href="{{ isset($q) ? route('search', array_filter(['q' => $q])) : url('/') }}" class="category-item {{ !isset($categoryId) || $categoryId === null ? 'active' : '' }}">
+            <span class="category-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </span>
+            <span class="category-item-name">Tất cả</span>
+        </a>
+        @foreach($categories as $category)
+        <a href="{{ isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $category->id])) : url('/?category_id=' . $category->id) }}" class="category-item {{ (isset($categoryId) && (int)$categoryId === (int)$category->id) ? 'active' : '' }}">
+            <span class="category-item-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </span>
+            <span class="category-item-name">{{ $category->name }}</span>
+        </a>
+        @endforeach
+        </div>
+    </section>
+</div>
+@endif
+
 <div class="row">
     @forelse ($products as $product)
     <div class="col-sm-6 col-md-4 col-lg-3 mb-4">
