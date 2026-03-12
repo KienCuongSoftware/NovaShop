@@ -5,7 +5,7 @@
 @section('content')
 <div class="page-header">
     <h2>Chi tiết danh mục</h2>
-    <a class="btn btn-primary" href="{{ route('admin.categories.index') }}">Quay lại</a>
+    <a class="btn btn-primary" href="{{ route('admin.categories.index', ['page' => session('admin.categories.page', 1)]) }}">Quay lại</a>
 </div>
 
 <div class="card">

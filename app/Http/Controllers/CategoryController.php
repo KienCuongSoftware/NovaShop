@@ -11,6 +11,7 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::oldest()->paginate(7);
+        session(['admin.categories.page' => $categories->currentPage()]);
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -38,7 +39,8 @@ class CategoryController extends Controller
 
         Category::create($data);
 
-        return redirect()->route('admin.categories.index')
+        $page = session('admin.categories.page', 1);
+        return redirect()->route('admin.categories.index', ['page' => $page])
                          ->with('success', 'Đã tạo danh mục thành công.');
     }
 
@@ -74,14 +76,16 @@ class CategoryController extends Controller
 
         $category->update($data);
 
-        return redirect()->route('admin.categories.index')
+        $page = session('admin.categories.page', 1);
+        return redirect()->route('admin.categories.index', ['page' => $page])
                          ->with('success', 'Đã cập nhật danh mục thành công.');
     }
 
     public function destroy(Category $category)
     {
         if ($category->products()->exists()) {
-            return redirect()->route('admin.categories.index')
+            $page = session('admin.categories.page', 1);
+            return redirect()->route('admin.categories.index', ['page' => $page])
                              ->with('error', 'Không thể xóa danh mục đang có sản phẩm. Vui lòng xóa hoặc chuyển sản phẩm sang danh mục khác trước.');
         }
 
@@ -90,7 +94,8 @@ class CategoryController extends Controller
         }
         $category->delete();
 
-        return redirect()->route('admin.categories.index')
+        $page = session('admin.categories.page', 1);
+        return redirect()->route('admin.categories.index', ['page' => $page])
                          ->with('success', 'Đã xóa danh mục thành công.');
     }
 }

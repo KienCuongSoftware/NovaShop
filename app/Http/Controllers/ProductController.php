@@ -14,10 +14,11 @@ class ProductController extends Controller
         return request()->routeIs('admin.*');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         if ($this->isAdminContext()) {
             $products = Product::with('category')->oldest()->paginate(7);
+            session(['admin.products.page' => $products->currentPage()]);
             return view('admin.products.index', compact('products'));
         }
         $products = Product::with('category')->oldest()->get();
@@ -64,7 +65,8 @@ class ProductController extends Controller
 
         Product::create($data);
 
-        return redirect()->route('admin.products.index')
+        $page = session('admin.products.page', 1);
+        return redirect()->route('admin.products.index', ['page' => $page])
             ->with('success', 'Đã thêm sản phẩm thành công.');
     }
 
@@ -123,7 +125,8 @@ class ProductController extends Controller
 
         $product->update($data);
 
-        return redirect()->route('admin.products.index')
+        $page = session('admin.products.page', 1);
+        return redirect()->route('admin.products.index', ['page' => $page])
             ->with('success', 'Đã cập nhật sản phẩm thành công.');
     }
 
@@ -134,7 +137,8 @@ class ProductController extends Controller
         }
         $product->delete();
 
-        return redirect()->route('admin.products.index')
+        $page = session('admin.products.page', 1);
+        return redirect()->route('admin.products.index', ['page' => $page])
             ->with('success', 'Đã xóa sản phẩm thành công.');
     }
 }
