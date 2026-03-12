@@ -92,6 +92,13 @@
             padding: 0.5rem 0.85rem;
             font-size: 1rem;
         }
+        .admin-main .badge-role {
+            min-width: 4.5rem;
+            padding: 0.45rem 0.75rem;
+            font-size: 0.95rem;
+            display: inline-block;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +117,9 @@
                 </a>
                 <a class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}" href="{{ route('admin.categories.index') }}">
                     Danh mục
+                </a>
+                <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                    Người dùng
                 </a>
                 <div class="nav-divider"></div>
                 <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();">

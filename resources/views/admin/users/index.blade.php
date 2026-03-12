@@ -1,12 +1,12 @@
 @extends('layouts.admin')
 
-@section('title', 'Sản phẩm')
+@section('title', 'Người dùng')
 
 @section('content')
 <div class="page-header">
-    <h2>Sản phẩm</h2>
+    <h2>Người dùng</h2>
     <div>
-        <a class="btn btn-success" href="{{ route('admin.products.create') }}">Thêm sản phẩm</a>
+        <a class="btn btn-success" href="{{ route('admin.users.create') }}">Thêm người dùng</a>
     </div>
 </div>
 
@@ -17,60 +17,48 @@
                 <thead class="thead-light">
                     <tr>
                         <th class="text-center" style="width: 60px;">STT</th>
-                        <th style="width: 160px;">Tên</th>
-                        <th style="width: 120px;">Danh mục</th>
-                        <th class="text-right" style="width: 90px;">Giá cũ</th>
-                        <th class="text-right" style="width: 90px;">Giá mới</th>
-                        <th class="text-center" style="width: 80px;">Số lượng</th>
-                        <th class="text-center" style="width: 80px;">Hình ảnh</th>
+                        <th style="width: 180px;">Tên</th>
+                        <th style="width: 220px;">Email</th>
+                        <th class="text-center" style="width: 100px;">Quản trị</th>
                         <th class="text-center" style="width: 1%; white-space: nowrap;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($products as $product)
+                    @forelse ($users as $user)
                     <tr>
-                        <td class="text-center align-middle">{{ ($products->currentPage() - 1) * $products->perPage() + $loop->iteration }}</td>
-                        <td class="align-middle">{{ $product->name }}</td>
-                        <td class="align-middle">{{ $product->category->name ?? '—' }}</td>
-                        <td class="text-right align-middle small text-muted">
-                            @if($product->old_price !== null)
-                                <span style="text-decoration: line-through;">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
-                            @else
-                                —
-                            @endif
-                        </td>
-                        <td class="text-right align-middle"><strong class="text-danger" style="font-size: 1.05rem;">{{ number_format($product->price, 0, ',', '.') }}₫</strong></td>
-                        <td class="text-center align-middle">{{ $product->quantity }}</td>
+                        <td class="text-center align-middle">{{ ($users->currentPage() - 1) * $users->perPage() + $loop->iteration }}</td>
+                        <td class="align-middle">{{ $user->name }}</td>
+                        <td class="align-middle">{{ $user->email }}</td>
                         <td class="text-center align-middle">
-                            @if($product->image)
-                                <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-height: 40px; max-width: 50px; object-fit: cover;" loading="lazy" width="50" height="40" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22%23ddd%22%3E%3Crect width=%2224%22 height=%2224%22/%3E%3C/svg%3E';">
+                            @if($user->is_admin)
+                                <span class="badge badge-danger badge-role">Có</span>
                             @else
-                                <span class="text-muted">—</span>
+                                <span class="badge badge-secondary badge-role">Không</span>
                             @endif
                         </td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('admin.products.show', $product->id) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('admin.products.edit', $product->id) }}">Sửa</a>
-                            <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline">
+                            <a class="btn btn-info btn-sm" href="{{ route('admin.users.show', $user->id) }}">Xem</a>
+                            <a class="btn btn-primary btn-sm" href="{{ route('admin.users.edit', $user->id) }}">Sửa</a>
+                            <form id="delete-form-{{ $user->id }}" action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
+                                <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $user->id }}" data-name="{{ $user->name }}">Xóa</button>
                             </form>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
+                        <td colspan="5" class="text-center text-muted py-4">Chưa có người dùng nào.</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
-    @if ($products->hasPages())
+    @if ($users->hasPages())
     <div class="card-footer">
         @php
-            $paginator = $products;
+            $paginator = $users;
             $current = $paginator->currentPage();
             $last = $paginator->lastPage();
             $elements = [];
@@ -126,7 +114,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">Bạn có chắc muốn xóa sản phẩm <strong id="deleteItemName"></strong>?</p>
+                <p class="mb-0">Bạn có chắc muốn xóa người dùng <strong id="deleteItemName"></strong>?</p>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>

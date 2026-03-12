@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
 
 // Favicon: Laravel phục vụ trực tiếp để chắc chắn hiển thị trên mọi trang
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
     // Đặt tiền tố 'admin' cho tất cả các route của categories
     Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
+    Route::resource('/admin/users', UserController::class, ['as' => 'admin']);
 });
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)

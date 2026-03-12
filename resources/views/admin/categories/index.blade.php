@@ -6,8 +6,7 @@
 <div class="page-header">
     <h2>Danh mục</h2>
     <div class="d-flex align-items-center flex-wrap gap-2">
-        <a class="btn btn-outline-primary mr-2" href="{{ route('admin.products.index') }}">Sản phẩm</a>
-        <a class="btn btn-success mr-2" href="{{ route('admin.categories.create') }}">Tạo danh mục mới</a>
+        <a class="btn btn-success" href="{{ route('admin.categories.create') }}">Tạo danh mục mới</a>
     </div>
 </div>
 
