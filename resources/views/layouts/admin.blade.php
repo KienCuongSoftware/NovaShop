@@ -58,7 +58,15 @@
         .admin-main .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
-        /* Phân trang màu đỏ */
+        /* Phân trang: căn giữa, màu đỏ */
+        .admin-main .card-footer {
+            display: flex;
+            justify-content: center;
+        }
+        .admin-main .pagination {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         .admin-main .pagination .page-link {
             color: #dc3545;
             border-color: #dc3545;
@@ -79,6 +87,10 @@
             border-color: #dee2e6;
             background: #fff;
             opacity: 0.6;
+        }
+        .admin-main .pagination .page-link {
+            padding: 0.5rem 0.85rem;
+            font-size: 1rem;
         }
     </style>
 </head>

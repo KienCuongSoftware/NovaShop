@@ -377,7 +377,11 @@
             line-height: 1.2;
             word-break: break-word;
         }
-        /* Phân trang màu đỏ */
+        /* Phân trang: căn giữa, màu đỏ */
+        main .pagination {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         main .pagination .page-link {
             color: #dc3545;
             border-color: #dc3545;
@@ -398,6 +402,10 @@
             border-color: #dee2e6;
             background: #fff;
             opacity: 0.6;
+        }
+        main .pagination .page-link {
+            padding: 0.5rem 0.85rem;
+            font-size: 1rem;
         }
     </style>
 </head>
