@@ -76,10 +76,18 @@ class ProductController extends Controller
         return view('admin.products.show', compact('product'));
     }
 
-    /** Trả về view cho người dùng bình thường */
+    /** Trả về view cho người dùng bình thường; lưu hành vi xem để gợi ý. */
     public function show_normal(Product $product)
     {
         $product->load('category');
+        $recentIds = session('recent_product_ids', []);
+        $recentIds = array_filter(array_unique(array_merge([$product->id], $recentIds)));
+        session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);
+        if ($product->category_id) {
+            $catIds = session('recent_category_ids', []);
+            $catIds = array_filter(array_unique(array_merge([$product->category_id], $catIds)));
+            session(['recent_category_ids' => array_slice($catIds, 0, 5)]);
+        }
         return view('products.show', compact('product'));
     }
 

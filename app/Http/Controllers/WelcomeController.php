@@ -9,6 +9,24 @@ use Illuminate\Support\Facades\Auth;
 
 class WelcomeController extends Controller
 {
+    /** Gợi ý sản phẩm dựa trên danh mục đã xem (session). */
+    protected function getSuggestedProducts(): \Illuminate\Database\Eloquent\Collection
+    {
+        $excludeIds = session('recent_product_ids', []);
+        $categoryIds = session('recent_category_ids', []);
+
+        $query = Product::with('category')
+            ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds));
+
+        if (!empty($categoryIds)) {
+            $query->whereIn('category_id', $categoryIds)->latest();
+        } else {
+            $query->latest();
+        }
+
+        return $query->limit(8)->get();
+    }
+
     /**
      * Trang chủ: hiển thị tất cả sản phẩm (không lọc danh mục).
      */
@@ -20,8 +38,9 @@ class WelcomeController extends Controller
 
         $categories = Category::orderBy('name')->get();
         $products = Product::with('category')->latest()->paginate(12);
+        $suggestedProducts = $this->getSuggestedProducts();
 
-        return view('welcome', compact('products', 'categories'));
+        return view('welcome', compact('products', 'categories', 'suggestedProducts'));
     }
 
     /**
@@ -38,8 +57,9 @@ class WelcomeController extends Controller
             ->where('category_id', $category->id)
             ->latest()
             ->paginate(12);
+        $suggestedProducts = $this->getSuggestedProducts();
 
-        return view('welcome', compact('products', 'categories', 'category'));
+        return view('welcome', compact('products', 'categories', 'category', 'suggestedProducts'));
     }
 
     public function search(Request $request)
@@ -76,6 +96,7 @@ class WelcomeController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('welcome', compact('products', 'categories', 'q', 'categoryId'));
+        $suggestedProducts = $this->getSuggestedProducts();
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts'));
     }
 }

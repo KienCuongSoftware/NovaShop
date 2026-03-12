@@ -73,4 +73,45 @@
 <div class="d-flex justify-content-center mt-4">
     {{ $products->links() }}
 </div>
+
+@if(isset($suggestedProducts) && $suggestedProducts->isNotEmpty())
+<section class="suggested-today mt-5 pt-4 border-top">
+    <div class="d-flex justify-content-center mb-4">
+        <span class="btn btn-danger btn-lg rounded-pill px-4 py-2">Gợi ý hôm nay</span>
+    </div>
+    <div class="row">
+        @foreach($suggestedProducts as $product)
+        <div class="col-6 col-md-4 col-lg-3 mb-4">
+            <div class="card h-100 product-card">
+                <div class="card-body text-left d-flex flex-column">
+                    <div class="product-card-img mb-2">
+                        @if($product->image)
+                            <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-fluid" loading="lazy">
+                        @else
+                            <div class="bg-light h-100 d-flex align-items-center justify-content-center text-muted small">Không có ảnh</div>
+                        @endif
+                    </div>
+                    <div class="product-card-content">
+                        <h5 class="card-title product-card-title">{{ $product->name }}</h5>
+                        <p class="card-text small product-card-desc">{{ Str::limit($product->description, 80) }}</p>
+                    </div>
+                    <p class="card-text mb-1">
+                        @if($product->old_price !== null)
+                            <span class="product-card-price-old">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                        @endif
+                        <span class="product-card-price-new">{{ number_format($product->price, 0, ',', '.') }}₫</span>
+                    </p>
+                    <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
+                    @auth
+                    <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
+                    @else
+                    <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
+                    @endauth
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</section>
+@endif
 @endsection
