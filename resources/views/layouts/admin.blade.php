@@ -58,6 +58,28 @@
         .admin-main .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
+        /* Phân trang màu đỏ */
+        .admin-main .pagination .page-link {
+            color: #dc3545;
+            border-color: #dc3545;
+            background: #fff;
+        }
+        .admin-main .pagination .page-link:hover {
+            color: #fff;
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        .admin-main .pagination .page-item.active .page-link {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .admin-main .pagination .page-item.disabled .page-link {
+            color: #dc3545;
+            border-color: #dee2e6;
+            background: #fff;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>

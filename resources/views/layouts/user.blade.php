@@ -377,6 +377,28 @@
             line-height: 1.2;
             word-break: break-word;
         }
+        /* Phân trang màu đỏ */
+        main .pagination .page-link {
+            color: #dc3545;
+            border-color: #dc3545;
+            background: #fff;
+        }
+        main .pagination .page-link:hover {
+            color: #fff;
+            background: #dc3545;
+            border-color: #dc3545;
+        }
+        main .pagination .page-item.active .page-link {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        main .pagination .page-item.disabled .page-link {
+            color: #dc3545;
+            border-color: #dee2e6;
+            background: #fff;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
