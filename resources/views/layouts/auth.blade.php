@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'NovaShop - Tài khoản')</title>
+<link rel="icon" href="{{ url('/favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {

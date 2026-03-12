@@ -9,8 +9,26 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WelcomeController;
 
-// Trang chủ welcome
+// Favicon: Laravel phục vụ trực tiếp để chắc chắn hiển thị trên mọi trang
+Route::get('/favicon.ico', function () {
+    $path = public_path('favicon.ico');
+    if (file_exists($path) && filesize($path) > 0) {
+        return response()->file($path, ['Content-Type' => 'image/x-icon', 'Cache-Control' => 'public, max-age=86400']);
+    }
+    abort(404);
+});
+Route::get('/favicon.svg', function () {
+    $path = public_path('favicon.svg');
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'public, max-age=86400']);
+});
+
+// Trang chủ welcome (tất cả sản phẩm)
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
+// Trang danh sách sản phẩm theo danh mục (giống Shopee)
+Route::get('/categories/{category}', [WelcomeController::class, 'categoryProducts'])->name('category.products');
 Route::get('/search', [WelcomeController::class, 'search'])->name('search');
 
 // Xác thực và phân quyền - Route đăng ký và đăng nhập người dùng
@@ -43,6 +61,21 @@ Route::get('/images/products/{filename}', function (string $filename) {
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
 })->where('filename', '[a-zA-Z0-9._-]+')->name('storage.products.image');
+
+// Serve category images from storage/app/public/categories
+Route::get('/images/categories/{filename}', function (string $filename) {
+    $path = 'categories/' . $filename;
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+    $file = Storage::disk('public')->get($path);
+    return response($file, 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'public, max-age=31536000');
+})->where('filename', '[a-zA-Z0-9._-]+')->name('storage.categories.image');
 
 // Route cho người dùng bình thường (đã đăng nhập)
 Route::middleware(['auth'])->group(function () {

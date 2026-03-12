@@ -3,31 +3,28 @@
 @section('title', 'NovaShop')
 
 @section('content')
-<div class="mb-4">
-    <h1 class="mb-4">Chào mừng bạn đến với NovaShop</h1>
-    @if(isset($q) && $q !== '')
-        <p class="text-muted">Kết quả tìm kiếm: <strong>{{ $q }}</strong></p>
-    @endif
+@if(isset($q) && $q !== '')
+<div class="mb-3">
+    <p class="text-muted mb-0">Kết quả tìm kiếm: <strong>{{ $q }}</strong></p>
 </div>
+@endif
 
-{{-- Danh mục (dưới header, trên danh sách sản phẩm) - div nền trắng thẳng hàng với lưới sản phẩm --}}
+{{-- Danh mục --}}
 @if(isset($categories) && $categories->isNotEmpty())
 <div class="categories-wrapper mb-4">
     <section class="categories-section">
         <h2 class="categories-section-title mb-3">DANH MỤC</h2>
         <div class="categories-grid">
-        <a href="{{ isset($q) ? route('search', array_filter(['q' => $q])) : url('/') }}" class="category-item {{ !isset($categoryId) || $categoryId === null ? 'active' : '' }}">
-            <span class="category-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        @foreach($categories as $cat)
+        <a href="{{ isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $cat->id])) : route('category.products', $cat) }}" class="category-item {{ (isset($category) && (int)$category->id === (int)$cat->id) || (isset($categoryId) && (int)$categoryId === (int)$cat->id) ? 'active' : '' }}">
+            <span class="category-item-icon category-item-icon-img">
+                @if($cat->image)
+                    <img src="/images/categories/{{ basename($cat->image) }}" alt="{{ $cat->name }}" loading="lazy">
+                @else
+                    <span class="category-item-icon-placeholder" aria-hidden="true"></span>
+                @endif
             </span>
-            <span class="category-item-name">Tất cả</span>
-        </a>
-        @foreach($categories as $category)
-        <a href="{{ isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $category->id])) : url('/?category_id=' . $category->id) }}" class="category-item {{ (isset($categoryId) && (int)$categoryId === (int)$category->id) ? 'active' : '' }}">
-            <span class="category-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            </span>
-            <span class="category-item-name">{{ $category->name }}</span>
+            <span class="category-item-name">{{ $cat->name }}</span>
         </a>
         @endforeach
         </div>

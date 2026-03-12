@@ -18,6 +18,7 @@
                 <thead class="thead-light">
                     <tr>
                         <th class="text-center" style="width: 80px;">STT</th>
+                        <th class="text-center" style="width: 70px;">Ảnh</th>
                         <th style="width: 200px; max-width: 200px;">Tên</th>
                         <th class="text-center" style="width: 1%; white-space: nowrap;">Thao tác</th>
                     </tr>
@@ -26,6 +27,13 @@
                     @forelse ($categories as $category)
                     <tr>
                         <td class="text-center align-middle">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</td>
+                        <td class="text-center align-middle">
+                            @if($category->image)
+                                <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="img-thumbnail" style="max-height: 40px; max-width: 50px; object-fit: contain;">
+                            @else
+                                <span class="text-muted small">—</span>
+                            @endif
+                        </td>
                         <td class="align-middle">{{ $category->name }}</td>
                         <td class="text-center align-middle text-nowrap">
                             <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category->id) }}">Xem</a>
@@ -39,7 +47,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="3" class="text-center text-muted py-4">Chưa có danh mục nào.</td>
+                        <td colspan="4" class="text-center text-muted py-4">Chưa có danh mục nào.</td>
                     </tr>
                     @endforelse
                 </tbody>

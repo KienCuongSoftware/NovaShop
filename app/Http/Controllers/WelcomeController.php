@@ -9,23 +9,37 @@ use Illuminate\Support\Facades\Auth;
 
 class WelcomeController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Trang chủ: hiển thị tất cả sản phẩm (không lọc danh mục).
+     */
+    public function index()
     {
-        // Admin không vào được trang welcome — chuyển về trang quản trị
         if (Auth::check() && Auth::user()->is_admin) {
             return redirect()->route('admin.dashboard');
         }
 
         $categories = Category::orderBy('name')->get();
-        $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
+        $products = Product::with('category')->latest()->paginate(12);
 
+        return view('welcome', compact('products', 'categories'));
+    }
+
+    /**
+     * Trang danh sách sản phẩm theo danh mục (giống Shopee).
+     */
+    public function categoryProducts(Category $category)
+    {
+        if (Auth::check() && Auth::user()->is_admin) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $categories = Category::orderBy('name')->get();
         $products = Product::with('category')
-            ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->where('category_id', $category->id)
             ->latest()
-            ->paginate(12)
-            ->withQueryString();
+            ->paginate(12);
 
-        return view('welcome', compact('products', 'categories', 'categoryId'));
+        return view('welcome', compact('products', 'categories', 'category'));
     }
 
     public function search(Request $request)

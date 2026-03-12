@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'NovaShop')</title>
+<link rel="icon" href="{{ url('/favicon.svg') }}" type="image/svg+xml">
+    <link rel="icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 72px; }
@@ -308,7 +310,7 @@
         .categories-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 1.25rem 1.5rem;
+            gap: 0.5rem 0.75rem;
             justify-content: space-between;
             width: 100%;
         }
@@ -317,9 +319,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            width: 5.5rem;
-            min-height: 5rem;
-            padding: 0.6rem 0.4rem;
+            width: 7.5rem;
+            min-height: 6.5rem;
+            padding: 0.75rem 0.5rem;
             background: #fff;
             border: 1px solid #e9ecef;
             border-radius: 8px;
@@ -339,9 +341,9 @@
             color: #c82333;
         }
         .category-item-icon {
-            width: 2rem;
-            height: 2rem;
-            margin-bottom: 0.35rem;
+            width: 2.75rem;
+            height: 2.75rem;
+            margin-bottom: 0.4rem;
             color: #6c757d;
         }
         .category-item.active .category-item-icon {
@@ -352,8 +354,25 @@
             height: 100%;
             display: block;
         }
+        .category-item-icon-img {
+            overflow: hidden;
+            border-radius: 4px;
+        }
+        .category-item-icon-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .category-item-icon-placeholder {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
         .category-item-name {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 500;
             line-height: 1.2;
             word-break: break-word;
@@ -363,7 +382,6 @@
 <body>
     <header>
     <nav class="navbar navbar-shopee navbar-expand-lg navbar-light fixed-top">
-        {{-- Một hàng: Logo + Ô tìm kiếm + Nav (như Shopee) --}}
         <div class="navbar-top w-100">
             <div class="container">
                 <div class="navbar-row">
