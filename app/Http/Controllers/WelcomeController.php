@@ -30,36 +30,39 @@ class WelcomeController extends Controller
     /**
      * Trang chủ: hiển thị tất cả sản phẩm (không lọc danh mục).
      */
-    public function index()
+    public function index(Request $request)
     {
         if (Auth::check() && Auth::user()->is_admin) {
             return redirect()->route('admin.dashboard');
         }
 
         $categories = Category::orderBy('name')->get();
-        $products = Product::with('category')->inRandomOrder()->paginate(12);
+        $products = $this->buildProductQuery(null, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
+        $currentSort = $this->getSortParam($request);
+        $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
+        $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
 
-        return view('welcome', compact('products', 'categories', 'suggestedProducts'));
+        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
     }
 
     /**
      * Trang danh sách sản phẩm theo danh mục (giống Shopee).
      */
-    public function categoryProducts(Category $category)
+    public function categoryProducts(Request $request, Category $category)
     {
         if (Auth::check() && Auth::user()->is_admin) {
             return redirect()->route('admin.dashboard');
         }
 
         $categories = Category::orderBy('name')->get();
-        $products = Product::with('category')
-            ->where('category_id', $category->id)
-            ->latest()
-            ->paginate(12);
+        $products = $this->buildProductQuery($category->id, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
+        $currentSort = $this->getSortParam($request);
+        $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
+        $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
 
-        return view('welcome', compact('products', 'categories', 'category', 'suggestedProducts'));
+        return view('welcome', compact('products', 'categories', 'category', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
     }
 
     public function search(Request $request)
@@ -73,7 +76,7 @@ class WelcomeController extends Controller
         $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
 
         $products = Product::with('category')
-            ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId))
+            ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
             ->when($q !== '', function ($query) use ($q) {
                 $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
                 $query->where(function ($qry) use ($esc, $q) {
@@ -91,12 +94,59 @@ class WelcomeController extends Controller
                                 });
                         });
                 });
-            })
-            ->inRandomOrder()
-            ->paginate(12)
-            ->withQueryString();
+            });
 
+        $products = $this->applyPriceFilter($products, $request);
+        $products = $this->applySort($products, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
-        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts'));
+        $currentSort = $this->getSortParam($request);
+        $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
+        $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
+
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
+    }
+
+    /** Lấy tham số sort từ request. */
+    protected function getSortParam(Request $request): string
+    {
+        $sort = trim((string) $request->input('sort', ''));
+        $allowed = ['popular', 'newest', 'bestselling', 'price_asc', 'price_desc'];
+        return in_array($sort, $allowed) ? $sort : 'popular';
+    }
+
+    /** Xây query sản phẩm với filter danh mục, giá và sort. */
+    protected function buildProductQuery(?int $categoryId, Request $request)
+    {
+        $query = Product::with('category')
+            ->when($categoryId !== null, fn ($q) => $q->where('category_id', $categoryId));
+        $query = $this->applyPriceFilter($query, $request);
+        return $this->applySort($query, $request);
+    }
+
+    /** Áp dụng lọc theo khoảng giá. */
+    protected function applyPriceFilter($query, Request $request)
+    {
+        $min = $request->filled('price_min') ? (float) $request->input('price_min') : null;
+        $max = $request->filled('price_max') ? (float) $request->input('price_max') : null;
+        if ($min !== null && $min > 0) {
+            $query->where('price', '>=', $min);
+        }
+        if ($max !== null && $max > 0) {
+            $query->where('price', '<=', $max);
+        }
+        return $query;
+    }
+
+    /** Áp dụng sắp xếp theo tham số sort. */
+    protected function applySort($query, Request $request)
+    {
+        $sort = $this->getSortParam($request);
+        return match ($sort) {
+            'newest' => $query->latest(),
+            'bestselling' => $query->orderByDesc('quantity'),
+            'price_asc' => $query->orderBy('price'),
+            'price_desc' => $query->orderByDesc('price'),
+            default => $query->inRandomOrder(),
+        };
     }
 }
