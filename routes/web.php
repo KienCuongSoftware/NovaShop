@@ -34,6 +34,15 @@ Route::get('/all-categories', [WelcomeController::class, 'allCategories'])->name
 // Trang danh sách sản phẩm theo danh mục
 Route::get('/categories/{category}', [WelcomeController::class, 'categoryProducts'])->name('category.products');
 Route::get('/search', [WelcomeController::class, 'search'])->name('search');
+Route::post('/search-by-image', [WelcomeController::class, 'searchByImage'])->name('search.by.image');
+Route::get('/clear-search-image', function () {
+    $path = session('searched_image_path');
+    if ($path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+    }
+    session()->forget('searched_image_path');
+    return redirect()->back();
+})->name('search.clear.image');
 
 // Xác thực và phân quyền - Route đăng ký và đăng nhập người dùng
 Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register');
@@ -41,6 +50,8 @@ Route::post('register', [AuthController::class, 'register']);
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
 // Quản lý tài khoản và giỏ hàng - cho người dùng đã đăng nhập
 Route::middleware(['auth'])->group(function () {
@@ -61,6 +72,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
     Route::resource('/admin/users', UserController::class, ['as' => 'admin']);
 });
+
+// Serve temp images (search-by-image preview)
+Route::get('/images/temp/{filename}', function (string $filename) {
+    $path = 'temp/' . $filename;
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+    $file = Storage::disk('public')->get($path);
+    return response($file, 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'no-cache');
+})->where('filename', '[a-zA-Z0-9._-]+');
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)
 Route::get('/images/products/{filename}', function (string $filename) {

@@ -53,6 +53,7 @@
             outline: 0;
         }
         .btn-auth-primary {
+            width: 100%;
             background: #dc3545;
             border-color: #dc3545;
             border-radius: 0.6rem;
@@ -63,6 +64,26 @@
             background: #c82333;
             border-color: #bd2130;
             color: #fff;
+        }
+        .btn-google {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.6rem;
+            background: #fff;
+            color: #333;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .btn-google:hover {
+            background: #f8f9fa;
+            border-color: #ccc;
+            color: #333;
         }
         .alert-toast-container {
             position: fixed;
@@ -84,13 +105,22 @@
 <body>
     @php
         $authSuccess = session()->pull('success');
+        $authError = session()->pull('error');
         $authErrors = $errors->any();
     @endphp
-    @if ($authSuccess || $authErrors)
+    @if ($authSuccess || $authError || $authErrors)
     <div class="alert-toast-container">
         @if ($authSuccess)
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 {{ $authSuccess }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+        @if ($authError)
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ $authError }}
                 <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
                     <span aria-hidden="true">&times;</span>
                 </button>

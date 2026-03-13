@@ -6,6 +6,10 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Jenssegers\ImageHash\ImageHash;
+use Jenssegers\ImageHash\Implementations\DifferenceHash;
 
 class WelcomeController extends Controller
 {
@@ -117,6 +121,167 @@ class WelcomeController extends Controller
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
 
         return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
+    }
+
+    /**
+     * Lấy nhãn từ ảnh qua Google Vision API.
+     *
+     * @return array<string> Các nhãn (labels) mô tả nội dung ảnh
+     */
+    protected function getImageLabelsFromVision(string $imagePath): array
+    {
+        $apiKey = config('services.google_vision.api_key');
+        if (empty($apiKey)) {
+            return [];
+        }
+
+        $imageData = base64_encode(Storage::disk('public')->get($imagePath));
+
+        $response = Http::timeout(10)->post(
+            'https://vision.googleapis.com/v1/images:annotate?key=' . $apiKey,
+            [
+                'requests' => [
+                    [
+                        'image' => ['content' => $imageData],
+                        'features' => [
+                            ['type' => 'LABEL_DETECTION', 'maxResults' => 15],
+                            ['type' => 'WEB_DETECTION', 'maxResults' => 5],
+                        ],
+                    ],
+                ],
+            ]
+        );
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $labels = [];
+        $body = $response->json();
+
+        if (!empty($body['responses'][0]['labelAnnotations'])) {
+            foreach ($body['responses'][0]['labelAnnotations'] as $ann) {
+                $desc = $ann['description'] ?? '';
+                if ($desc && strlen($desc) >= 2) {
+                    $labels[] = strtolower($desc);
+                }
+            }
+        }
+
+        if (!empty($body['responses'][0]['webDetection']['webEntities'])) {
+            foreach ($body['responses'][0]['webDetection']['webEntities'] as $entity) {
+                $desc = $entity['description'] ?? '';
+                if ($desc && strlen($desc) >= 2 && !in_array(strtolower($desc), $labels)) {
+                    $labels[] = strtolower($desc);
+                }
+            }
+        }
+
+        return array_slice(array_unique($labels), 0, 12);
+    }
+
+    /**
+     * Tìm kiếm sản phẩm bằng hình ảnh (Google Vision API + perceptual hash fallback).
+     */
+    public function searchByImage(Request $request)
+    {
+        if (Auth::check() && Auth::user()->is_admin) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ], [
+            'image.required' => 'Vui lòng chọn hình ảnh để tìm kiếm.',
+            'image.image' => 'File phải là hình ảnh.',
+            'image.max' => 'Kích thước hình ảnh không được quá 5MB.',
+        ]);
+
+        $categories = Category::orderBy('name')->get();
+        $suggestedProducts = $this->getSuggestedProducts();
+        $currentSort = 'popular';
+        $priceMin = null;
+        $priceMax = null;
+        $q = '';
+        $categoryId = null;
+        $uploadedPath = null;
+
+        try {
+            $uploadedPath = $request->file('image')->store('temp', 'public');
+            $fullPath = Storage::disk('public')->path($uploadedPath);
+
+            $productIds = [];
+
+            $labels = $this->getImageLabelsFromVision($uploadedPath);
+            if (!empty($labels)) {
+                $productIds = Product::with('category')
+                    ->where(function ($query) use ($labels) {
+                        foreach ($labels as $label) {
+                            $esc = str_replace(['%', '_'], ['\\%', '\\_'], $label);
+                            $query->orWhere(function ($q) use ($esc) {
+                                $q->where('name', 'like', '%' . $esc . '%')
+                                    ->orWhere('description', 'like', '%' . $esc . '%');
+                            });
+                        }
+                    })
+                    ->pluck('id')
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+
+            if (empty($productIds)) {
+                $hasher = new ImageHash(new DifferenceHash(16));
+                $queryHash = $hasher->hash($fullPath);
+
+                $productsWithImages = Product::with('category')
+                    ->whereNotNull('image')
+                    ->where('image', '!=', '')
+                    ->get();
+
+                $scored = [];
+                foreach ($productsWithImages as $product) {
+                    $productPath = Storage::disk('public')->path($product->image);
+                    if (!file_exists($productPath)) {
+                        continue;
+                    }
+                    try {
+                        $productHash = $hasher->hash($productPath);
+                        $distance = $hasher->distance($queryHash, $productHash);
+                        $scored[] = ['product' => $product, 'distance' => $distance];
+                    } catch (\Throwable $e) {
+                        continue;
+                    }
+                }
+
+                usort($scored, fn ($a, $b) => $a['distance'] <=> $b['distance']);
+                $productIds = array_map(fn ($s) => $s['product']->id, $scored);
+            }
+
+            if ($uploadedPath) {
+                $oldPath = session('searched_image_path');
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+                session(['searched_image_path' => $uploadedPath]);
+            }
+
+            if (empty($productIds)) {
+                $products = Product::with('category')->where('is_active', true)->inRandomOrder()->paginate(12);
+            } else {
+                $idsStr = implode(',', array_map('intval', $productIds));
+                $products = Product::with('category')
+                    ->whereIn('id', $productIds)
+                    ->orderByRaw("FIELD(id, {$idsStr})")
+                    ->paginate(12)
+                    ->withQueryString();
+            }
+        } catch (\Throwable $e) {
+            $products = Product::with('category')->where('is_active', true)->inRandomOrder()->paginate(12);
+        }
+
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'))
+            ->with('imageSearchMessage', 'Kết quả tìm kiếm theo hình ảnh');
     }
 
     /** Lấy tham số sort từ request. */

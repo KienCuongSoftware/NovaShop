@@ -27,6 +27,11 @@
     <p class="text-muted mb-0">Kết quả tìm kiếm: <strong>{{ $q }}</strong></p>
 </div>
 @endif
+@if(isset($imageSearchMessage))
+<div class="mb-3">
+    <p class="text-muted mb-0">{{ $imageSearchMessage }}</p>
+</div>
+@endif
 
 <div class="products-with-sidebar">
     {{-- Sidebar: Tất cả danh mục + Khoảng giá --}}
