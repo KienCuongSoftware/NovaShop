@@ -64,9 +64,53 @@
             border-color: #bd2130;
             color: #fff;
         }
+        .alert-toast-container {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 460px;
+            padding: 0 1.5rem;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .alert-toast-container .alert {
+            pointer-events: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
+    @php
+        $authSuccess = session()->pull('success');
+        $authErrors = $errors->any();
+    @endphp
+    @if ($authSuccess || $authErrors)
+    <div class="alert-toast-container">
+        @if ($authSuccess)
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ $authSuccess }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+        @if ($authErrors)
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <ul class="mb-0 pl-3">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+    </div>
+    @endif
+
     <div class="auth-wrapper">
         <div class="auth-card">
             <div class="auth-header d-flex justify-content-between align-items-center">
@@ -74,14 +118,6 @@
                 <small>@yield('title')</small>
             </div>
             <div class="auth-body">
-                @if (session('success'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                @endif
                 @yield('content')
             </div>
         </div>

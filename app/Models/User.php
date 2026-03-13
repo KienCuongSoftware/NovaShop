@@ -48,4 +48,9 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
         ];
     }
+
+    public function cart(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
 }

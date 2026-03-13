@@ -47,7 +47,20 @@ class WelcomeController extends Controller
     }
 
     /**
-     * Trang danh sách sản phẩm theo danh mục (giống Shopee).
+     * Trang tất cả danh mục.
+     */
+    public function allCategories()
+    {
+        if (Auth::check() && Auth::user()->is_admin) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $categories = Category::orderBy('name')->get();
+        return view('all-categories', compact('categories'));
+    }
+
+    /**
+     * Trang danh sách sản phẩm theo danh mục.
      */
     public function categoryProducts(Request $request, Category $category)
     {

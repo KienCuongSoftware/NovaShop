@@ -16,6 +16,22 @@
         main { flex: 1; }
         footer { margin-top: auto; }
 
+        .alert-toast-container {
+            position: fixed;
+            top: 100px;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            padding: 1rem 15px;
+            pointer-events: none;
+        }
+        .alert-toast-container .alert {
+            pointer-events: auto;
+            max-width: 720px;
+            margin: 0 auto 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
         main .btn-primary {
             background: #dc3545;
             border-color: #dc3545;
@@ -301,6 +317,41 @@
             width: 18px;
             height: 18px;
         }
+        .navbar-cart-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .navbar-cart-link:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.15);
+        }
+        .navbar-cart-link svg {
+            width: 24px;
+            height: 24px;
+        }
+        .navbar-cart-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 18px;
+            text-align: center;
+            background: #fff;
+            color: #dc3545;
+            border-radius: 999px;
+        }
 
         footer.bg-novashop {
             background: #c62828;
@@ -383,7 +434,7 @@
             font-weight: 700;
             color: #dc3545;
         }
-        /* Sidebar Shopee-style - danh mục bên trái */
+        /* Sidebar - danh mục bên trái */
         .products-with-sidebar {
             display: flex;
             gap: 1rem;
@@ -413,6 +464,16 @@
             width: 1.1rem;
             height: 1.1rem;
             color: #666;
+        }
+        .products-sidebar-title-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #212529;
+            text-decoration: none;
+        }
+        .products-sidebar-title-link:hover {
+            color: #dc3545;
         }
         .products-sidebar-list {
             padding: 0.5rem 0;
@@ -548,6 +609,60 @@
             .products-with-sidebar { flex-direction: column; }
             .products-sidebar { width: 100%; min-width: 0; }
         }
+        /* Trang tất cả danh mục - lưới danh mục */
+        .all-categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1.5rem;
+        }
+        .all-categories-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #212529;
+            padding: 1rem 0.5rem;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .all-categories-item:hover {
+            border-color: #dc3545;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+            color: #212529;
+        }
+        .all-categories-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+        .all-categories-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .all-categories-icon-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+        }
+        .all-categories-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .breadcrumb-item + .breadcrumb-item::before { content: '›'; }
+        .breadcrumb-item a { color: #dc3545; }
+        .breadcrumb-item a:hover { text-decoration: underline; }
         /* Div bọc danh mục - nền trắng, mép trái/phải thẳng hàng với lưới sản phẩm (cùng canh với .row) */
         .categories-wrapper {
             background: #fff;
@@ -733,6 +848,15 @@
                             <button type="button" class="dropdown-item dropdown-item-clear" id="search-history-clear">Xóa lịch sử</button>
                         </div>
                     </div>
+                    <a href="{{ auth()->check() ? route('cart.index') : route('login') }}" class="navbar-cart-link" title="Giỏ hàng">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                        @auth
+                        @php $cartCount = auth()->user()->cart?->items()->sum('quantity') ?? 0; @endphp
+                        @if($cartCount > 0)
+                        <span class="navbar-cart-badge">{{ $cartCount > 99 ? '99+' : $cartCount }}</span>
+                        @endif
+                        @endauth
+                    </a>
                     <div class="navbar-spacer d-none d-lg-block" aria-hidden="true"></div>
                 </div>
             </div>
@@ -740,24 +864,29 @@
     </nav>
     </header>
 
+    @php
+        $successMessage = session()->pull('success');
+        $errorMessage = session()->pull('error');
+    @endphp
+    @if ($successMessage || $errorMessage)
+    <div class="alert-toast-container">
+        @if ($successMessage)
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ $successMessage }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+        @endif
+        @if ($errorMessage)
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ $errorMessage }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+        @endif
+    </div>
+    @endif
+
     <main class="py-4">
         <div class="container">
-            @php
-                $successMessage = session()->pull('success');
-                $errorMessage = session()->pull('error');
-            @endphp
-            @if ($successMessage)
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ $successMessage }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-            @endif
-            @if ($errorMessage)
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ $errorMessage }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-            @endif
             @yield('content')
         </div>
     </main>

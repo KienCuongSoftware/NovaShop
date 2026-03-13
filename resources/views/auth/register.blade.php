@@ -5,16 +5,6 @@
 @section('content')
 <h2 class="auth-title">Đăng ký tài khoản</h2>
 
-@if ($errors->any())
-    <div class="alert alert-danger">
-        <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
-
 <form method="POST" action="{{ route('register') }}">
     @csrf
     <div class="form-group">

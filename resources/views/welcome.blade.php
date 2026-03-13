@@ -32,8 +32,10 @@
     {{-- Sidebar: Tất cả danh mục + Khoảng giá --}}
     <aside class="products-sidebar">
         <h2 class="products-sidebar-title">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            Tất cả danh mục
+            <a href="{{ route('all.categories') }}" class="products-sidebar-title-link">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Tất cả danh mục
+            </a>
         </h2>
         <nav class="products-sidebar-list">
             <a href="{{ isset($q) ? route('search', array_filter(['q' => $q])) : route('welcome') }}" class="{{ !isset($category) && !isset($categoryId) ? 'active' : '' }}">
@@ -107,7 +109,15 @@
                         </p>
                         <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                         @auth
-                        <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
+                        <div class="d-flex flex-wrap mt-auto">
+                            <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mr-2 mb-1">Xem chi tiết</a>
+                            <form action="{{ route('cart.add') }}" method="POST" class="d-inline mb-1">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-outline-danger btn-view-detail" title="Thêm vào giỏ">+ Giỏ</button>
+                            </form>
+                        </div>
                         @else
                         <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
                         @endauth
@@ -198,7 +208,15 @@
                     </p>
                     <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                     @auth
-                    <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
+                    <div class="d-flex flex-wrap mt-auto">
+                        <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mr-2 mb-1">Xem chi tiết</a>
+                        <form action="{{ route('cart.add') }}" method="POST" class="d-inline mb-1">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="btn btn-outline-danger btn-view-detail" title="Thêm vào giỏ">+ Giỏ</button>
+                        </form>
+                    </div>
                     @else
                     <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
                     @endauth

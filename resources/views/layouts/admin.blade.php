@@ -55,6 +55,20 @@
             background: #ffffff;
             min-height: 100vh;
         }
+        .alert-toast-container {
+            position: fixed;
+            top: 1rem;
+            left: 270px;
+            right: 1rem;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .alert-toast-container .alert {
+            pointer-events: auto;
+            max-width: 600px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
         .admin-main .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
@@ -131,12 +145,13 @@
             </nav>
         </aside>
 
-        <!-- Nội dung chính - chỉ phần này đổi khi chuyển trang -->
-        <main class="admin-main">
-            @php
-                $successMessage = session()->pull('success');
-                $errorMessage = session()->pull('error');
-            @endphp
+        @php
+            $successMessage = session()->pull('success');
+            $errorMessage = session()->pull('error');
+            $hasValidationErrors = $errors->any();
+        @endphp
+        @if ($successMessage || $errorMessage || $hasValidationErrors)
+        <div class="alert-toast-container">
             @if ($successMessage)
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     {{ $successMessage }}
@@ -149,6 +164,21 @@
                     <button type="button" class="close" data-dismiss="alert" aria-label="Đóng"><span aria-hidden="true">&times;</span></button>
                 </div>
             @endif
+            @if ($hasValidationErrors)
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul class="mb-0 pl-3">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Đóng"><span aria-hidden="true">&times;</span></button>
+                </div>
+            @endif
+        </div>
+        @endif
+
+        <!-- Nội dung chính - chỉ phần này đổi khi chuyển trang -->
+        <main class="admin-main">
             @yield('content')
         </main>
     </div>
