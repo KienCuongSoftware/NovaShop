@@ -37,7 +37,7 @@ class WelcomeController extends Controller
         }
 
         $categories = Category::orderBy('name')->get();
-        $products = Product::with('category')->latest()->paginate(12);
+        $products = Product::with('category')->inRandomOrder()->paginate(12);
         $suggestedProducts = $this->getSuggestedProducts();
 
         return view('welcome', compact('products', 'categories', 'suggestedProducts'));
@@ -92,7 +92,7 @@ class WelcomeController extends Controller
                         });
                 });
             })
-            ->oldest()
+            ->inRandomOrder()
             ->paginate(12)
             ->withQueryString();
 
