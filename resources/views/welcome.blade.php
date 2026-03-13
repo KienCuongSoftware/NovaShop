@@ -87,7 +87,7 @@
         {{-- Lưới sản phẩm --}}
         <div class="row">
             @forelse ($products as $product)
-            <div class="col-sm-6 col-md-4 col-lg-3 mb-4">
+            <div class="col-sm-6 col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 product-card">
                     <div class="card-body text-left d-flex flex-column">
                         <div class="product-card-img mb-2">
@@ -109,9 +109,9 @@
                         </p>
                         <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                         @auth
-                        <div class="d-flex flex-wrap mt-auto">
-                            <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mr-2 mb-1">Xem chi tiết</a>
-                            <form action="{{ route('cart.add') }}" method="POST" class="d-inline mb-1">
+                        <div class="d-flex flex-nowrap gap-2 mt-auto product-card-actions">
+                            <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail">Xem chi tiết</a>
+                            <form action="{{ route('cart.add') }}" method="POST" class="product-card-add-form">
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
                                 <input type="hidden" name="quantity" value="1">
@@ -186,7 +186,7 @@
     <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #333;">Gợi ý hôm nay</h2>
     <div class="row">
         @foreach($suggestedProducts as $product)
-        <div class="col-6 col-md-4 col-lg-3 mb-4">
+        <div class="col-6 col-md-6 col-lg-4 mb-4">
             <div class="card h-100 product-card">
                 <div class="card-body text-left d-flex flex-column">
                     <div class="product-card-img mb-2">
@@ -208,9 +208,9 @@
                     </p>
                     <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                     @auth
-                    <div class="d-flex flex-wrap mt-auto">
-                        <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mr-2 mb-1">Xem chi tiết</a>
-                        <form action="{{ route('cart.add') }}" method="POST" class="d-inline mb-1">
+                    <div class="d-flex flex-nowrap gap-2 mt-auto product-card-actions">
+                        <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail">Xem chi tiết</a>
+                        <form action="{{ route('cart.add') }}" method="POST" class="product-card-add-form">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="quantity" value="1">

@@ -53,17 +53,15 @@
 
                     <div class="mt-4">
                         @auth
-                        <form action="{{ route('cart.add') }}" method="POST" class="d-inline mr-2">
+                        <form action="{{ route('cart.add') }}" method="POST" class="d-inline">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit" class="btn btn-danger">Thêm vào giỏ</button>
                         </form>
                         @else
-                        <a href="{{ route('login') }}" class="btn btn-danger mr-2">Đăng nhập để thêm vào giỏ</a>
+                        <a href="{{ route('login') }}" class="btn btn-danger">Đăng nhập để thêm vào giỏ</a>
                         @endauth
-                        <a href="{{ url()->previous() }}" class="btn btn-outline-secondary mr-2">Quay lại</a>
-                        <a href="{{ route('welcome') }}" class="btn btn-primary">Về trang chủ</a>
                     </div>
                 </div>
             </div>

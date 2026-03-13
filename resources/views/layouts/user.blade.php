@@ -380,6 +380,18 @@
             color: #fff;
         }
 
+        .product-card-actions {
+            gap: 0.5rem;
+            justify-content: space-between;
+        }
+        .product-card-add-form {
+            min-width: 0;
+            margin-left: auto;
+        }
+        .product-card-actions .btn-view-detail {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
         .product-card-img {
             height: 140px;
             display: flex;

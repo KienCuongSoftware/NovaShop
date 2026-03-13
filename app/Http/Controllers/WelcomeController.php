@@ -23,7 +23,7 @@ class WelcomeController extends Controller
             ->whereIn('category_id', $categoryIds)
             ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
             ->inRandomOrder()
-            ->limit(8)
+            ->limit(9)
             ->get();
     }
 
