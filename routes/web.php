@@ -34,13 +34,13 @@ Route::get('/all-categories', [WelcomeController::class, 'allCategories'])->name
 // Trang danh sách sản phẩm theo danh mục
 Route::get('/categories/{category}', [WelcomeController::class, 'categoryProducts'])->name('category.products');
 Route::get('/search', [WelcomeController::class, 'search'])->name('search');
-Route::post('/search-by-image', [WelcomeController::class, 'searchByImage'])->name('search.by.image');
+Route::match(['get', 'post'], '/search-by-image', [WelcomeController::class, 'searchByImage'])->name('search.by.image');
 Route::get('/clear-search-image', function () {
     $path = session('searched_image_path');
     if ($path && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
         \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
     }
-    session()->forget('searched_image_path');
+    session()->forget(['searched_image_path', 'search_image_product_ids']);
     return redirect()->back();
 })->name('search.clear.image');
 

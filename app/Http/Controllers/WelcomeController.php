@@ -182,11 +182,36 @@ class WelcomeController extends Controller
 
     /**
      * Tìm kiếm sản phẩm bằng hình ảnh (Google Vision API + perceptual hash fallback).
+     * Hỗ trợ GET cho phân trang (dùng session lưu kết quả).
      */
     public function searchByImage(Request $request)
     {
         if (Auth::check() && Auth::user()->is_admin) {
             return redirect()->route('admin.dashboard');
+        }
+
+        $categories = Category::orderBy('name')->get();
+        $suggestedProducts = $this->getSuggestedProducts();
+        $currentSort = 'popular';
+        $priceMin = null;
+        $priceMax = null;
+        $q = '';
+        $categoryId = null;
+
+        // GET: phân trang từ session (user click page 2, 3...)
+        if ($request->isMethod('get')) {
+            $productIds = session('search_image_product_ids', []);
+            if (empty($productIds)) {
+                return redirect()->route('welcome');
+            }
+            $idsStr = implode(',', array_map('intval', $productIds));
+            $products = Product::with('category')
+                ->whereIn('id', $productIds)
+                ->orderByRaw("FIELD(id, {$idsStr})")
+                ->paginate(12)
+                ->withQueryString();
+            return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'))
+                ->with('imageSearchMessage', 'Kết quả tìm kiếm theo hình ảnh');
         }
 
         $request->validate([
@@ -197,13 +222,6 @@ class WelcomeController extends Controller
             'image.max' => 'Kích thước hình ảnh không được quá 5MB.',
         ]);
 
-        $categories = Category::orderBy('name')->get();
-        $suggestedProducts = $this->getSuggestedProducts();
-        $currentSort = 'popular';
-        $priceMin = null;
-        $priceMax = null;
-        $q = '';
-        $categoryId = null;
         $uploadedPath = null;
 
         try {
@@ -266,6 +284,8 @@ class WelcomeController extends Controller
                 session(['searched_image_path' => $uploadedPath]);
             }
 
+            session(['search_image_product_ids' => $productIds]);
+
             if (empty($productIds)) {
                 $products = Product::with('category')->where('is_active', true)->inRandomOrder()->paginate(12);
             } else {
@@ -277,6 +297,7 @@ class WelcomeController extends Controller
                     ->withQueryString();
             }
         } catch (\Throwable $e) {
+            session()->forget('search_image_product_ids');
             $products = Product::with('category')->where('is_active', true)->inRandomOrder()->paginate(12);
         }
 
