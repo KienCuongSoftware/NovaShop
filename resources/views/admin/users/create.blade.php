@@ -10,8 +10,14 @@
 
 <div class="card">
     <div class="card-body">
-        <form action="{{ route('admin.users.store') }}" method="POST">
+        <form action="{{ route('admin.users.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
+            <div class="form-group">
+                <label for="avatar"><strong>Ảnh đại diện:</strong></label>
+                <input type="file" name="avatar" id="avatar" class="form-control-file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
+                <small class="form-text text-muted">JPEG, PNG, GIF, WebP; tối đa 2MB. Để trống nếu không cần.</small>
+                @error('avatar')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+            </div>
             <div class="form-group">
                 <label for="name"><strong>Tên:</strong></label>
                 <input type="text" name="name" id="name" class="form-control" placeholder="Nhập tên" value="{{ old('name') }}" required>

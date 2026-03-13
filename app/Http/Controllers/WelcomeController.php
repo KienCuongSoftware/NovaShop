@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 class WelcomeController extends Controller
 {
     /** Gợi ý sản phẩm tương tự dựa trên hành vi xem chi tiết (cùng danh mục với sản phẩm đã xem). */
-    protected function getSuggestedProducts(): \Illuminate\Database\Eloquent\Collection
+    protected function getSuggestedProducts(): \Illuminate\Support\Collection
     {
         $excludeIds = session('recent_product_ids', []);
         $categoryIds = session('recent_category_ids', []);

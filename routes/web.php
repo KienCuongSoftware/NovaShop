@@ -39,6 +39,12 @@ Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+// Quản lý tài khoản (profile) - cho người dùng đã đăng nhập
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [UserController::class, 'profile'])->name('profile');
+    Route::put('/profile', [UserController::class, 'profileUpdate'])->name('profile.update');
+});
+
 // Route dành cho admin (sử dụng middleware để kiểm tra quyền)
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -78,6 +84,21 @@ Route::get('/images/categories/{filename}', function (string $filename) {
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
 })->where('filename', '[a-zA-Z0-9._-]+')->name('storage.categories.image');
+
+// Serve user avatars from storage/app/public/avatars
+Route::get('/images/avatars/{filename}', function (string $filename) {
+    $path = 'avatars/' . $filename;
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+    $file = Storage::disk('public')->get($path);
+    return response($file, 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'public, max-age=31536000');
+})->where('filename', '[a-zA-Z0-9._-]+')->name('storage.avatars.image');
 
 // Route cho người dùng bình thường (đã đăng nhập)
 Route::middleware(['auth'])->group(function () {

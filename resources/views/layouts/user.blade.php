@@ -8,7 +8,7 @@
     <link rel="icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 72px; }
+        body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 100px; }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
         .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); border-radius: 0.75rem; overflow: hidden; }
@@ -30,6 +30,102 @@
             background: #dc3545;
             padding: 0;
             flex-wrap: wrap;
+        }
+        .navbar-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0.35rem 0;
+        }
+        .navbar-top-row-left { flex-shrink: 0; }
+        .navbar-top-row-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .navbar-top-row-left a,
+        .navbar-top-row-right > a,
+        .navbar-top-row-left a:hover,
+        .navbar-top-row-right > a:hover,
+        header .navbar-shopee .navbar-top-row-left a,
+        header .navbar-shopee .navbar-top-row-right > a {
+            color: #fff !important;
+        }
+        .navbar-top-row-left a:hover,
+        .navbar-top-row-right > a:hover { opacity: 0.9; }
+        .navbar-top-row span { color: #fff !important; }
+        /* User menu dropdown - hiển thị khi hover */
+        .user-menu-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.25rem 0 0.5rem 0;
+        }
+        .user-menu-wrap:hover .user-menu-dropdown { display: block; }
+        .user-menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 0;
+            padding-top: 12px;
+            min-width: 180px;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1050;
+            overflow: visible;
+        }
+        .user-menu-dropdown::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 11px solid transparent;
+            border-right: 11px solid transparent;
+            border-bottom: 11px solid #dee2e6;
+        }
+        .user-menu-dropdown::after {
+            content: '';
+            position: absolute;
+            top: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid #fff;
+        }
+        .user-menu-dropdown a {
+            display: block;
+            padding: 0.6rem 1rem;
+            color: #212529 !important;
+            text-decoration: none;
+            font-size: 0.95rem;
+            border: none;
+            transition: background 0.15s;
+        }
+        .user-menu-dropdown a,
+        .user-menu-dropdown a:visited,
+        .navbar-top-row .user-menu-dropdown a {
+            color: #212529 !important;
+        }
+        .user-menu-dropdown a:hover {
+            background: #fff5f5;
+            color: #dc3545 !important;
+        }
+        .user-menu-dropdown a:not(:last-child) {
+            border-bottom: 1px solid #eee;
         }
         .navbar-top {
             width: 100%;
@@ -412,6 +508,41 @@
 <body>
     <header>
     <nav class="navbar navbar-shopee navbar-expand-lg navbar-light fixed-top">
+        <div class="container">
+            <div class="navbar-top-row d-none d-md-flex">
+                <div class="navbar-top-row-left">
+                    @auth
+                    @if(auth()->user()->is_admin)
+                    <a href="{{ route('admin.dashboard') }}">Quản trị</a>
+                    @else
+                    <a href="{{ url('/') }}">Danh mục sản phẩm</a>
+                    @endif
+                    @else
+                    <a href="{{ url('/') }}">Danh mục sản phẩm</a>
+                    @endauth
+                </div>
+                <div class="navbar-top-row-right">
+                    @guest
+                    <a href="{{ route('login') }}">Đăng nhập</a>
+                    <a href="{{ route('register') }}">Đăng ký</a>
+                    @else
+                    <div class="user-menu-wrap">
+                        @if(auth()->user()->avatar ?? null)
+                            <img src="/images/avatars/{{ basename(auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover; border: 2px solid rgba(255,255,255,0.8);">
+                        @else
+                            <span class="rounded-circle bg-white text-dark d-inline-flex align-items-center justify-content-center font-weight-bold" style="width: 28px; height: 28px; font-size: 0.8rem;">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
+                        @endif
+                        <span class="text-white">{{ auth()->user()->name }}</span>
+                        <div class="user-menu-dropdown">
+                            <a href="{{ route('profile') }}">Quản lý tài khoản</a>
+                            <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
+                        </div>
+                    </div>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
+                    @endguest
+                </div>
+            </div>
+        </div>
         <div class="navbar-top w-100">
             <div class="container">
                 <div class="navbar-row">
@@ -438,38 +569,6 @@
                         </div>
                     </div>
                     <div class="navbar-spacer d-none d-lg-block" aria-hidden="true"></div>
-                    <button class="navbar-toggler border-0 py-2 ml-auto" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon" style="filter: brightness(0) invert(1);"></span>
-                    </button>
-                    <div class="collapse navbar-collapse ml-auto" id="navbarNav">
-                        <ul class="navbar-nav ml-auto">
-                            <li class="nav-item {{ request()->routeIs('welcome') ? 'active' : '' }}">
-                                <a class="nav-link" href="{{ url('/') }}">Trang chủ</a>
-                            </li>
-                            @guest
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('register') }}">Đăng ký</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('login') }}">Đăng nhập</a>
-                            </li>
-                            @else
-                            @if(auth()->user()->is_admin ?? false)
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('admin.dashboard') }}">Quản trị</a>
-                            </li>
-                            @else
-                            <li class="nav-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                                <a class="nav-link" href="{{ route('products.index') }}">Sản phẩm</a>
-                            </li>
-                            @endif
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
-                            </li>
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">@csrf</form>
-                            @endguest
-                        </ul>
-                    </div>
                 </div>
             </div>
         </div>
