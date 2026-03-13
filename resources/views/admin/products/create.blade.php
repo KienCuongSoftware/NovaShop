@@ -52,6 +52,10 @@
             <div class="form-group">
                 <label for="image"><strong>Hình ảnh:</strong></label>
                 <input type="file" name="image" id="image" class="form-control-file" accept="image/*">
+                <div id="preview-image" class="image-preview-wrap mt-2" style="display: none;">
+                    <img src="" alt="Preview" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                    <span class="text-muted small d-block">Ảnh mới</span>
+                </div>
             </div>
             <div class="form-group">
                 <div class="custom-control custom-checkbox">

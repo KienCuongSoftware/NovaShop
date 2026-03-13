@@ -52,12 +52,18 @@
             </div>
             <div class="form-group">
                 <label for="image"><strong>Hình ảnh:</strong></label>
-                @if($product->image)
-                    <div class="mb-2">
-                        <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-height: 80px;">
-                        <span class="text-muted small d-block">Ảnh hiện tại. Chọn file mới để thay thế.</span>
+                <div class="d-flex flex-wrap align-items-start mb-2" style="gap: 1rem;">
+                    @if($product->image)
+                        <div>
+                            <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                            <span class="text-muted small d-block">Ảnh hiện tại</span>
+                        </div>
+                    @endif
+                    <div id="preview-image" class="image-preview-wrap" style="display: none;">
+                        <img src="" alt="Preview" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                        <span class="text-muted small d-block">Ảnh mới</span>
                     </div>
-                @endif
+                </div>
                 <input type="file" name="image" id="image" class="form-control-file" accept="image/*">
             </div>
             <div class="form-group">

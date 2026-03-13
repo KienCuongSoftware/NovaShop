@@ -19,6 +19,10 @@
             <div class="form-group">
                 <label for="image"><strong>Ảnh danh mục:</strong></label>
                 <input type="file" name="image" id="image" class="form-control-file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
+                <div id="preview-image" class="image-preview-wrap mt-2" style="display: none;">
+                    <img src="" alt="Preview" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                    <span class="text-muted small d-block">Ảnh mới</span>
+                </div>
                 <small class="form-text text-muted">JPEG, PNG, GIF, WebP; tối đa 2MB. Để trống nếu không cần.</small>
             </div>
             <hr>

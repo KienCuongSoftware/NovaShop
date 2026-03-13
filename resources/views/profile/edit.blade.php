@@ -15,12 +15,18 @@
             @method('PUT')
             <div class="form-group">
                 <label for="avatar"><strong>Ảnh đại diện:</strong></label>
-                @if($user->avatar)
-                    <div class="mb-2">
-                        <img src="/images/avatars/{{ basename($user->avatar) }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
-                        <span class="text-muted small d-block">Ảnh hiện tại</span>
+                <div class="d-flex flex-wrap align-items-start mb-2" style="gap: 1rem;">
+                    @if($user->avatar)
+                        <div>
+                            <img src="/images/avatars/{{ basename($user->avatar) }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                            <span class="text-muted small d-block">Ảnh hiện tại</span>
+                        </div>
+                    @endif
+                    <div id="preview-avatar" class="image-preview-wrap" style="display: none;">
+                        <img src="" alt="Preview" class="img-thumbnail rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">
+                        <span class="text-muted small d-block">Ảnh mới</span>
                     </div>
-                @endif
+                </div>
                 <input type="file" name="avatar" id="avatar" class="form-control-file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                 <small class="form-text text-muted">JPEG, PNG, GIF, WebP; tối đa 2MB. Chọn file mới để thay ảnh.</small>
                 @error('avatar')<div class="text-danger small mt-1">{{ $message }}</div>@enderror

@@ -19,12 +19,18 @@
             </div>
             <div class="form-group">
                 <label for="image"><strong>Ảnh danh mục:</strong></label>
-                @if($category->image)
-                    <div class="mb-2">
-                        <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="img-thumbnail" style="max-height: 80px;">
-                        <span class="text-muted small">Ảnh hiện tại</span>
+                <div class="d-flex flex-wrap align-items-start mb-2" style="gap: 1rem;">
+                    @if($category->image)
+                        <div>
+                            <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                            <span class="text-muted small d-block">Ảnh hiện tại</span>
+                        </div>
+                    @endif
+                    <div id="preview-image" class="image-preview-wrap" style="display: none;">
+                        <img src="" alt="Preview" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
+                        <span class="text-muted small d-block">Ảnh mới</span>
                     </div>
-                @endif
+                </div>
                 <input type="file" name="image" id="image" class="form-control-file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                 <small class="form-text text-muted">JPEG, PNG, GIF, WebP; tối đa 2MB. Chọn file mới để thay ảnh.</small>
             </div>
