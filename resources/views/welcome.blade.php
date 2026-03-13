@@ -120,9 +120,7 @@
 
 @if(isset($suggestedProducts) && $suggestedProducts->isNotEmpty())
 <section class="suggested-today mt-5 pt-4 border-top">
-    <div class="d-flex justify-content-center mb-4">
-        <span class="btn btn-danger btn-lg rounded-pill px-4 py-2">Gợi ý hôm nay</span>
-    </div>
+    <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #333;">Gợi ý hôm nay</h2>
     <div class="row">
         @foreach($suggestedProducts as $product)
         <div class="col-6 col-md-4 col-lg-3 mb-4">

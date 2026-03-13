@@ -9,22 +9,22 @@ use Illuminate\Support\Facades\Auth;
 
 class WelcomeController extends Controller
 {
-    /** Gợi ý sản phẩm dựa trên danh mục đã xem (session). */
+    /** Gợi ý sản phẩm tương tự dựa trên hành vi xem chi tiết (cùng danh mục với sản phẩm đã xem). */
     protected function getSuggestedProducts(): \Illuminate\Database\Eloquent\Collection
     {
         $excludeIds = session('recent_product_ids', []);
         $categoryIds = session('recent_category_ids', []);
 
-        $query = Product::with('category')
-            ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds));
-
-        if (!empty($categoryIds)) {
-            $query->whereIn('category_id', $categoryIds)->latest();
-        } else {
-            $query->latest();
+        if (empty($categoryIds)) {
+            return collect();
         }
 
-        return $query->limit(8)->get();
+        return Product::with('category')
+            ->whereIn('category_id', $categoryIds)
+            ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
+            ->inRandomOrder()
+            ->limit(8)
+            ->get();
     }
 
     /**
