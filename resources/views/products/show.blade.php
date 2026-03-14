@@ -8,7 +8,9 @@
         <ol class="breadcrumb bg-transparent p-0">
             <li class="breadcrumb-item"><a href="{{ route('welcome') }}">Trang chủ</a></li>
             @if($product->category)
-            <li class="breadcrumb-item"><a href="{{ route('category.products', $product->category) }}">{{ $product->category->name }}</a></li>
+                @foreach($product->category->getBreadcrumbPath() as $crumb)
+                <li class="breadcrumb-item"><a href="{{ route('category.products', $crumb) }}">{{ $crumb->name }}</a></li>
+                @endforeach
             @endif
             <li class="breadcrumb-item active" aria-current="page">{{ Str::limit($product->name, 40) }}</li>
         </ol>
@@ -30,7 +32,7 @@
                     <h1 class="h4 font-weight-bold text-dark mb-3">{{ $product->name }}</h1>
 
                     @if($product->category)
-                    <p class="text-muted small mb-2">Danh mục: <a href="{{ route('category.products', $product->category) }}" class="text-danger">{{ $product->category->name }}</a></p>
+                    <p class="text-muted small mb-2">Danh mục: <a href="{{ route('category.products', $product->category) }}" class="text-danger">{{ $product->category->full_path }}</a></p>
                     @endif
 
                     <div class="mb-3">

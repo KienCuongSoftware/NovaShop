@@ -5,7 +5,6 @@
 @section('content')
 <div class="page-header mb-4">
     <h2>Giỏ hàng</h2>
-    <a href="{{ route('welcome') }}" class="btn btn-outline-primary">Tiếp tục mua sắm</a>
 </div>
 
 @if($cart->items->isEmpty())

@@ -17,6 +17,18 @@
                 <input type="text" name="name" id="name" class="form-control" placeholder="Nhập tên danh mục" value="{{ old('name') }}" required>
             </div>
             <div class="form-group">
+                <label for="parent_id"><strong>Danh mục cha:</strong></label>
+                <select name="parent_id" id="parent_id" class="form-control">
+                    <option value="">— Không (danh mục gốc) —</option>
+                    @foreach($parentCategories ?? [] as $root)
+                        <option value="{{ $root->id }}" {{ old('parent_id') == $root->id ? 'selected' : '' }}>{{ $root->name }}</option>
+                        @foreach($root->children ?? [] as $child)
+                            <option value="{{ $child->id }}" {{ old('parent_id') == $child->id ? 'selected' : '' }}>　└ {{ $child->name }}</option>
+                        @endforeach
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="image"><strong>Ảnh danh mục:</strong></label>
                 <input type="file" name="image" id="image" class="form-control-file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                 <div id="preview-image" class="image-preview-wrap mt-2" style="display: none;">

@@ -13,20 +13,29 @@
 <h1 class="mb-4 font-weight-bold" style="font-size: 1.5rem; color: #212529;">Tất cả danh mục</h1>
 
 @if($categories->isNotEmpty())
-<div class="all-categories-grid">
-    @foreach($categories as $cat)
-    <a href="{{ route('category.products', $cat) }}" class="all-categories-item">
-        <span class="all-categories-icon">
-            @if($cat->image)
-                <img src="/images/categories/{{ basename($cat->image) }}" alt="{{ $cat->name }}" loading="lazy">
-            @else
-                <span class="all-categories-icon-placeholder">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                </span>
-            @endif
-        </span>
-        <span class="all-categories-name">{{ $cat->name }}</span>
-    </a>
+<div class="all-categories-hierarchy">
+    @foreach($categories as $root)
+    <div class="category-group mb-4">
+        <h3 class="category-group-title mb-3">
+            <a href="{{ route('category.products', $root) }}" class="text-dark font-weight-bold">{{ $root->name }}</a>
+        </h3>
+        @if($root->children->isNotEmpty())
+        <div class="category-group-children">
+            @foreach($root->children as $child)
+            <div class="category-subgroup mb-2">
+                <a href="{{ route('category.products', $child) }}" class="text-danger font-weight-medium d-block mb-1">{{ $child->name }}</a>
+                @if($child->children->isNotEmpty())
+                <div class="category-leaves ml-3">
+                    @foreach($child->children as $leaf)
+                    <a href="{{ route('category.products', $leaf) }}" class="d-block text-muted small mb-1">{{ $leaf->name }}</a>
+                    @endforeach
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+        @endif
+    </div>
     @endforeach
 </div>
 @else

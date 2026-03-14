@@ -27,7 +27,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::leaves()->with('parent.parent')->orderBy('name')->get();
         return view('admin.products.create', compact('categories'));
     }
 
@@ -79,7 +79,7 @@ class ProductController extends Controller
     /** Trả về view cho người dùng bình thường; lưu hành vi xem để gợi ý. */
     public function show_normal(Product $product)
     {
-        $product->load('category');
+        $product->load('category.parent.parent');
         $recentIds = session('recent_product_ids', []);
         $recentIds = array_filter(array_unique(array_merge([$product->id], $recentIds)));
         session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);
@@ -93,7 +93,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::leaves()->with('parent.parent')->orderBy('name')->get();
         return view('admin.products.edit', compact('product', 'categories'));
     }
 

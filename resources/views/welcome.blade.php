@@ -2,6 +2,10 @@
 
 @section('title', 'NovaShop')
 
+@section('containerClass')
+container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' products-container-narrow' }}
+@endsection
+
 @section('content')
 @php
     $currentSort = $currentSort ?? 'popular';
@@ -33,25 +37,69 @@
 </div>
 @endif
 
-<div class="products-with-sidebar">
-    {{-- Sidebar: Tất cả danh mục + Khoảng giá --}}
+@if(!($showSidebarAndFilter ?? false) && isset($categories) && $categories->isNotEmpty())
+<section class="home-categories-section mb-4">
+    <h2 class="home-categories-title mb-3 font-weight-bold">DANH MỤC</h2>
+    <div class="home-categories-grid">
+        @foreach($categories as $cat)
+        <a href="{{ route('category.products', $cat) }}" class="home-categories-item">
+            <div class="home-categories-icon">
+                @if($cat->image)
+                    <img src="/images/categories/{{ basename($cat->image) }}" alt="{{ $cat->name }}" loading="lazy">
+                @else
+                    <span class="home-categories-icon-placeholder">{{ Str::limit($cat->name, 1) }}</span>
+                @endif
+            </div>
+            <span class="home-categories-name">{{ $cat->name }}</span>
+        </a>
+        @endforeach
+    </div>
+</section>
+@endif
+
+<div class="products-with-sidebar {{ ($showSidebarAndFilter ?? false) ? '' : 'products-no-sidebar' }}">
+    @if($showSidebarAndFilter ?? false)
+    {{-- Sidebar: Khi xem category cụ thể chỉ hiển thị danh mục con của nó --}}
     <aside class="products-sidebar">
         <h2 class="products-sidebar-title">
-            <a href="{{ route('all.categories') }}" class="products-sidebar-title-link">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                Tất cả danh mục
-            </a>
+            @if(isset($category))
+                <a href="{{ $category->parent_id ? route('category.products', $category->parent) : route('all.categories') }}" class="products-sidebar-title-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    {{ $category->parent_id ? $category->parent->name : 'Tất cả danh mục' }}
+                </a>
+            @else
+                <a href="{{ route('all.categories') }}" class="products-sidebar-title-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    Tất cả danh mục
+                </a>
+            @endif
         </h2>
         <nav class="products-sidebar-list">
-            <a href="{{ isset($q) ? route('search', array_filter(['q' => $q])) : route('welcome') }}" class="{{ !isset($category) && !isset($categoryId) ? 'active' : '' }}">
-                Tất cả
-            </a>
-            @if(isset($categories) && $categories->isNotEmpty())
-            @foreach($categories as $cat)
-            <a href="{{ isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $cat->id])) : route('category.products', $cat) }}" class="{{ (isset($category) && $category->id === $cat->id) || (isset($categoryId) && $categoryId === $cat->id) ? 'active' : '' }}">
-                {{ $cat->name }}
-            </a>
-            @endforeach
+            @if(isset($category))
+                {{-- Đang xem category: luôn hiển thị danh mục anh em (siblings) để dễ chuyển đổi --}}
+                @php
+                    $sidebarItems = $category->parent_id
+                        ? $category->parent->children
+                        : collect([$category])->merge($category->children);
+                @endphp
+                @if($sidebarItems->isNotEmpty())
+                    @foreach($sidebarItems as $item)
+                        @php
+                            $isItemActive = $item->id === $category->id || in_array($item->id, $activeCategoryIds ?? []);
+                            $itemUrl = isset($q) ? route('search', array_filter(['q' => $q ?? '', 'category_id' => $item->id])) : route('category.products', $item);
+                        @endphp
+                        <a href="{{ $itemUrl }}" class="{{ $isItemActive ? 'active' : '' }}" style="padding-left: 12px;">{{ $item->name }}</a>
+                    @endforeach
+                @else
+                    <span class="text-muted small" style="padding-left: 12px;">Không có danh mục con</span>
+                @endif
+            @else
+                {{-- Không có category: hiển thị tất cả danh mục gốc --}}
+                @if(isset($categories) && $categories->isNotEmpty())
+                @foreach($categories as $cat)
+                    @include('partials.category-tree-item', ['category' => $cat, 'level' => 0])
+                @endforeach
+                @endif
             @endif
         </nav>
 
@@ -71,8 +119,10 @@
             </form>
         </div>
     </aside>
+    @endif
 
     <div class="products-main">
+        @if($showSidebarAndFilter ?? false)
         {{-- Sắp xếp theo --}}
         <div class="products-sort-bar">
             <span class="sort-label">Sắp xếp theo:</span>
@@ -88,11 +138,12 @@
                 </select>
             </div>
         </div>
+        @endif
 
-        {{-- Lưới sản phẩm --}}
+        {{-- Lưới sản phẩm: 6/hàng khi không sidebar, 4/hàng khi có sidebar --}}
         <div class="row">
             @forelse ($products as $product)
-            <div class="col-sm-6 col-md-6 col-lg-4 mb-4">
+            <div class="col-6 col-md-4 col-lg-3 mb-4">
                 <div class="card h-100 product-card">
                     <div class="card-body text-left d-flex flex-column">
                         <div class="product-card-img mb-2">
@@ -191,7 +242,7 @@
     <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #333;">Gợi ý hôm nay</h2>
     <div class="row">
         @foreach($suggestedProducts as $product)
-        <div class="col-6 col-md-6 col-lg-4 mb-4">
+        <div class="col-6 col-md-4 col-lg-3 mb-4">
             <div class="card h-100 product-card">
                 <div class="card-body text-left d-flex flex-column">
                     <div class="product-card-img mb-2">

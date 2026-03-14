@@ -3,58 +3,95 @@
 @section('title', 'Danh mục')
 
 @section('content')
+<style>
+.cat-list-card { border-left: 4px solid #dc3545; transition: box-shadow 0.2s; }
+.cat-list-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.cat-parent-row { background: #fafafa; }
+.cat-child-item { padding: 0.35rem 0.5rem; border-radius: 4px; margin-bottom: 0.25rem; background: #fff; border: 1px solid #eee; }
+.cat-child-item:hover { background: #f8f9fa; }
+.cat-child-item .btn-group .btn { padding: 0.2rem 0.5rem; font-size: 0.75rem; }
+.cat-badge { font-size: 0.7rem; }
+</style>
 <div class="page-header">
     <h2>Danh mục</h2>
-    <div class="d-flex align-items-center flex-wrap gap-2">
-        <a class="btn btn-success" href="{{ route('admin.categories.create') }}">Tạo danh mục mới</a>
-    </div>
+    <a class="btn btn-success" href="{{ route('admin.categories.create') }}">+ Tạo danh mục mới</a>
 </div>
 
-<div class="card">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover mb-0">
-                <thead class="thead-light">
-                    <tr>
-                        <th class="text-center" style="width: 80px;">STT</th>
-                        <th class="text-center" style="width: 70px;">Ảnh</th>
-                        <th style="width: 200px; max-width: 200px;">Tên</th>
-                        <th class="text-center" style="width: 1%; white-space: nowrap;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($categories as $category)
-                    <tr>
-                        <td class="text-center align-middle">{{ ($categories->currentPage() - 1) * $categories->perPage() + $loop->iteration }}</td>
-                        <td class="text-center align-middle">
-                            @if($category->image)
-                                <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="img-thumbnail" style="max-height: 40px; max-width: 50px; object-fit: contain;">
-                            @else
-                                <span class="text-muted small">—</span>
-                            @endif
-                        </td>
-                        <td class="align-middle">{{ $category->name }}</td>
-                        <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>
-                            <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $category->id }}" data-name="{{ $category->name }}">Xóa</button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="text-center text-muted py-4">Chưa có danh mục nào.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+<div class="list-group">
+    @forelse ($categories as $category)
+    <div class="card cat-list-card mb-3">
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                <div class="col-auto pr-0">
+                    @if($category->image)
+                        <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
+                    @else
+                        <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1.5rem;">📁</div>
+                    @endif
+                </div>
+                <div class="col">
+                    <div class="d-flex align-items-center flex-wrap">
+                        <h6 class="mb-0 font-weight-bold">{{ $category->name }}</h6>
+                        @if($category->children->isNotEmpty())
+                            <span class="badge badge-secondary cat-badge ml-2">{{ $category->children->count() }} danh mục con</span>
+                        @endif
+                    </div>
+                    @if($category->children->isNotEmpty())
+                        <div class="mt-2">
+                            @foreach($category->children as $child)
+                                <div class="cat-child-item d-flex align-items-center justify-content-between flex-wrap">
+                                    <span class="text-dark">└ {{ $child->name }}</span>
+                                    <span>
+                                        <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $child) }}">Xem</a>
+                                        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $child) }}">Sửa</a>
+                                        <form id="delete-form-{{ $child->id }}" action="{{ route('admin.categories.destroy', $child) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $child->id }}" data-name="{{ $child->name }}">Xóa</button>
+                                        </form>
+                                    </span>
+                                </div>
+                                @if($child->children->isNotEmpty())
+                                    @foreach($child->children as $leaf)
+                                        <div class="cat-child-item d-flex align-items-center justify-content-between flex-wrap ml-3">
+                                            <span class="text-muted">├ {{ $leaf->name }}</span>
+                                            <span>
+                                                <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $leaf) }}">Xem</a>
+                                                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $leaf) }}">Sửa</a>
+                                                <form id="delete-form-{{ $leaf->id }}" action="{{ route('admin.categories.destroy', $leaf) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $leaf->id }}" data-name="{{ $leaf->name }}">Xóa</button>
+                                                </form>
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                <div class="col-auto text-right">
+                    <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category) }}">Xem</a>
+                    <a class="btn btn-primary btn-sm" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>
+                    <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $category->id }}" data-name="{{ $category->name }}">Xóa</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-    @if ($categories->hasPages())
-    <div class="card-footer">
+    @empty
+    <div class="card">
+        <div class="card-body text-center text-muted py-5">Chưa có danh mục nào.</div>
+    </div>
+    @endforelse
+</div>
+
+@if ($categories->hasPages())
+    <div class="mt-3 d-flex justify-content-center">
         @php
             $paginator = $categories;
             $current = $paginator->currentPage();
@@ -99,8 +136,7 @@
             </ul>
         </nav>
     </div>
-    @endif
-</div>
+@endif
 
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">

@@ -461,7 +461,7 @@
             font-size: 0.875rem;
         }
         .product-card-img {
-            height: 140px;
+            height: 180px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -519,6 +519,21 @@
             display: flex;
             gap: 1rem;
             align-items: flex-start;
+            max-width: 1280px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Trang welcome không sidebar */
+        .products-with-sidebar.products-no-sidebar {
+            max-width: 1140px;
+        }
+        /* Trang có sidebar: container rộng hơn */
+        .products-container-wide {
+            max-width: 1320px !important;
+        }
+        /* Trang welcome không sidebar */
+        .products-container-narrow {
+            max-width: 1140px !important;
         }
         .products-sidebar {
             width: 220px;
@@ -638,6 +653,10 @@
             flex: 1;
             min-width: 0;
         }
+        .products-no-sidebar .products-main {
+            flex: 1 1 100%;
+            max-width: 100%;
+        }
         .products-sort-bar {
             display: flex;
             align-items: center;
@@ -697,6 +716,76 @@
         @media (max-width: 767px) {
             .products-with-sidebar { flex-direction: column; }
             .products-sidebar { width: 100%; min-width: 0; }
+        }
+        /* Trang chủ - DANH MỤC (Shopee-style) */
+        .home-categories-section {
+            max-width: 1140px;
+            margin-left: auto;
+            margin-right: auto;
+            background: #fff;
+            border-radius: 8px;
+            padding: 1rem 0;
+            box-shadow: 0 0.0625rem 0.125rem rgba(0,0,0,0.08);
+        }
+        .home-categories-title {
+            font-size: 1.1rem;
+            color: #212529;
+            padding: 0 1rem;
+        }
+        .home-categories-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            padding: 0 1rem;
+        }
+        @media (min-width: 576px) {
+            .home-categories-grid { grid-template-columns: repeat(6, 1fr); }
+        }
+        @media (min-width: 768px) {
+            .home-categories-grid { grid-template-columns: repeat(8, 1fr); }
+        }
+        .home-categories-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #212529;
+            padding: 0.75rem 0.5rem;
+            background: #fff;
+            border-radius: 8px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .home-categories-item:hover {
+            background: #fff5f5;
+            color: #dc3545;
+        }
+        .home-categories-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            flex-shrink: 0;
+        }
+        .home-categories-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .home-categories-icon-placeholder {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #adb5bd;
+        }
+        .home-categories-name {
+            font-size: 0.8rem;
+            text-align: center;
+            line-height: 1.25;
+            font-weight: 500;
         }
         /* Trang tất cả danh mục - lưới danh mục */
         .all-categories-grid {
@@ -989,7 +1078,7 @@
     @endif
 
     <main class="py-4">
-        <div class="container">
+        <div class="@yield('containerClass', 'container')">
             @yield('content')
         </div>
     </main>

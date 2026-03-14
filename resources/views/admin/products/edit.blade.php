@@ -18,7 +18,7 @@
                 <select name="category_id" id="category_id" class="form-control" required>
                     <option value="">-- Chọn danh mục --</option>
                     @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ (old('category_id', $product->category_id) == $cat->id) ? 'selected' : '' }}>{{ $cat->name }}</option>
+                        <option value="{{ $cat->id }}" {{ (old('category_id', $product->category_id) == $cat->id) ? 'selected' : '' }}>{{ $cat->full_path }}</option>
                     @endforeach
                 </select>
             </div>

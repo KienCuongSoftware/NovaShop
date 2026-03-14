@@ -5,62 +5,61 @@
 @section('content')
 <div class="page-header">
     <h2>Sản phẩm</h2>
-    <div>
-        <a class="btn btn-success" href="{{ route('admin.products.create') }}">Thêm sản phẩm</a>
-    </div>
+    <a class="btn btn-success" href="{{ route('admin.products.create') }}">+ Thêm sản phẩm</a>
 </div>
 
-<div class="card">
+<div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-bordered table-hover mb-0">
+            <table class="table table-hover mb-0">
                 <thead class="thead-light">
                     <tr>
-                        <th class="text-center" style="width: 60px;">STT</th>
-                        <th style="width: 160px;">Tên</th>
-                        <th style="width: 120px;">Danh mục</th>
+                        <th class="text-center" style="width: 50px;">STT</th>
+                        <th style="width: 160px; max-width: 160px;">Sản phẩm</th>
+                        <th style="width: 130px;">Danh mục</th>
                         <th class="text-right" style="width: 90px;">Giá cũ</th>
                         <th class="text-right" style="width: 90px;">Giá mới</th>
-                        <th class="text-center" style="width: 80px;">Số lượng</th>
-                        <th class="text-center" style="width: 80px;">Hình ảnh</th>
-                        <th class="text-center" style="width: 1%; white-space: nowrap;">Thao tác</th>
+                        <th class="text-center" style="width: 70px;">SL</th>
+                        <th class="text-center" style="width: 180px; white-space: nowrap;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($products as $product)
                     <tr>
-                        <td class="text-center align-middle">{{ ($products->currentPage() - 1) * $products->perPage() + $loop->iteration }}</td>
-                        <td class="align-middle">{{ $product->name }}</td>
-                        <td class="align-middle">{{ $product->category->name ?? '—' }}</td>
-                        <td class="text-right align-middle small text-muted">
+                        <td class="text-center align-middle text-muted">{{ ($products->currentPage() - 1) * $products->perPage() + $loop->iteration }}</td>
+                        <td class="align-middle" style="max-width: 160px;">
+                            <div class="d-flex align-items-center">
+                                @if($product->image)
+                                    <img src="/images/products/{{ basename($product->image) }}" alt="" class="rounded mr-2 flex-shrink-0" style="width: 32px; height: 32px; object-fit: cover;" loading="lazy">
+                                @else
+                                    <div class="rounded bg-light mr-2 flex-shrink-0 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; font-size: 0.9rem;">📦</div>
+                                @endif
+                                <span class="text-truncate d-inline-block" style="max-width: 110px;" title="{{ $product->name }}">{{ Str::limit($product->name, 22) }}</span>
+                            </div>
+                        </td>
+                        <td class="align-middle"><span class="badge badge-light">{{ $product->category->name ?? '—' }}</span></td>
+                        <td class="text-right align-middle">
                             @if($product->old_price !== null)
-                                <span style="text-decoration: line-through;">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                                <span class="text-muted small" style="text-decoration: line-through;">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
                             @else
                                 —
                             @endif
                         </td>
-                        <td class="text-right align-middle"><strong class="text-danger" style="font-size: 1.05rem;">{{ number_format($product->price, 0, ',', '.') }}₫</strong></td>
-                        <td class="text-center align-middle">{{ $product->quantity }}</td>
-                        <td class="text-center align-middle">
-                            @if($product->image)
-                                <img src="/images/products/{{ basename($product->image) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-height: 40px; max-width: 50px; object-fit: cover;" loading="lazy" width="50" height="40" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22%23ddd%22%3E%3Crect width=%2224%22 height=%2224%22/%3E%3C/svg%3E';">
-                            @else
-                                <span class="text-muted">—</span>
-                            @endif
-                        </td>
+                        <td class="text-right align-middle"><strong class="text-danger">{{ number_format($product->price, 0, ',', '.') }}₫</strong></td>
+                        <td class="text-center align-middle">{{ number_format($product->quantity, 0, ',', '.') }}</td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-info btn-sm" href="{{ route('admin.products.show', $product) }}">Xem</a>
-                            <a class="btn btn-primary btn-sm" href="{{ route('admin.products.edit', $product) }}">Sửa</a>
+                            <a class="btn btn-outline-info btn-sm" href="{{ route('admin.products.show', $product) }}">Xem</a>
+                            <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.products.edit', $product) }}">Sửa</a>
                             <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product) }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('DELETE')
-                                <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
                             </form>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
+                        <td colspan="7" class="text-center text-muted py-5">Chưa có sản phẩm nào.</td>
                     </tr>
                     @endforelse
                 </tbody>

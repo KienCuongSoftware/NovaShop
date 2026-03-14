@@ -40,14 +40,16 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
         $products = $this->buildProductQuery(null, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
 
-        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
+        $activeCategoryIds = [];
+        $showSidebarAndFilter = false;
+        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
     }
 
     /**
@@ -59,7 +61,7 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
         return view('all-categories', compact('categories'));
     }
 
@@ -72,14 +74,18 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
+        $sidebarCategories = $category->children()->with('children')->orderBy('name')->get();
+        $sidebarParent = $category->parent;
         $products = $this->buildProductQuery($category->id, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
 
-        return view('welcome', compact('products', 'categories', 'category', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
+        $activeCategoryIds = array_map(fn ($c) => $c->id, $category->getBreadcrumbPath());
+        $showSidebarAndFilter = true;
+        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
     }
 
     public function search(Request $request)
@@ -88,12 +94,16 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
         $q = trim((string) $request->input('q', ''));
         $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
 
         $products = Product::with('category')
-            ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $category = Category::with('children')->find($categoryId);
+                $ids = $category ? $category->getDescendantIds() : [$categoryId];
+                $query->whereIn('category_id', $ids);
+            })
             ->when($q !== '', function ($query) use ($q) {
                 $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
                 $query->where(function ($qry) use ($esc, $q) {
@@ -120,7 +130,9 @@ class WelcomeController extends Controller
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
 
-        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'));
+        $activeCategoryIds = $categoryId ? array_map(fn ($c) => $c->id, optional(Category::find($categoryId))->getBreadcrumbPath() ?? []) : [];
+        $showSidebarAndFilter = true;
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
     }
 
     /**
@@ -190,7 +202,7 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = 'popular';
         $priceMin = null;
@@ -210,7 +222,9 @@ class WelcomeController extends Controller
                 ->orderByRaw("FIELD(id, {$idsStr})")
                 ->paginate(12)
                 ->withQueryString();
-            return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'))
+            $activeCategoryIds = [];
+            $showSidebarAndFilter = true;
+            return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'))
                 ->with('imageSearchMessage', 'Kết quả tìm kiếm theo hình ảnh');
         }
 
@@ -301,7 +315,9 @@ class WelcomeController extends Controller
             $products = Product::with('category')->where('is_active', true)->inRandomOrder()->paginate(12);
         }
 
-        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax'))
+        $activeCategoryIds = [];
+        $showSidebarAndFilter = true;
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'))
             ->with('imageSearchMessage', 'Kết quả tìm kiếm theo hình ảnh');
     }
 
@@ -313,11 +329,15 @@ class WelcomeController extends Controller
         return in_array($sort, $allowed) ? $sort : 'popular';
     }
 
-    /** Xây query sản phẩm với filter danh mục, giá và sort. */
+    /** Xây query sản phẩm với filter danh mục, giá và sort. Khi chọn danh mục cha, hiển thị sản phẩm của cả danh mục con. */
     protected function buildProductQuery(?int $categoryId, Request $request)
     {
         $query = Product::with('category')
-            ->when($categoryId !== null, fn ($q) => $q->where('category_id', $categoryId));
+            ->when($categoryId !== null, function ($q) use ($categoryId) {
+                $category = Category::with('children')->find($categoryId);
+                $ids = $category ? $category->getDescendantIds() : [$categoryId];
+                $q->whereIn('category_id', $ids);
+            });
         $query = $this->applyPriceFilter($query, $request);
         return $this->applySort($query, $request);
     }
