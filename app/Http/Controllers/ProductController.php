@@ -40,9 +40,19 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::leaves()->with('parent.parent')->orderBy('name')->get();
+        $parentCategories = Category::roots()->orderBy('name')->get();
+        $categoriesByParent = [];
+        $categoryToParent = [];
+        foreach ($parentCategories as $root) {
+            $ids = $root->getDescendantIds();
+            $leaves = Category::whereIn('id', $ids)->leaves()->orderBy('name')->get();
+            $categoriesByParent[$root->id] = $leaves->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values()->all();
+            foreach ($categoriesByParent[$root->id] as $leaf) {
+                $categoryToParent[$leaf['id']] = $root->id;
+            }
+        }
         $brands = Brand::orderBy('name')->get();
-        return view('admin.products.create', compact('categories', 'brands'));
+        return view('admin.products.create', compact('parentCategories', 'categoriesByParent', 'categoryToParent', 'brands'));
     }
 
     public function store(Request $request)
@@ -110,9 +120,19 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $product->load('brand');
-        $categories = Category::leaves()->with('parent.parent')->orderBy('name')->get();
+        $parentCategories = Category::roots()->orderBy('name')->get();
+        $categoriesByParent = [];
+        $categoryToParent = [];
+        foreach ($parentCategories as $root) {
+            $ids = $root->getDescendantIds();
+            $leaves = Category::whereIn('id', $ids)->leaves()->orderBy('name')->get();
+            $categoriesByParent[$root->id] = $leaves->map(fn ($c) => ['id' => $c->id, 'name' => $c->name])->values()->all();
+            foreach ($categoriesByParent[$root->id] as $leaf) {
+                $categoryToParent[$leaf['id']] = $root->id;
+            }
+        }
         $brands = Brand::orderBy('name')->get();
-        return view('admin.products.edit', compact('product', 'categories', 'brands'));
+        return view('admin.products.edit', compact('product', 'parentCategories', 'categoriesByParent', 'categoryToParent', 'brands'));
     }
 
     public function update(Request $request, Product $product)

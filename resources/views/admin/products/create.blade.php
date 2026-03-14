@@ -13,13 +13,22 @@
         <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="form-group">
-                <label for="category_id"><strong>Danh mục:</strong></label>
-                <select name="category_id" id="category_id" class="form-control" required>
-                    <option value="">-- Chọn danh mục --</option>
-                    @foreach($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->full_path }}</option>
-                    @endforeach
-                </select>
+                <label><strong>Danh mục:</strong></label>
+                <div class="row">
+                    <div class="col-md-6">
+                        <select id="parent_category_id" class="form-control mb-2">
+                            <option value="">-- Chọn danh mục cha --</option>
+                            @foreach($parentCategories ?? [] as $root)
+                            <option value="{{ $root->id }}">{{ $root->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <select name="category_id" id="category_id" class="form-control mb-2" required>
+                            <option value="">-- Chọn danh mục con --</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="form-group">
                 <label for="brand_id"><strong>Thương hiệu:</strong></label>
@@ -81,4 +90,38 @@
         </form>
     </div>
 </div>
+
+<script>
+(function() {
+    var categoriesByParent = @json($categoriesByParent ?? []);
+    var categoryToParent = @json($categoryToParent ?? []);
+    var selectedId = {{ json_encode(old('category_id')) }};
+    var parentSelect = document.getElementById('parent_category_id');
+    var childSelect = document.getElementById('category_id');
+
+    function updateChildOptions() {
+        var parentId = parentSelect.value;
+        childSelect.innerHTML = '<option value="">-- Chọn danh mục con --</option>';
+        if (parentId && categoriesByParent[parentId]) {
+            categoriesByParent[parentId].forEach(function(c) {
+                var opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                if (selectedId && c.id == selectedId) opt.selected = true;
+                childSelect.appendChild(opt);
+            });
+        }
+    }
+
+    parentSelect.addEventListener('change', function() {
+        selectedId = null;
+        updateChildOptions();
+    });
+
+    if (selectedId && categoryToParent[selectedId]) {
+        parentSelect.value = categoryToParent[selectedId];
+    }
+    updateChildOptions();
+})();
+</script>
 @endsection
