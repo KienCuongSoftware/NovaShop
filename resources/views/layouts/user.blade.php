@@ -993,6 +993,9 @@
                         <span class="text-white">{{ auth()->user()->name }}</span>
                         <div class="user-menu-dropdown">
                             <a href="{{ route('profile') }}">Quản lý tài khoản</a>
+                            @if(!auth()->user()->is_admin)
+                            <a href="{{ route('orders.index') }}">Đơn mua</a>
+                            @endif
                             <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
                         </div>
                     </div>

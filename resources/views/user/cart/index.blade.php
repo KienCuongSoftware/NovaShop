@@ -11,7 +11,10 @@
 <div class="card">
     <div class="card-body text-center py-5">
         <p class="text-muted mb-3">Giỏ hàng trống.</p>
-        <a href="{{ route('welcome') }}" class="btn btn-primary">Mua sắm ngay</a>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a href="{{ route('welcome') }}" class="btn btn-primary">Mua sắm ngay</a>
+            <a href="{{ route('orders.index') }}" class="btn btn-outline-primary">Xem đơn hàng</a>
+        </div>
     </div>
 </div>
 @else
@@ -65,9 +68,46 @@
             </table>
         </div>
     </div>
-    <div class="card-footer d-flex justify-content-between align-items-center">
-        <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($cart->items->sum(fn($i) => $i->subtotal), 0, ',', '.') }}₫</span></span>
-        <a href="{{ route('welcome') }}" class="btn btn-primary">Tiếp tục mua sắm</a>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($cart->items->sum(fn($i) => $i->subtotal), 0, ',', '.') }}₫</span></span>
+            <div class="d-flex gap-2">
+                <a href="{{ route('welcome') }}" class="btn btn-outline-secondary">Tiếp tục mua sắm</a>
+                <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#checkoutModal">Đặt hàng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="checkoutModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('orders.checkout') }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Thông tin giao hàng</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                        <input type="text" name="shipping_address" class="form-control" required placeholder="Số nhà, đường, quận/huyện, tỉnh/thành">
+                    </div>
+                    <div class="form-group">
+                        <label>Số điện thoại <span class="text-danger">*</span></label>
+                        <input type="text" name="phone" class="form-control" required placeholder="0912345678">
+                    </div>
+                    <div class="form-group">
+                        <label>Ghi chú</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Ghi chú cho đơn hàng"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">Xác nhận đặt hàng</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 @endif
