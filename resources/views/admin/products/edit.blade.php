@@ -23,6 +23,23 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="brand_id"><strong>Thương hiệu:</strong></label>
+                @if($product->brand)
+                <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
+                    @if($product->brand->logo)
+                    <img src="/images/brands/{{ basename($product->brand->logo) }}" alt="{{ $product->brand->name }}" class="mr-2" style="width: 36px; height: 36px; object-fit: contain;">
+                    @endif
+                    <span class="font-weight-bold">Hiện tại: {{ $product->brand->name }}</span>
+                </div>
+                @endif
+                <select name="brand_id" id="brand_id" class="form-control">
+                    <option value="">-- Không chọn --</option>
+                    @foreach($brands as $b)
+                        <option value="{{ $b->id }}" {{ (old('brand_id', $product->brand_id) == $b->id) ? 'selected' : '' }}>{{ $b->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
                 <label for="name"><strong>Tên sản phẩm:</strong></label>
                 <input type="text" name="name" id="name" class="form-control" placeholder="Nhập tên sản phẩm" value="{{ old('name', $product->name) }}" required>
             </div>

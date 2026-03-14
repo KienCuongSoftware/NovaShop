@@ -34,6 +34,9 @@
                     @if($product->category)
                     <p class="text-muted small mb-2">Danh mục: <a href="{{ route('category.products', $product->category) }}" class="text-danger">{{ $product->category->full_path }}</a></p>
                     @endif
+                    @if($product->brand)
+                    <p class="text-muted small mb-2">Thương hiệu: {{ $product->brand->name }}</p>
+                    @endif
 
                     <div class="mb-3">
                         @if($product->old_price !== null)

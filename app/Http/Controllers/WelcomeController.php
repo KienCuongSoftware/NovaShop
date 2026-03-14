@@ -77,15 +77,22 @@ class WelcomeController extends Controller
         $categories = Category::roots()->with('children.children')->orderBy('name')->get();
         $sidebarCategories = $category->children()->with('children')->orderBy('name')->get();
         $sidebarParent = $category->parent;
+
+        $categoryIds = $category->getDescendantIds();
+        $categoryBrands = \App\Models\Brand::whereHas('products', fn ($q) => $q->whereIn('category_id', $categoryIds))
+            ->orderBy('name')
+            ->get();
+
         $products = $this->buildProductQuery($category->id, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
+        $brandId = $request->filled('brand_id') ? (int) $request->input('brand_id') : null;
 
         $activeCategoryIds = array_map(fn ($c) => $c->id, $category->getBreadcrumbPath());
         $showSidebarAndFilter = true;
-        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
+        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
     }
 
     public function search(Request $request)
@@ -329,14 +336,17 @@ class WelcomeController extends Controller
         return in_array($sort, $allowed) ? $sort : 'popular';
     }
 
-    /** Xây query sản phẩm với filter danh mục, giá và sort. Khi chọn danh mục cha, hiển thị sản phẩm của cả danh mục con. */
+    /** Xây query sản phẩm với filter danh mục, brand, giá và sort. */
     protected function buildProductQuery(?int $categoryId, Request $request)
     {
-        $query = Product::with('category')
+        $query = Product::with(['category', 'brand'])
             ->when($categoryId !== null, function ($q) use ($categoryId) {
                 $category = Category::with('children')->find($categoryId);
                 $ids = $category ? $category->getDescendantIds() : [$categoryId];
                 $q->whereIn('category_id', $ids);
+            })
+            ->when($request->filled('brand_id'), function ($q) use ($request) {
+                $q->where('brand_id', (int) $request->input('brand_id'));
             });
         $query = $this->applyPriceFilter($query, $request);
         return $this->applySort($query, $request);

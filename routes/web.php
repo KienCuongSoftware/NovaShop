@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
@@ -73,6 +74,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
     // Đặt tiền tố 'admin' cho tất cả các route của categories
     Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
+    Route::resource('/admin/brands', BrandController::class, ['as' => 'admin']);
     Route::resource('/admin/users', UserController::class, ['as' => 'admin']);
 });
 
@@ -105,6 +107,21 @@ Route::get('/images/products/{filename}', function (string $filename) {
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
 })->where('filename', '[a-zA-Z0-9._-]+')->name('storage.products.image');
+
+// Serve brand logos from storage/app/public/brands
+Route::get('/images/brands/{filename}', function (string $filename) {
+    $path = 'brands/' . $filename;
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+    $file = Storage::disk('public')->get($path);
+    return response($file, 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'public, max-age=31536000');
+})->where('filename', '[a-zA-Z0-9._-]+')->name('storage.brands.image');
 
 // Serve category images from storage/app/public/categories
 Route::get('/images/categories/{filename}', function (string $filename) {

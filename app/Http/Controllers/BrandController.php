@@ -1,0 +1,102 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Brand;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+class BrandController extends Controller
+{
+    public function index()
+    {
+        $brands = Brand::withCount('products')->orderBy('name')->paginate(10);
+        session(['admin.brands.page' => $brands->currentPage()]);
+        return view('admin.brands.index', compact('brands'));
+    }
+
+    public function create()
+    {
+        return view('admin.brands.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ], [
+            'name.required' => 'Vui lòng nhập tên thương hiệu.',
+            'name.max' => 'Tên thương hiệu không được quá 255 ký tự.',
+            'logo.image' => 'File phải là hình ảnh.',
+            'logo.max' => 'Kích thước logo không được quá 2MB.',
+        ]);
+
+        $data = ['name' => $request->input('name')];
+        if ($request->hasFile('logo')) {
+            $data['logo'] = $request->file('logo')->store('brands', 'public');
+        }
+
+        Brand::create($data);
+
+        $page = session('admin.brands.page', 1);
+        return redirect()->route('admin.brands.index', ['page' => $page])
+            ->with('success', 'Đã tạo thương hiệu thành công.');
+    }
+
+    public function show(Brand $brand)
+    {
+        $brand->loadCount('products');
+        return view('admin.brands.show', compact('brand'));
+    }
+
+    public function edit(Brand $brand)
+    {
+        return view('admin.brands.edit', compact('brand'));
+    }
+
+    public function update(Request $request, Brand $brand)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ], [
+            'name.required' => 'Vui lòng nhập tên thương hiệu.',
+            'name.max' => 'Tên thương hiệu không được quá 255 ký tự.',
+            'logo.image' => 'File phải là hình ảnh.',
+            'logo.max' => 'Kích thước logo không được quá 2MB.',
+        ]);
+
+        $data = ['name' => $request->input('name')];
+        if ($request->hasFile('logo')) {
+            if ($brand->logo && Storage::disk('public')->exists($brand->logo)) {
+                Storage::disk('public')->delete($brand->logo);
+            }
+            $data['logo'] = $request->file('logo')->store('brands', 'public');
+        }
+
+        $brand->update($data);
+
+        $page = session('admin.brands.page', 1);
+        return redirect()->route('admin.brands.index', ['page' => $page])
+            ->with('success', 'Đã cập nhật thương hiệu thành công.');
+    }
+
+    public function destroy(Brand $brand)
+    {
+        if ($brand->products()->exists()) {
+            $page = session('admin.brands.page', 1);
+            return redirect()->route('admin.brands.index', ['page' => $page])
+                ->with('error', 'Không thể xóa thương hiệu đang có sản phẩm. Vui lòng gỡ thương hiệu khỏi sản phẩm trước.');
+        }
+
+        if ($brand->logo && Storage::disk('public')->exists($brand->logo)) {
+            Storage::disk('public')->delete($brand->logo);
+        }
+        $brand->delete();
+
+        $page = session('admin.brands.page', 1);
+        return redirect()->route('admin.brands.index', ['page' => $page])
+            ->with('success', 'Đã xóa thương hiệu thành công.');
+    }
+}

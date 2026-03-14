@@ -22,6 +22,16 @@
                 </select>
             </div>
             <div class="form-group">
+                <label for="brand_id"><strong>Thương hiệu:</strong></label>
+                <select name="brand_id" id="brand_id" class="form-control">
+                    <option value="">-- Không chọn --</option>
+                    @foreach($brands ?? [] as $b)
+                        <option value="{{ $b->id }}" {{ old('brand_id') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                    @endforeach
+                </select>
+                <small class="form-text text-muted">Chọn thương hiệu nếu có. Thêm thương hiệu tại <a href="{{ route('admin.brands.index') }}">Thương hiệu</a>.</small>
+            </div>
+            <div class="form-group">
                 <label for="name"><strong>Tên sản phẩm:</strong></label>
                 <input type="text" name="name" id="name" class="form-control" placeholder="Nhập tên sản phẩm" value="{{ old('name') }}" required>
             </div>

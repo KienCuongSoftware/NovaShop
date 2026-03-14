@@ -15,14 +15,15 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         'sort' => $currentSort,
         'price_min' => $priceMin,
         'price_max' => $priceMax,
+        'brand_id' => $brandId ?? null,
     ]);
     $sortBaseUrl = isset($category)
-        ? route('category.products', $category)
+        ? route('category.products', array_filter(['category' => $category, 'brand_id' => $brandId ?? null]))
         : (isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $categoryId ?? null])) : route('welcome'));
     $sortSep = str_contains($sortBaseUrl, '?') ? '&' : '?';
-    $priceParams = array_filter(['price_min' => $priceMin, 'price_max' => $priceMax]);
+    $priceParams = array_filter(['price_min' => $priceMin, 'price_max' => $priceMax, 'brand_id' => $brandId ?? null]);
     $priceFormAction = isset($category)
-        ? route('category.products', $category)
+        ? route('category.products', array_filter(['category' => $category, 'brand_id' => $brandId ?? null]))
         : (isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $categoryId ?? null])) : route('welcome'));
 @endphp
 
@@ -103,12 +104,35 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
             @endif
         </nav>
 
+        {{-- Thương hiệu (chỉ khi xem category) --}}
+        @if(isset($category) && ($categoryBrands ?? collect())->isNotEmpty())
+        <div class="products-sidebar-brands">
+            <h3 class="products-sidebar-price-title mb-2">Thương hiệu</h3>
+            <div class="products-sidebar-brands-list">
+                <a href="{{ route('category.products', $category) }}{{ ($priceMin || $priceMax) ? '?' . http_build_query(array_filter(['price_min' => $priceMin, 'price_max' => $priceMax])) : '' }}" class="products-sidebar-brand-item {{ !($brandId ?? null) ? 'active' : '' }}">
+                    <span class="brand-check">{{ !($brandId ?? null) ? '✓' : '' }}</span>
+                    <span>Tất cả</span>
+                </a>
+                @foreach($categoryBrands as $b)
+                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand_id' => $b->id, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="products-sidebar-brand-item {{ ($brandId ?? null) == $b->id ? 'active' : '' }}">
+                    <span class="brand-check">{{ ($brandId ?? null) == $b->id ? '✓' : '' }}</span>
+                    @if($b->logo)
+                    <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brand-logo-thumb">
+                    @endif
+                    <span>{{ $b->name }}</span>
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Khoảng giá --}}
         <div class="products-sidebar-price">
             <h3 class="products-sidebar-price-title">Khoảng giá</h3>
             <form method="GET" action="{{ $priceFormAction }}" class="products-sidebar-price-form">
                 @if(isset($q))<input type="hidden" name="q" value="{{ $q }}">@endif
                 @if(isset($categoryId) && $categoryId)<input type="hidden" name="category_id" value="{{ $categoryId }}">@endif
+                @if(isset($category) && ($brandId ?? null))<input type="hidden" name="brand_id" value="{{ $brandId }}">@endif
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <div class="products-sidebar-price-inputs">
                     <input type="number" name="price_min" class="form-control" placeholder="₫ TỪ" min="0" step="1000" value="{{ $priceMin }}">
@@ -122,6 +146,25 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
     @endif
 
     <div class="products-main">
+        {{-- Logo thương hiệu đầu trang (khi xem category) --}}
+        @if(isset($category) && ($categoryBrands ?? collect())->isNotEmpty())
+        <section class="brands-section mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h3 class="brands-section-title mb-0">Thương hiệu</h3>
+            </div>
+            <div class="brands-grid">
+                @foreach($categoryBrands as $b)
+                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand_id' => $b->id, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="brands-grid-item {{ ($brandId ?? null) == $b->id ? 'active' : '' }}">
+                    @if($b->logo)
+                    <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brands-grid-logo" loading="lazy">
+                    @endif
+                    <span class="brands-grid-name">{{ $b->name }}</span>
+                </a>
+                @endforeach
+            </div>
+        </section>
+        @endif
+
         @if($showSidebarAndFilter ?? false)
         {{-- Sắp xếp theo --}}
         <div class="products-sort-bar">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -17,7 +18,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         if ($this->isAdminContext()) {
-            $products = Product::with('category')->oldest()->paginate(7);
+            $products = Product::with(['category', 'brand'])->oldest()->paginate(7);
             session(['admin.products.page' => $products->currentPage()]);
             return view('admin.products.index', compact('products'));
         }
@@ -28,13 +29,15 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::leaves()->with('parent.parent')->orderBy('name')->get();
-        return view('admin.products.create', compact('categories'));
+        $brands = Brand::orderBy('name')->get();
+        return view('admin.products.create', compact('categories', 'brands'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
@@ -56,6 +59,7 @@ class ProductController extends Controller
 
         $data = $request->only(['category_id', 'name', 'description', 'price', 'quantity']);
         $data['category_id'] = (int) $request->input('category_id');
+        $data['brand_id'] = $request->filled('brand_id') ? (int) $request->input('brand_id') : null;
         $data['is_active'] = $request->boolean('is_active');
         $data['old_price'] = $request->filled('old_price') ? $request->input('old_price') : null;
 
@@ -79,7 +83,7 @@ class ProductController extends Controller
     /** Trả về view cho người dùng bình thường; lưu hành vi xem để gợi ý. */
     public function show_normal(Product $product)
     {
-        $product->load('category.parent.parent');
+        $product->load(['category.parent.parent', 'brand']);
         $recentIds = session('recent_product_ids', []);
         $recentIds = array_filter(array_unique(array_merge([$product->id], $recentIds)));
         session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);
@@ -93,14 +97,17 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
+        $product->load('brand');
         $categories = Category::leaves()->with('parent.parent')->orderBy('name')->get();
-        return view('admin.products.edit', compact('product', 'categories'));
+        $brands = Brand::orderBy('name')->get();
+        return view('admin.products.edit', compact('product', 'categories', 'brands'));
     }
 
     public function update(Request $request, Product $product)
     {
         $request->validate([
             'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
@@ -121,6 +128,7 @@ class ProductController extends Controller
         ]);
 
         $data = $request->only(['category_id', 'name', 'description', 'price', 'quantity']);
+        $data['brand_id'] = $request->filled('brand_id') ? (int) $request->input('brand_id') : null;
         $data['is_active'] = $request->boolean('is_active');
         $data['old_price'] = $request->filled('old_price') ? $request->input('old_price') : null;
 

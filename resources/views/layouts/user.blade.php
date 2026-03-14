@@ -649,6 +649,106 @@
             border-color: #bd2130;
             color: #fff;
         }
+        /* Sidebar - Thương hiệu */
+        .products-sidebar-brands {
+            padding: 1rem;
+            border-top: 1px solid #eee;
+        }
+        .products-sidebar-brands-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .products-sidebar-brand-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            color: #212529;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .products-sidebar-brand-item:hover {
+            background: #fff5f5;
+            color: #dc3545;
+        }
+        .products-sidebar-brand-item.active {
+            background: #fff5f5;
+            color: #dc3545;
+            font-weight: 600;
+        }
+        .products-sidebar-brand-item .brand-check {
+            width: 1.1rem;
+            flex-shrink: 0;
+            color: #dc3545;
+            font-weight: 700;
+        }
+        .products-sidebar-brand-item .brand-logo-thumb {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        /* Brands grid - đầu trang category */
+        .brands-section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 0.0625rem 0.125rem rgba(0,0,0,0.08);
+        }
+        .brands-section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #212529;
+        }
+        .brands-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        @media (min-width: 576px) {
+            .brands-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (min-width: 768px) {
+            .brands-grid { grid-template-columns: repeat(6, 1fr); }
+        }
+        .brands-grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 0.5rem;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #212529;
+            transition: all 0.15s;
+        }
+        .brands-grid-item:hover {
+            border-color: #dc3545;
+            background: #fff5f5;
+            color: #dc3545;
+        }
+        .brands-grid-item.active {
+            border-color: #dc3545;
+            background: #fff5f5;
+            color: #dc3545;
+        }
+        .brands-grid-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            margin-bottom: 0.35rem;
+        }
+        .brands-grid-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center;
+            line-height: 1.2;
+        }
         .products-main {
             flex: 1;
             min-width: 0;
