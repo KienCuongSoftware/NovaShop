@@ -18,9 +18,21 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         if ($this->isAdminContext()) {
-            $products = Product::with(['category', 'brand'])->oldest()->paginate(7);
+            $parentCategories = Category::roots()->orderBy('name')->get();
+            $parentCategoryId = $request->filled('parent_category_id') ? (int) $request->input('parent_category_id') : null;
+
+            $products = Product::with(['category', 'brand'])
+                ->when($parentCategoryId, function ($q) use ($parentCategoryId) {
+                    $parent = Category::with('children')->find($parentCategoryId);
+                    $ids = $parent ? $parent->getDescendantIds() : [];
+                    $q->whereIn('category_id', $ids);
+                })
+                ->oldest()
+                ->paginate(7)
+                ->withQueryString();
+
             session(['admin.products.page' => $products->currentPage()]);
-            return view('admin.products.index', compact('products'));
+            return view('admin.products.index', compact('products', 'parentCategories', 'parentCategoryId'));
         }
         $products = Product::with('category')->oldest()->get();
         return view('products.index', compact('products'));
@@ -76,7 +88,7 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load('category');
+        $product->load(['category', 'brand']);
         return view('admin.products.show', compact('product'));
     }
 

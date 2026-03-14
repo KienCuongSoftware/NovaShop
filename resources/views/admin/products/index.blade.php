@@ -8,6 +8,41 @@
     <a class="btn btn-success" href="{{ route('admin.products.create') }}">+ Thêm sản phẩm</a>
 </div>
 
+<div class="mb-3">
+    <div class="d-flex flex-wrap">
+        <a href="{{ route('admin.products.index') }}" class="product-filter-btn mr-2 mb-2 {{ !($parentCategoryId ?? null) ? 'active' : '' }}">Tất cả</a>
+        @foreach($parentCategories ?? [] as $root)
+        <a href="{{ route('admin.products.index', ['parent_category_id' => $root->id]) }}" class="product-filter-btn mr-2 mb-2 {{ ($parentCategoryId ?? null) == $root->id ? 'active' : '' }}">{{ $root->name }}</a>
+        @endforeach
+    </div>
+</div>
+
+<style>
+.product-filter-btn {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 999px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.product-filter-btn:hover,
+.product-filter-btn:focus {
+    border-color: #dc3545;
+    background: #dc3545;
+    color: #fff;
+    text-decoration: none;
+}
+.product-filter-btn.active {
+    border-color: #dc3545;
+    background: #dc3545;
+    color: #fff;
+}
+</style>
+
 <div class="card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">

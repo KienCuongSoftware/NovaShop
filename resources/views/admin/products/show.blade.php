@@ -17,6 +17,9 @@
             <dt class="col-sm-3">Danh mục:</dt>
             <dd class="col-sm-9">{{ $product->category->name ?? '—' }}</dd>
 
+            <dt class="col-sm-3">Thương hiệu:</dt>
+            <dd class="col-sm-9">{{ $product->brand->name ?? '—' }}</dd>
+
             <dt class="col-sm-3">Mô tả:</dt>
             <dd class="col-sm-9">{{ $product->description ?: '—' }}</dd>
 
