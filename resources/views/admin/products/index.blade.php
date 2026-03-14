@@ -76,8 +76,22 @@
             if ($last <= 6) {
                 for ($i = 1; $i <= $last; $i++) { $elements[] = $i; }
             } else {
-                $start = max(1, min($current - 2, $last - 5));
-                $elements = [$start, $start + 1, $start + 2, '...', $start + 3, $start + 4, $start + 5];
+                $start = max(1, $current - 2);
+                $end = min($last, $start + 5);
+                if ($end - $start < 5) {
+                    $start = max(1, $end - 5);
+                }
+                $elements = [];
+                if ($start > 1) {
+                    $elements = [1, '...'];
+                }
+                for ($i = $start; $i <= $end; $i++) {
+                    $elements[] = $i;
+                }
+                if ($end < $last) {
+                    $elements[] = '...';
+                    $elements[] = $last;
+                }
             }
         @endphp
         <nav>
