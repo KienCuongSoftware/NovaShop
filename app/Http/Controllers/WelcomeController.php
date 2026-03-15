@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
@@ -75,7 +76,7 @@ class WelcomeController extends Controller
         $sidebarParent = $category->parent;
 
         $categoryIds = $category->getDescendantIds();
-        $categoryBrands = \App\Models\Brand::whereHas('products', fn ($q) => $q->whereIn('category_id', $categoryIds))
+        $categoryBrands = Brand::whereHas('products', fn ($q) => $q->whereIn('category_id', $categoryIds))
             ->orderBy('name')
             ->get();
 
@@ -84,11 +85,11 @@ class WelcomeController extends Controller
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
-        $brandId = $request->filled('brand_id') ? (int) $request->input('brand_id') : null;
+        $brandSlug = $request->filled('brand') ? trim((string) $request->input('brand')) : null;
 
         $activeCategoryIds = array_map(fn ($c) => $c->id, $category->getBreadcrumbPath());
         $showSidebarAndFilter = true;
-        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
+        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandSlug', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
     }
 
     public function search(Request $request)
@@ -142,8 +143,17 @@ class WelcomeController extends Controller
                 $ids = $category ? $category->getDescendantIds() : [$categoryId];
                 $q->whereIn('category_id', $ids);
             })
-            ->when($request->filled('brand_id'), function ($q) use ($request) {
-                $q->where('brand_id', (int) $request->input('brand_id'));
+            ->when(true, function ($q) use ($request) {
+                $brandId = null;
+                if ($request->filled('brand')) {
+                    $brand = Brand::where('slug', trim((string) $request->input('brand')))->first();
+                    $brandId = $brand?->id;
+                } elseif ($request->filled('brand_id')) {
+                    $brandId = (int) $request->input('brand_id');
+                }
+                if ($brandId !== null) {
+                    $q->where('brand_id', $brandId);
+                }
             });
         $query = $this->applyPriceFilter($query, $request);
         return $this->applySort($query, $request);

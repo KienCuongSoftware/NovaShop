@@ -15,15 +15,15 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         'sort' => $currentSort,
         'price_min' => $priceMin,
         'price_max' => $priceMax,
-        'brand_id' => $brandId ?? null,
+        'brand' => $brandSlug ?? null,
     ]);
     $sortBaseUrl = isset($category)
-        ? route('category.products', array_filter(['category' => $category, 'brand_id' => $brandId ?? null]))
+        ? route('category.products', array_filter(['category' => $category, 'brand' => $brandSlug ?? null]))
         : (isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $categoryId ?? null])) : route('welcome'));
     $sortSep = str_contains($sortBaseUrl, '?') ? '&' : '?';
-    $priceParams = array_filter(['price_min' => $priceMin, 'price_max' => $priceMax, 'brand_id' => $brandId ?? null]);
+    $priceParams = array_filter(['price_min' => $priceMin, 'price_max' => $priceMax, 'brand' => $brandSlug ?? null]);
     $priceFormAction = isset($category)
-        ? route('category.products', array_filter(['category' => $category, 'brand_id' => $brandId ?? null]))
+        ? route('category.products', array_filter(['category' => $category, 'brand' => $brandSlug ?? null]))
         : (isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $categoryId ?? null])) : route('welcome'));
 @endphp
 
@@ -103,13 +103,13 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         <div class="products-sidebar-brands">
             <h3 class="products-sidebar-price-title mb-2">Thương hiệu</h3>
             <div class="products-sidebar-brands-list">
-                <a href="{{ route('category.products', $category) }}{{ ($priceMin || $priceMax) ? '?' . http_build_query(array_filter(['price_min' => $priceMin, 'price_max' => $priceMax])) : '' }}" class="products-sidebar-brand-item {{ !($brandId ?? null) ? 'active' : '' }}">
-                    <span class="brand-check">{{ !($brandId ?? null) ? '✓' : '' }}</span>
+                <a href="{{ route('category.products', $category) }}{{ ($priceMin || $priceMax) ? '?' . http_build_query(array_filter(['price_min' => $priceMin, 'price_max' => $priceMax])) : '' }}" class="products-sidebar-brand-item {{ !($brandSlug ?? null) ? 'active' : '' }}">
+                    <span class="brand-check">{{ !($brandSlug ?? null) ? '✓' : '' }}</span>
                     <span>Tất cả</span>
                 </a>
                 @foreach($categoryBrands as $b)
-                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand_id' => $b->id, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="products-sidebar-brand-item {{ ($brandId ?? null) == $b->id ? 'active' : '' }}">
-                    <span class="brand-check">{{ ($brandId ?? null) == $b->id ? '✓' : '' }}</span>
+                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="products-sidebar-brand-item {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
+                    <span class="brand-check">{{ ($brandSlug ?? null) === $b->slug ? '✓' : '' }}</span>
                     @if($b->logo)
                     <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brand-logo-thumb">
                     @endif
@@ -126,7 +126,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
             <form method="GET" action="{{ $priceFormAction }}" class="products-sidebar-price-form">
                 @if(isset($q))<input type="hidden" name="q" value="{{ $q }}">@endif
                 @if(isset($categoryId) && $categoryId)<input type="hidden" name="category_id" value="{{ $categoryId }}">@endif
-                @if(isset($category) && ($brandId ?? null))<input type="hidden" name="brand_id" value="{{ $brandId }}">@endif
+                @if(isset($category) && ($brandSlug ?? null))<input type="hidden" name="brand" value="{{ $brandSlug }}">@endif
                 <input type="hidden" name="sort" value="{{ $currentSort }}">
                 <div class="products-sidebar-price-inputs">
                     <input type="number" name="price_min" class="form-control" placeholder="₫ TỪ" min="0" step="1000" value="{{ $priceMin }}">
@@ -148,7 +148,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
             </div>
             <div class="brands-grid">
                 @foreach($categoryBrands as $b)
-                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand_id' => $b->id, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="brands-grid-item {{ ($brandId ?? null) == $b->id ? 'active' : '' }}">
+                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="brands-grid-item {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
                     @if($b->logo)
                     <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brands-grid-logo" loading="lazy">
                     @endif
