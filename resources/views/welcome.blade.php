@@ -32,12 +32,6 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
     <p class="text-muted mb-0">Kết quả tìm kiếm: <strong>{{ $q }}</strong></p>
 </div>
 @endif
-@if(isset($imageSearchMessage))
-<div class="mb-3">
-    <p class="text-muted mb-0">{{ $imageSearchMessage }}</p>
-</div>
-@endif
-
 @if(!($showSidebarAndFilter ?? false) && isset($categories) && $categories->isNotEmpty())
 <section class="home-categories-section mb-4">
     <h2 class="home-categories-title mb-3 font-weight-bold">DANH MỤC</h2>

@@ -319,41 +319,13 @@
             border-color: #dc3545 !important;
             box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
         }
-        .navbar-search-inner .search-image-preview {
-            display: flex;
-            align-items: center;
-            padding: 4px 0 4px 8px;
-            flex-shrink: 0;
-        }
-        .navbar-search-inner .search-image-preview img {
-            width: 36px;
-            height: 36px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-        .navbar-search-inner .search-image-preview .search-image-clear {
-            margin-left: 4px;
-            padding: 2px 6px;
-            border: none;
-            background: #f8f9fa;
-            color: #666;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-            line-height: 1;
-            text-decoration: none;
-        }
-        .navbar-search-inner .search-image-preview .search-image-clear:hover {
-            background: #dc3545;
-            color: #fff;
-        }
         .navbar-search-inner .form-control {
             flex: 1;
             min-width: 0;
             border: none !important;
             border-radius: 0;
             padding-left: 0.75rem;
-            padding-right: 5rem;
+            padding-right: 3rem;
         }
         .navbar-search-inner .form-control:focus {
             box-shadow: none !important;
@@ -381,9 +353,6 @@
         .navbar-search-wrap .btn-search-inside svg {
             width: 18px;
             height: 18px;
-        }
-        .navbar-search-wrap .btn-search-image {
-            right: 44px;
         }
         .navbar-cart-link {
             display: flex;
@@ -1119,23 +1088,11 @@
                     <div class="navbar-search-wrap has-dropdown">
                         <form action="{{ route('search') }}" method="GET" id="search-form">
                             <div class="navbar-search-inner">
-                                @php $searchImgUrl = session('searched_image_path') ? '/images/temp/' . basename(session('searched_image_path')) : null; @endphp
-                                <div class="search-image-preview" id="search-image-preview" style="{{ $searchImgUrl ? 'display: flex;' : 'display: none;' }}">
-                                    <img src="{{ $searchImgUrl ?? '' }}" alt="" id="search-image-preview-img">
-                                    <a href="{{ route('search.clear.image') }}" class="search-image-clear" id="search-image-clear" aria-label="Xóa ảnh" title="Xóa ảnh">×</a>
-                                </div>
-                                <input type="text" name="q" id="search-input" class="form-control" placeholder="{{ $searchImgUrl ? 'Ảnh đã chọn' : 'Tìm sản phẩm hoặc chọn ảnh...' }}" value="{{ request('q') }}" aria-label="Tìm kiếm" autocomplete="off">
-                                <button type="button" class="btn-search-inside btn-search-image" id="btn-search-by-image" aria-label="Tìm kiếm bằng hình ảnh" title="Tìm kiếm bằng hình ảnh">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                                </button>
+                                <input type="text" name="q" id="search-input" class="form-control" placeholder="Tìm sản phẩm..." value="{{ request('q') }}" aria-label="Tìm kiếm" autocomplete="off">
                                 <button type="submit" class="btn-search-inside" aria-label="Tìm kiếm">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                                 </button>
                             </div>
-                        </form>
-                        <form action="{{ route('search.by.image') }}" method="POST" enctype="multipart/form-data" id="search-by-image-form" class="d-none">
-                            @csrf
-                            <input type="file" name="image" id="search-image-input" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                         </form>
                         <div class="search-history-dropdown" id="search-history-dropdown" role="listbox">
                             <div class="dropdown-title">Lịch sử tìm kiếm</div>
@@ -1316,51 +1273,6 @@
             }
             if (input && input.value.trim()) {
                 addToHistory(input.value.trim());
-            }
-
-            var btnImageSearch = document.getElementById('btn-search-by-image');
-            var imageForm = document.getElementById('search-by-image-form');
-            var imageInput = document.getElementById('search-image-input');
-            var imagePreview = document.getElementById('search-image-preview');
-            var imagePreviewImg = document.getElementById('search-image-preview-img');
-            var imageClearBtn = document.getElementById('search-image-clear');
-            var searchInput = document.getElementById('search-input');
-            var imageFile = null;
-
-            function showImagePreview(file) {
-                if (!file || !imagePreview || !imagePreviewImg) return;
-                imageFile = file;
-                var url = URL.createObjectURL(file);
-                imagePreviewImg.src = url;
-                imagePreview.style.display = 'flex';
-                if (searchInput) searchInput.placeholder = 'Ảnh đã chọn';
-            }
-
-            if (btnImageSearch && imageForm && imageInput) {
-                btnImageSearch.addEventListener('click', function() {
-                    imageInput.click();
-                });
-                imageInput.addEventListener('change', function() {
-                    if (this.files && this.files.length > 0) {
-                        showImagePreview(this.files[0]);
-                        imageForm.submit();
-                    }
-                });
-            }
-            if (imageClearBtn) {
-                imageClearBtn.addEventListener('click', function(e) {
-                    if (imageFile) {
-                        e.preventDefault();
-                        imageFile = null;
-                        if (imagePreviewImg && imagePreviewImg.src && imagePreviewImg.src.startsWith('blob:')) {
-                            URL.revokeObjectURL(imagePreviewImg.src);
-                        }
-                        if (imagePreviewImg) imagePreviewImg.src = '';
-                        if (imagePreview) imagePreview.style.display = 'none';
-                        if (searchInput) searchInput.placeholder = 'Tìm sản phẩm hoặc chọn ảnh...';
-                        if (imageInput) imageInput.value = '';
-                    }
-                });
             }
         })();
     </script>
