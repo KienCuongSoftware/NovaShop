@@ -28,14 +28,14 @@
                     @endforeach
                 </select>
             </div>
-            <div class="form-group">
+            <div id="category-image-wrap" class="form-group" style="{{ old('parent_id') ? 'display: none;' : '' }}">
                 <label for="image"><strong>Ảnh danh mục:</strong></label>
                 <input type="file" name="image" id="image" class="form-control-file" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                 <div id="preview-image" class="image-preview-wrap mt-2" style="display: none;">
                     <img src="" alt="Preview" class="img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
                     <span class="text-muted small d-block">Ảnh mới</span>
                 </div>
-                <small class="form-text text-muted">JPEG, PNG, GIF, WebP; tối đa 2MB. Để trống nếu không cần.</small>
+                <small class="form-text text-muted">Chỉ danh mục gốc mới có ảnh. JPEG, PNG, GIF, WebP; tối đa 2MB.</small>
             </div>
             <hr>
             <div class="d-flex justify-content-end">
@@ -44,4 +44,16 @@
         </form>
     </div>
 </div>
+<script>
+(function() {
+    var parentSelect = document.getElementById('parent_id');
+    var imageWrap = document.getElementById('category-image-wrap');
+    if (!parentSelect || !imageWrap) return;
+    function toggleImage() {
+        imageWrap.style.display = parentSelect.value === '' ? '' : 'none';
+    }
+    parentSelect.addEventListener('change', toggleImage);
+    toggleImage();
+})();
+</script>
 @endsection

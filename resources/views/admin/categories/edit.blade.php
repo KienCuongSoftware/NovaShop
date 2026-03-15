@@ -43,7 +43,8 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-4">
+                @if(!$category->parent_id)
+                <div class="col-md-4" id="category-image-col">
                     <div class="form-group">
                         <label>Ảnh danh mục</label>
                         <div class="border rounded p-2 bg-light text-center">
@@ -56,9 +57,10 @@
                             <img id="preview-img" src="" alt="" class="img-fluid rounded mt-2" style="max-height: 120px; object-fit: cover; display: none;">
                         </div>
                         <input type="file" name="image" id="image" class="form-control-file mt-2" accept="image/jpeg,image/png,image/jpg,image/gif,image/webp" onchange="previewImage(this)">
-                        <small class="form-text text-muted">JPEG, PNG, GIF, WebP; tối đa 2MB</small>
+                        <small class="form-text text-muted">Chỉ danh mục gốc. JPEG, PNG, GIF, WebP; tối đa 2MB</small>
                     </div>
                 </div>
+                @endif
             </div>
             <hr>
             <div class="d-flex justify-content-between align-items-center">

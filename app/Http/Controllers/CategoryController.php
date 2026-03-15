@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -35,19 +36,32 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        $parentId = $request->input('parent_id') ?: null;
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')->where(function ($q) use ($parentId) {
+                    if ($parentId === null) {
+                        $q->whereNull('parent_id');
+                    } else {
+                        $q->where('parent_id', $parentId);
+                    }
+                }),
+            ],
             'parent_id' => 'nullable|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên danh mục.',
             'name.max' => 'Tên danh mục không được quá 255 ký tự.',
+            'name.unique' => 'Đã có danh mục trùng tên trong cùng cấp.',
             'image.image' => 'File phải là hình ảnh.',
             'image.max' => 'Kích thước hình ảnh không được quá 2MB.',
         ]);
 
-        $data = ['name' => $request->input('name'), 'parent_id' => $request->input('parent_id') ?: null];
-        if ($request->hasFile('image')) {
+        $data = ['name' => $request->input('name'), 'parent_id' => $parentId];
+        if ($parentId === null && $request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('categories', 'public');
         }
 
@@ -72,23 +86,43 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
+        $parentId = $request->input('parent_id') ?: null;
+        if ($parentId && (int) $parentId === (int) $category->id) {
+            return back()->withInput()->withErrors(['parent_id' => 'Danh mục không thể là cha của chính nó.']);
+        }
+
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')
+                    ->ignore($category->id)
+                    ->where(function ($q) use ($parentId) {
+                        if ($parentId === null) {
+                            $q->whereNull('parent_id');
+                        } else {
+                            $q->where('parent_id', $parentId);
+                        }
+                    }),
+            ],
             'parent_id' => 'nullable|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên danh mục.',
             'name.max' => 'Tên danh mục không được quá 255 ký tự.',
+            'name.unique' => 'Đã có danh mục trùng tên trong cùng cấp.',
             'image.image' => 'File phải là hình ảnh.',
             'image.max' => 'Kích thước hình ảnh không được quá 2MB.',
         ]);
 
-        $parentId = $request->input('parent_id');
-        if ($parentId && (int) $parentId === (int) $category->id) {
-            return back()->withInput()->withErrors(['parent_id' => 'Danh mục không thể là cha của chính nó.']);
-        }
-        $data = ['name' => $request->input('name'), 'parent_id' => $parentId ?: null];
-        if ($request->hasFile('image')) {
+        $data = ['name' => $request->input('name'), 'parent_id' => $parentId];
+        if ($parentId !== null) {
+            if ($category->image && Storage::disk('public')->exists($category->image)) {
+                Storage::disk('public')->delete($category->image);
+            }
+            $data['image'] = null;
+        } elseif ($request->hasFile('image')) {
             if ($category->image && Storage::disk('public')->exists($category->image)) {
                 Storage::disk('public')->delete($category->image);
             }

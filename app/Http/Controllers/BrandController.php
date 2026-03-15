@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
 {
@@ -32,11 +33,17 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('brands', 'name'),
+            ],
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên thương hiệu.',
             'name.max' => 'Tên thương hiệu không được quá 255 ký tự.',
+            'name.unique' => 'Tên thương hiệu này đã tồn tại.',
             'logo.image' => 'File phải là hình ảnh.',
             'logo.max' => 'Kích thước logo không được quá 2MB.',
         ]);
@@ -67,11 +74,17 @@ class BrandController extends Controller
     public function update(Request $request, Brand $brand)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('brands', 'name')->ignore($brand->id),
+            ],
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên thương hiệu.',
             'name.max' => 'Tên thương hiệu không được quá 255 ký tự.',
+            'name.unique' => 'Tên thương hiệu này đã tồn tại.',
             'logo.image' => 'File phải là hình ảnh.',
             'logo.max' => 'Kích thước logo không được quá 2MB.',
         ]);
