@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -19,8 +17,12 @@ class OrderController extends Controller
 
         $query = $user->orders()->with(['items.product'])->latest();
 
-        if ($status !== 'all' && in_array($status, array_keys(Order::statusLabels()))) {
-            $query->where('status', $status);
+        if ($status !== 'all') {
+            if ($status === Order::STATUS_PENDING_PAYMENT) {
+                $query->pendingPaymentTab();
+            } elseif (array_key_exists($status, Order::statusLabels())) {
+                $query->where('status', $status);
+            }
         }
 
         if ($q !== '') {
@@ -37,47 +39,26 @@ class OrderController extends Controller
         return view('user.orders.index', compact('orders', 'status'));
     }
 
-    public function checkout(Request $request)
+    public function success(Order $order)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        $cart = $user->cart()->with(['items.product'])->first();
-
-        if (!$cart || $cart->items->isEmpty()) {
-            return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
+        if ($order->user_id !== Auth::id()) {
+            abort(403);
         }
+        return view('user.order-success', compact('order'));
+    }
 
-        $request->validate([
-            'shipping_address' => 'required|string|max:500',
-            'phone' => 'required|string|max:20',
-            'notes' => 'nullable|string|max:1000',
+    public function cancel(Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403);
+        }
+        if (!$order->canCancel()) {
+            return redirect()->route('orders.index')->with('error', 'Đơn hàng không thể hủy.');
+        }
+        $order->update([
+            'status' => Order::STATUS_CANCELLED,
+            'payment_status' => $order->payment_method === Order::PAYMENT_METHOD_PAYPAL ? Order::PAYMENT_STATUS_FAILED : $order->payment_status,
         ]);
-
-        DB::transaction(function () use ($user, $cart, $request) {
-            $total = 0;
-            $order = $user->orders()->create([
-                'status' => Order::STATUS_PENDING_PAYMENT,
-                'shipping_address' => $request->input('shipping_address'),
-                'phone' => $request->input('phone'),
-                'notes' => $request->input('notes'),
-            ]);
-
-            foreach ($cart->items as $item) {
-                $price = $item->product->price;
-                $subtotal = $price * $item->quantity;
-                $total += $subtotal;
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
-                    'price' => $price,
-                ]);
-            }
-
-            $order->update(['total_amount' => $total]);
-            $cart->items()->delete();
-        });
-
-        return redirect()->route('orders.index')->with('success', 'Đặt hàng thành công.');
+        return redirect()->route('orders.index')->with('success', 'Đã hủy đơn hàng #' . $order->id);
     }
 }
