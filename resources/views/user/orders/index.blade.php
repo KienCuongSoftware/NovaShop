@@ -81,12 +81,27 @@
             </table>
         </div>
     </div>
-    <div class="card-footer d-flex justify-content-between align-items-center flex-wrap">
-        <small class="text-muted">
-            Địa chỉ: {{ $order->shipping_address }} | SĐT: {{ $order->phone }}
-            <br>Ngày đặt: {{ $order->created_at->format('d/m/Y H:i') }}
-        </small>
-        <span class="font-weight-bold">Tổng: <span class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}₫</span></span>
+    <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+            <small class="text-muted">
+                Địa chỉ: {{ $order->shipping_address }} | SĐT: {{ $order->phone }}
+                <br>Ngày đặt: {{ $order->created_at->format('d/m/Y H:i') }}
+            </small>
+            <span class="font-weight-bold">Tổng: <span class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}₫</span></span>
+        </div>
+        @if($order->canShowPayButton() || $order->canCancel())
+            <div class="mt-2">
+                @if($order->canShowPayButton())
+                    <a href="{{ route('paypal.create-order', $order) }}" class="btn btn-danger btn-sm mr-2">Thanh toán</a>
+                @endif
+                @if($order->canCancel())
+                    <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng #{{ $order->id }}?');">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Hủy đơn</button>
+                    </form>
+                @endif
+            </div>
+        @endif
     </div>
 </div>
 @endforeach
