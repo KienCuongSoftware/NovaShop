@@ -21,18 +21,23 @@ class ProductController extends Controller
             $parentCategories = Category::roots()->orderBy('name')->get();
             $parentCategoryId = $request->filled('parent_category_id') ? (int) $request->input('parent_category_id') : null;
 
+            $q = trim((string) $request->input('q', ''));
             $products = Product::with(['category', 'brand'])
                 ->when($parentCategoryId, function ($q) use ($parentCategoryId) {
                     $parent = Category::with('children')->find($parentCategoryId);
                     $ids = $parent ? $parent->getDescendantIds() : [];
                     $q->whereIn('category_id', $ids);
                 })
+                ->when($q !== '', function ($query) use ($q) {
+                    $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
+                    $query->where('name', 'like', '%' . $esc . '%');
+                })
                 ->oldest()
                 ->paginate(7)
                 ->withQueryString();
 
             session(['admin.products.page' => $products->currentPage()]);
-            return view('admin.products.index', compact('products', 'parentCategories', 'parentCategoryId'));
+            return view('admin.products.index', compact('products', 'parentCategories', 'parentCategoryId', 'q'));
         }
         $products = Product::with('category')->oldest()->get();
         return view('products.index', compact('products'));

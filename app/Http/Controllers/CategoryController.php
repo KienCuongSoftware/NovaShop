@@ -8,11 +8,23 @@ use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $categories = Category::roots()->with('children.children')->oldest()->paginate(10);
+        $q = trim((string) $request->input('q', ''));
+        $categories = Category::roots()->with('children.children')
+            ->when($q !== '', function ($query) use ($q) {
+                $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
+                $query->where('name', 'like', '%' . $esc . '%')
+                    ->orWhereHas('children', function ($sub) use ($esc) {
+                        $sub->where('name', 'like', '%' . $esc . '%')
+                            ->orWhereHas('children', fn ($s) => $s->where('name', 'like', '%' . $esc . '%'));
+                    });
+            })
+            ->oldest()
+            ->paginate(10)
+            ->withQueryString();
         session(['admin.categories.page' => $categories->currentPage()]);
-        return view('admin.categories.index', compact('categories'));
+        return view('admin.categories.index', compact('categories', 'q'));
     }
 
     public function create()

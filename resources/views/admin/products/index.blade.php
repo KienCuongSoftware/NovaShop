@@ -5,7 +5,18 @@
 @section('content')
 <div class="page-header">
     <h2>Sản phẩm</h2>
-    <a class="btn btn-success" href="{{ route('admin.products.create') }}">+ Thêm sản phẩm</a>
+    <div class="admin-toolbar">
+        <form method="GET" action="{{ route('admin.products.index') }}" class="admin-search-form mb-0">
+            @if($parentCategoryId ?? null)<input type="hidden" name="parent_category_id" value="{{ $parentCategoryId }}">@endif
+            <div class="input-group" style="max-width: 320px;">
+                <input type="text" name="q" class="form-control" placeholder="Tìm theo tên sản phẩm..." value="{{ $q ?? '' }}">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                </div>
+            </div>
+        </form>
+        <a class="btn btn-success" href="{{ route('admin.products.create') }}">+ Thêm sản phẩm</a>
+    </div>
 </div>
 
 <div class="mb-3">

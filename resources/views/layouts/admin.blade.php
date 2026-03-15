@@ -72,6 +72,11 @@
         .admin-main .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
+        .page-header .admin-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+        .page-header .admin-search-form .input-group { border-radius: 0.5rem; overflow: hidden; }
+        .page-header .admin-search-form .form-control { border-radius: 0.5rem 0 0 0.5rem; border-right: 0; }
+        .page-header .admin-search-form .input-group-append .btn { border-radius: 0 0.5rem 0.5rem 0; }
+        .page-header .admin-toolbar .btn-success { border-radius: 0.5rem; }
         /* Phân trang: căn giữa, màu đỏ */
         .admin-main .card-footer {
             display: flex;

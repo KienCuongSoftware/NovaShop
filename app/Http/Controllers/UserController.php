@@ -10,11 +10,19 @@ use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::oldest()->paginate(7);
+        $q = trim((string) $request->input('q', ''));
+        $users = User::when($q !== '', function ($query) use ($q) {
+            $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
+            $query->where('name', 'like', '%' . $esc . '%')
+                ->orWhere('email', 'like', '%' . $esc . '%');
+        })
+            ->oldest()
+            ->paginate(7)
+            ->withQueryString();
         session(['admin.users.page' => $users->currentPage()]);
-        return view('admin.users.index', compact('users'));
+        return view('admin.users.index', compact('users', 'q'));
     }
 
     public function create()

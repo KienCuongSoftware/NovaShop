@@ -8,11 +8,20 @@ use Illuminate\Support\Facades\Storage;
 
 class BrandController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $brands = Brand::withCount('products')->orderBy('name')->paginate(10);
+        $q = trim((string) $request->input('q', ''));
+        $brands = Brand::withCount('products')
+            ->when($q !== '', function ($query) use ($q) {
+                $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
+                $query->where('name', 'like', '%' . $esc . '%')
+                    ->orWhere('slug', 'like', '%' . $esc . '%');
+            })
+            ->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
         session(['admin.brands.page' => $brands->currentPage()]);
-        return view('admin.brands.index', compact('brands'));
+        return view('admin.brands.index', compact('brands', 'q'));
     }
 
     public function create()

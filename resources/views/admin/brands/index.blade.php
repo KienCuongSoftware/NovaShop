@@ -5,7 +5,17 @@
 @section('content')
 <div class="page-header">
     <h2>Thương hiệu</h2>
-    <a class="btn btn-success" href="{{ route('admin.brands.create') }}">+ Tạo thương hiệu mới</a>
+    <div class="admin-toolbar">
+        <form method="GET" action="{{ route('admin.brands.index') }}" class="admin-search-form mb-0">
+            <div class="input-group" style="max-width: 320px;">
+                <input type="text" name="q" class="form-control" placeholder="Tìm theo tên hoặc slug..." value="{{ $q ?? '' }}">
+                <div class="input-group-append">
+                    <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                </div>
+            </div>
+        </form>
+        <a class="btn btn-success" href="{{ route('admin.brands.create') }}">+ Tạo thương hiệu mới</a>
+    </div>
 </div>
 
 <div class="card">
