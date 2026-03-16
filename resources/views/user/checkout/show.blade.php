@@ -63,9 +63,12 @@
                             @endif
                             <div class="flex-grow-1">
                                 <div class="font-weight-bold">{{ $item->product->name }}</div>
-                                <small class="text-muted">{{ number_format($item->product->price, 0, ',', '.') }}₫ × {{ $item->quantity }}</small>
+                                @if($item->variant_display)
+                                    <small class="text-muted d-block">{{ $item->variant_display }}</small>
+                                @endif
+                                <small class="text-muted">{{ number_format($item->productVariant ? ($item->product->price + $item->productVariant->price_adjustment) : $item->product->price, 0, ',', '.') }}₫ × {{ $item->quantity }}</small>
                             </div>
-                            <span class="text-danger font-weight-bold">{{ number_format($item->product->price * $item->quantity, 0, ',', '.') }}₫</span>
+                            <span class="text-danger font-weight-bold">{{ number_format($item->subtotal, 0, ',', '.') }}₫</span>
                         </li>
                         @endforeach
                     </ul>

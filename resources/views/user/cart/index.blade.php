@@ -44,14 +44,20 @@
                         </td>
                         <td>
                             <a href="{{ route('products.show', $item->product) }}" class="font-weight-bold text-dark">{{ $item->product->name }}</a>
+                            @if($item->variant_display)
+                                <br><small class="text-muted">{{ $item->variant_display }}</small>
+                            @endif
                         </td>
-                        <td class="text-right">{{ number_format($item->product->price, 0, ',', '.') }}₫</td>
+                        <td class="text-right">{{ number_format($item->productVariant ? ($item->product->price + $item->productVariant->price_adjustment) : $item->product->price, 0, ',', '.') }}₫</td>
                         <td class="text-center">
+                            @php
+                                $maxQty = $item->productVariant ? $item->productVariant->quantity : $item->product->quantity;
+                            @endphp
                             <form action="{{ route('cart.update') }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('PUT')
                                 <input type="hidden" name="cart_item_id" value="{{ $item->id }}">
-                                <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $item->product->quantity }}" class="form-control form-control-sm text-center d-inline-block" style="width: 70px;" onchange="this.form.submit()">
+                                <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $maxQty }}" class="form-control form-control-sm text-center d-inline-block" style="width: 70px;" onchange="this.form.submit()">
                             </form>
                         </td>
                         <td class="text-right font-weight-bold text-danger">{{ number_format($item->subtotal, 0, ',', '.') }}₫</td>
