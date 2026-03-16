@@ -78,18 +78,23 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                         : collect([$category])->merge($category->children);
                 @endphp
                 @if($sidebarItems->isNotEmpty())
-                    @foreach($sidebarItems as $item)
-                        @php
-                            $isItemActive = $item->id === $category->id || in_array($item->id, $activeCategoryIds ?? []);
-                            $itemUrl = isset($q) ? route('search', array_filter(['q' => $q ?? '', 'category_id' => $item->id])) : route('category.products', $item);
-                        @endphp
-                        <a href="{{ $itemUrl }}" class="{{ $isItemActive ? 'active' : '' }}" style="padding-left: 12px;">{{ $item->name }}</a>
-                    @endforeach
+                    <div class="sidebar-categories-wrap" id="sidebar-categories-wrap">
+                        @foreach($sidebarItems as $item)
+                            @php
+                                $isItemActive = $item->id === $category->id || in_array($item->id, $activeCategoryIds ?? []);
+                                $itemUrl = isset($q) ? route('search', array_filter(['q' => $q ?? '', 'category_id' => $item->id])) : route('category.products', $item);
+                            @endphp
+                            <a href="{{ $itemUrl }}" class="sidebar-cat-link {{ $isItemActive ? 'active' : '' }}" style="padding-left: 12px;">{{ $item->name }}</a>
+                        @endforeach
+                        @if($sidebarItems->count() > 3)
+                            <button type="button" class="btn btn-link btn-sm p-0 mt-1 sidebar-toggle-more" data-toggle-wrap="sidebar-categories-wrap" data-more-text="Xem thêm" data-less-text="Thu gọn"><span class="toggle-label">Xem thêm</span></button>
+                        @endif
+                    </div>
                 @else
                     <span class="text-muted small" style="padding-left: 12px;">Không có danh mục con</span>
                 @endif
             @else
-                {{-- Không có category: hiển thị tất cả danh mục gốc --}}
+                {{-- Trạng thái tìm kiếm hoặc không chọn category: hiển thị toàn bộ danh mục cha và danh mục con --}}
                 @if(isset($categories) && $categories->isNotEmpty())
                 @foreach($categories as $cat)
                     @include('partials.category-tree-item', ['category' => $cat, 'level' => 0])
@@ -102,13 +107,13 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         @if(isset($category) && ($categoryBrands ?? collect())->isNotEmpty())
         <div class="products-sidebar-brands">
             <h3 class="products-sidebar-price-title mb-2">Thương hiệu</h3>
-            <div class="products-sidebar-brands-list">
+            <div class="products-sidebar-brands-list sidebar-brands-wrap" id="sidebar-brands-wrap">
                 <a href="{{ route('category.products', $category) }}{{ ($priceMin || $priceMax) ? '?' . http_build_query(array_filter(['price_min' => $priceMin, 'price_max' => $priceMax])) : '' }}" class="products-sidebar-brand-item {{ !($brandSlug ?? null) ? 'active' : '' }}">
                     <span class="brand-check">{{ !($brandSlug ?? null) ? '✓' : '' }}</span>
                     <span>Tất cả</span>
                 </a>
                 @foreach($categoryBrands as $b)
-                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="products-sidebar-brand-item {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
+                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="products-sidebar-brand-item sidebar-brand-link {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
                     <span class="brand-check">{{ ($brandSlug ?? null) === $b->slug ? '✓' : '' }}</span>
                     @if($b->logo)
                     <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brand-logo-thumb">
@@ -117,6 +122,9 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                 </a>
                 @endforeach
             </div>
+            @if($categoryBrands->count() > 3)
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1 sidebar-toggle-more" data-toggle-wrap="sidebar-brands-wrap" data-more-text="Xem thêm" data-less-text="Thu gọn"><span class="toggle-label">Xem thêm</span></button>
+            @endif
         </div>
         @endif
 
@@ -333,5 +341,35 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         @endforeach
     </div>
 </section>
+@endif
+
+@if($showSidebarAndFilter ?? false)
+<style>
+.sidebar-categories-wrap .sidebar-cat-link:nth-child(n+4) { display: none; }
+.sidebar-categories-wrap.expanded .sidebar-cat-link:nth-child(n+4) { display: block; }
+.sidebar-brands-wrap .sidebar-brand-link:nth-child(n+5) { display: none; }
+.sidebar-brands-wrap.expanded .sidebar-brand-link:nth-child(n+5) { display: flex; }
+.sidebar-toggle-more { font-size: 0.875rem; color: #dc3545; }
+.sidebar-toggle-more:hover { color: #c82333; text-decoration: none; }
+</style>
+<script>
+(function() {
+    document.querySelectorAll('.sidebar-toggle-more').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var wrapId = this.getAttribute('data-toggle-wrap');
+            var wrap = document.getElementById(wrapId);
+            var moreText = this.getAttribute('data-more-text') || 'Xem thêm';
+            var lessText = this.getAttribute('data-less-text') || 'Thu gọn';
+            if (!wrap) return;
+            var label = this.querySelector('.toggle-label');
+            if (wrap.classList.toggle('expanded')) {
+                if (label) label.textContent = lessText;
+            } else {
+                if (label) label.textContent = moreText;
+            }
+        });
+    });
+})();
+</script>
 @endif
 @endsection

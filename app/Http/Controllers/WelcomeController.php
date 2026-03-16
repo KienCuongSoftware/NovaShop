@@ -98,11 +98,10 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
         $q = trim((string) $request->input('q', ''));
         $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
 
-        $products = Product::with('category')
+        $productsQuery = Product::query()
             ->when($categoryId, function ($query) use ($categoryId) {
                 $category = Category::with('children')->find($categoryId);
                 $ids = $category ? $category->getDescendantIds() : [$categoryId];
@@ -113,8 +112,12 @@ class WelcomeController extends Controller
                 $pattern = '%' . $esc . '%';
                 $query->where('name', 'like', $pattern);
             });
+        $productsQuery = $this->applyPriceFilter($productsQuery, $request);
 
-        $products = $this->applyPriceFilter($products, $request);
+        $resultCategoryIds = (clone $productsQuery)->distinct()->pluck('category_id')->filter()->values()->all();
+        $categories = $this->buildSearchSidebarCategories($resultCategoryIds);
+
+        $products = $productsQuery->with('category');
         $products = $this->applySort($products, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = $this->getSortParam($request);
@@ -124,6 +127,69 @@ class WelcomeController extends Controller
         $activeCategoryIds = $categoryId ? array_map(fn ($c) => $c->id, optional(Category::find($categoryId))->getBreadcrumbPath() ?? []) : [];
         $showSidebarAndFilter = true;
         return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
+    }
+
+    /** Sidebar tìm kiếm: chỉ danh mục cha–con trực tiếp của sản phẩm tìm được. */
+    protected function buildSearchSidebarCategories(array $resultCategoryIds): \Illuminate\Support\Collection
+    {
+        if (empty($resultCategoryIds)) {
+            return collect();
+        }
+        $showCategoryIds = [];
+        foreach ($resultCategoryIds as $cid) {
+            $cat = Category::find($cid);
+            if (!$cat) {
+                continue;
+            }
+            foreach ($cat->getBreadcrumbPath() as $c) {
+                $showCategoryIds[$c->id] = true;
+            }
+            $showCategoryIds[$cat->id] = true;
+        }
+        $showCategoryIds = array_keys($showCategoryIds);
+
+        $rootIds = [];
+        foreach ($showCategoryIds as $cid) {
+            $cat = Category::find($cid);
+            while ($cat && $cat->parent_id !== null) {
+                $cat = $cat->parent;
+            }
+            if ($cat) {
+                $rootIds[$cat->id] = true;
+            }
+        }
+        $rootIds = array_keys($rootIds);
+        if (empty($rootIds)) {
+            return collect();
+        }
+
+        $roots = Category::whereIn('id', $rootIds)
+            ->with(['children' => function ($query) {
+                $query->with(['children' => function ($query2) {
+                    $query2->with('children');
+                }]);
+            }])
+            ->orderBy('name')
+            ->get();
+
+        return $roots->map(function ($root) use ($showCategoryIds) {
+            return $this->filterCategoryBranch($root, $showCategoryIds);
+        })->filter()->values();
+    }
+
+    /** Chỉ giữ nhánh danh mục có chứa ít nhất một id trong $showCategoryIds. */
+    protected function filterCategoryBranch(Category $category, array $showCategoryIds): ?Category
+    {
+        $includeSelf = in_array($category->id, $showCategoryIds);
+        $filteredChildren = collect($category->children ?? [])
+            ->map(fn ($child) => $this->filterCategoryBranch($child, $showCategoryIds))
+            ->filter()
+            ->values();
+        if ($includeSelf || $filteredChildren->isNotEmpty()) {
+            $category->setRelation('children', $filteredChildren);
+            return $category;
+        }
+        return null;
     }
 
     /** Lấy tham số sort từ request. */
