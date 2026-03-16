@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Product extends Model
@@ -63,5 +64,63 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function hasVariants(): bool
+    {
+        return $this->variants()->exists();
+    }
+
+    public function getDistinctSizesAttribute(): array
+    {
+        return $this->variants()
+            ->whereNotNull('size')
+            ->where('size', '!=', '')
+            ->distinct()
+            ->pluck('size')
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public function getDistinctColorsAttribute(): array
+    {
+        return $this->variants()
+            ->whereNotNull('color')
+            ->where('color', '!=', '')
+            ->distinct()
+            ->pluck('color')
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public function getVariantByAttributes(?string $size, ?string $color): ?ProductVariant
+    {
+        $q = $this->variants();
+        if ($size !== null && $size !== '') {
+            $q->where('size', $size);
+        } else {
+            $q->whereNull('size');
+        }
+        if ($color !== null && $color !== '') {
+            $q->where('color', $color);
+        } else {
+            $q->whereNull('color');
+        }
+        return $q->first();
+    }
+
+    public function getAvailableQuantityAttribute(): int
+    {
+        if ($this->hasVariants()) {
+            return (int) $this->variants()->sum('quantity');
+        }
+        return (int) $this->quantity;
     }
 }

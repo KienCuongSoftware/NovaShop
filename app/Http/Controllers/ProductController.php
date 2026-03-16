@@ -110,7 +110,7 @@ class ProductController extends Controller
     /** Trả về view cho người dùng bình thường; lưu hành vi xem để gợi ý. */
     public function show_normal(Product $product)
     {
-        $product->load(['category.parent.parent', 'brand']);
+        $product->load(['category.parent.parent', 'brand', 'variants']);
         $recentIds = session('recent_product_ids', []);
         $recentIds = array_filter(array_unique(array_merge([$product->id], $recentIds)));
         session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);

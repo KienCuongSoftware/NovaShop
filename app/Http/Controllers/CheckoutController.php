@@ -14,13 +14,13 @@ class CheckoutController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $cart = $user->cart()->with(['items.product'])->first();
+        $cart = $user->cart()->with(['items.product', 'items.productVariant'])->first();
 
         if (!$cart || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
         }
 
-        $total = $cart->items->sum(fn ($i) => $i->product->price * $i->quantity);
+        $total = $cart->items->sum(fn ($i) => $i->subtotal);
         return view('user.checkout.show', compact('cart', 'total', 'user'));
     }
 
@@ -28,7 +28,7 @@ class CheckoutController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $cart = $user->cart()->with(['items.product'])->first();
+        $cart = $user->cart()->with(['items.product', 'items.productVariant'])->first();
 
         if (!$cart || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
@@ -66,7 +66,9 @@ class CheckoutController extends Controller
             ]);
 
             foreach ($cart->items as $item) {
-                $price = $item->product->price;
+                $price = $item->productVariant
+                    ? (float) $item->product->price + (float) $item->productVariant->price_adjustment
+                    : (float) $item->product->price;
                 $qty = $item->quantity;
                 $total += $price * $qty;
                 OrderItem::create([
