@@ -43,7 +43,7 @@ class CartController extends Controller
             if (!$variant) {
                 return back()->with('error', 'Biến thể không hợp lệ.');
             }
-            $availableQty = $variant->quantity;
+            $availableQty = $variant->stock;
         } else {
             if ($variantId) {
                 return back()->with('error', 'Sản phẩm không có biến thể.');
@@ -65,7 +65,7 @@ class CartController extends Controller
 
         if ($item) {
             $newQty = $item->quantity + $quantity;
-            $maxQty = $product->hasVariants() ? $product->variants()->find($item->product_variant_id)?->quantity : $product->quantity;
+            $maxQty = $product->hasVariants() ? $product->variants()->find($item->product_variant_id)?->stock : $product->quantity;
             if ($newQty > $maxQty) {
                 return back()->with('error', 'Số lượng vượt quá tồn kho.');
             }
@@ -95,7 +95,7 @@ class CartController extends Controller
         }
         $item = $cart->items()->with('productVariant')->findOrFail($request->input('cart_item_id'));
         $quantity = (int) $request->input('quantity');
-        $maxQty = $item->productVariant ? $item->productVariant->quantity : (int) $item->product->quantity;
+        $maxQty = $item->productVariant ? $item->productVariant->stock : (int) $item->product->quantity;
         if ($quantity > $maxQty) {
             return back()->with('error', 'Số lượng vượt quá tồn kho.');
         }

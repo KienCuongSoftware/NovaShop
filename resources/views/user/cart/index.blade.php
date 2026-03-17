@@ -51,7 +51,7 @@
                         <td class="text-right">{{ number_format($item->productVariant ? ($item->product->price + $item->productVariant->price_adjustment) : $item->product->price, 0, ',', '.') }}₫</td>
                         <td class="text-center">
                             @php
-                                $maxQty = $item->productVariant ? $item->productVariant->quantity : $item->product->quantity;
+                                $maxQty = $item->productVariant ? $item->productVariant->stock : $item->product->quantity;
                             @endphp
                             <form action="{{ route('cart.update') }}" method="POST" class="d-inline">
                                 @csrf
@@ -62,10 +62,10 @@
                         </td>
                         <td class="text-right font-weight-bold text-danger">{{ number_format($item->subtotal, 0, ',', '.') }}₫</td>
                         <td>
-                            <form action="{{ route('cart.remove', $item) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa sản phẩm này khỏi giỏ hàng?');">
+                            <form action="{{ route('cart.remove', $item) }}" method="POST" class="d-inline cart-remove-form" id="cart-remove-{{ $item->id }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa">&times;</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger cart-remove-btn" title="Xóa" data-form-id="cart-remove-{{ $item->id }}">&times;</button>
                             </form>
                         </td>
                     </tr>
@@ -84,5 +84,50 @@
         </div>
     </div>
 </div>
+
+{{-- Modal xác nhận xóa khỏi giỏ --}}
+<div class="modal fade" id="cartRemoveModal" tabindex="-1" aria-labelledby="cartRemoveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="cartRemoveModalLabel">Xác nhận</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body pt-0">
+                Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" id="cartRemoveConfirmBtn">Xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+window.addEventListener('load', function() {
+    var formToSubmit = null;
+    document.querySelectorAll('.cart-remove-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.getAttribute('data-form-id');
+            formToSubmit = document.getElementById(id);
+            if (!formToSubmit) return;
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#cartRemoveModal').modal('show');
+            } else {
+                if (confirm('Xóa sản phẩm này khỏi giỏ hàng?')) formToSubmit.submit();
+            }
+        });
+    });
+    var confirmBtn = document.getElementById('cartRemoveConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (formToSubmit) formToSubmit.submit();
+            if (typeof $ !== 'undefined' && $.fn.modal) $('#cartRemoveModal').modal('hide');
+        });
+    }
+});
+</script>
 @endif
 @endsection

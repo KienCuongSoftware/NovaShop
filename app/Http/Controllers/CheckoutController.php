@@ -67,7 +67,7 @@ class CheckoutController extends Controller
 
             foreach ($cart->items as $item) {
                 $price = $item->productVariant
-                    ? (float) $item->product->price + (float) $item->productVariant->price_adjustment
+                    ? (float) $item->productVariant->price
                     : (float) $item->product->price;
                 $qty = $item->quantity;
                 $total += $price * $qty;
