@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CartController;
@@ -68,12 +69,28 @@ Route::middleware(['auth'])->group(function () {
 // Route dành cho admin (sử dụng middleware để kiểm tra quyền)
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    // URL cũ /admin/products/update/{id}: GET → redirect sang edit, POST → gọi update (tránh MethodNotAllowedHttpException)
+    Route::get('/admin/products/update/{id}', function (int $id) {
+        $product = \App\Models\Product::findOrFail($id);
+        return redirect()->route('admin.products.edit', $product, 301);
+    })->name('admin.products.update.redirect');
+    Route::post('/admin/products/update/{id}', function (Illuminate\Http\Request $request, int $id) {
+        $product = \App\Models\Product::findOrFail($id);
+        return app(ProductController::class)->update($request, $product);
+    })->name('admin.products.update.post');
     // Đặt tiền tố 'admin' cho tất cả các route của products
     Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
+    Route::post('/admin/products/{product}/variants', [ProductController::class, 'storeVariant'])->name('admin.products.variants.store');
+    Route::put('/admin/products/{product}/variants/{variant}', [ProductController::class, 'updateVariant'])->name('admin.products.variants.update');
+    Route::put('/admin/products/{product}/variants-bulk', [ProductController::class, 'updateVariantsBulk'])->name('admin.products.variants.bulk');
+    Route::delete('/admin/products/{product}/variants/{variant}', [ProductController::class, 'destroyVariant'])->name('admin.products.variants.destroy');
     // Đặt tiền tố 'admin' cho tất cả các route của categories
     Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
     Route::resource('/admin/brands', BrandController::class, ['as' => 'admin']);
     Route::resource('/admin/users', UserController::class, ['as' => 'admin']);
+    Route::resource('/admin/attributes', AttributeController::class, ['as' => 'admin'])->except(['show']);
+    Route::post('/admin/attributes/{attribute}/values', [AttributeController::class, 'storeValue'])->name('admin.attributes.values.store');
+    Route::delete('/admin/attributes/{attribute}/values/{attributeValue}', [AttributeController::class, 'destroyValue'])->name('admin.attributes.values.destroy');
 });
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)
