@@ -27,77 +27,92 @@
     </div>
 </div>
 
-<div class="list-group">
-    @forelse ($categories as $category)
-    <div class="card cat-list-card mb-3">
-        <div class="card-body py-3">
-            <div class="row align-items-center">
-                <div class="col-auto pr-0">
-                    @if($category->image)
-                        <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
-                    @else
-                        <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1.5rem;">📁</div>
-                    @endif
-                </div>
-                <div class="col">
-                    <div class="d-flex align-items-center flex-wrap">
-                        <h6 class="mb-0 font-weight-bold">{{ $category->name }}</h6>
-                        @if($category->children->isNotEmpty())
-                            <span class="badge badge-secondary cat-badge ml-2">{{ $category->children->count() }} danh mục con</span>
-                        @endif
-                    </div>
-                    @if($category->children->isNotEmpty())
-                        <div class="mt-2">
-                            @foreach($category->children as $child)
-                                <div class="cat-child-item d-flex align-items-center justify-content-between flex-wrap">
-                                    <span class="text-dark">└ {{ $child->name }}</span>
-                                    <span>
-                                        <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $child) }}">Xem</a>
-                                        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $child) }}">Sửa</a>
-                                        <form id="delete-form-{{ $child->id }}" action="{{ route('admin.categories.destroy', $child) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $child->id }}" data-name="{{ $child->name }}">Xóa</button>
-                                        </form>
-                                    </span>
-                                </div>
-                                @if($child->children->isNotEmpty())
-                                    @foreach($child->children as $leaf)
-                                        <div class="cat-child-item d-flex align-items-center justify-content-between flex-wrap ml-3">
-                                            <span class="text-muted">├ {{ $leaf->name }}</span>
-                                            <span>
-                                                <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $leaf) }}">Xem</a>
-                                                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $leaf) }}">Sửa</a>
-                                                <form id="delete-form-{{ $leaf->id }}" action="{{ route('admin.categories.destroy', $leaf) }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $leaf->id }}" data-name="{{ $leaf->name }}">Xóa</button>
-                                                </form>
-                                            </span>
-                                        </div>
-                                    @endforeach
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="thead-light">
+                <tr>
+                    <th style="width: 60px;">STT</th>
+                    <th style="width: 80px;">Ảnh</th>
+                    <th>Tên danh mục</th>
+                    <th style="width: 200px;" class="text-right">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php $stt = ($categories->currentPage() - 1) * $categories->perPage(); @endphp
+                @forelse ($categories as $category)
+                    <tr class="cat-parent-row">
+                        <td class="align-middle">{{ ++$stt }}</td>
+                        <td class="align-middle">
+                            @if($category->image)
+                                <img src="/images/categories/{{ basename($category->image) }}" alt="{{ $category->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
+                            @else
+                                <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1.25rem;">📁</div>
+                            @endif
+                        </td>
+                        <td class="align-middle font-weight-bold">{{ $category->name }}</td>
+                        <td class="align-middle text-right">
+                            <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $category) }}">Xem</a>
+                            <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $category->id }}" data-name="{{ $category->name }}">Xóa</button>
+                            <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-none">
+                                @csrf
+                                @method('DELETE')
+                            </form>
+                        </td>
+                    </tr>
+                    @foreach($category->children as $child)
+                        <tr>
+                            <td class="align-middle"></td>
+                            <td class="align-middle">
+                                @if($child->image)
+                                    <img src="/images/categories/{{ basename($child->image) }}" alt="{{ $child->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
+                                @else
+                                    <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1rem;">📂</div>
                                 @endif
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-                <div class="col-auto text-right">
-                    <a class="btn btn-info btn-sm" href="{{ route('admin.categories.show', $category) }}">Xem</a>
-                    <a class="btn btn-primary btn-sm" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>
-                    <form id="delete-form-{{ $category->id }}" action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="button" class="btn btn-danger btn-sm btn-delete" data-form-id="delete-form-{{ $category->id }}" data-name="{{ $category->name }}">Xóa</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+                            </td>
+                            <td class="align-middle pl-4">└ {{ $child->name }}</td>
+                            <td class="align-middle text-right">
+                                <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $child) }}">Xem</a>
+                                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $child) }}">Sửa</a>
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $child->id }}" data-name="{{ $child->name }}">Xóa</button>
+                                <form id="delete-form-{{ $child->id }}" action="{{ route('admin.categories.destroy', $child) }}" method="POST" class="d-none">
+                                    @csrf
+                                    @method('DELETE')
+                                </form>
+                            </td>
+                        </tr>
+                        @foreach($child->children as $leaf)
+                            <tr>
+                                <td class="align-middle"></td>
+                                <td class="align-middle">
+                                    @if($leaf->image)
+                                        <img src="/images/categories/{{ basename($leaf->image) }}" alt="{{ $leaf->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
+                                    @else
+                                        <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1rem;">📂</div>
+                                    @endif
+                                </td>
+                                <td class="align-middle pl-5 text-muted">├ {{ $leaf->name }}</td>
+                                <td class="align-middle text-right">
+                                    <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $leaf) }}">Xem</a>
+                                    <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $leaf) }}">Sửa</a>
+                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $leaf->id }}" data-name="{{ $leaf->name }}">Xóa</button>
+                                    <form id="delete-form-{{ $leaf->id }}" action="{{ route('admin.categories.destroy', $leaf) }}" method="POST" class="d-none">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @endforeach
+                @empty
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-5">Chưa có danh mục nào.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
-    @empty
-    <div class="card">
-        <div class="card-body text-center text-muted py-5">Chưa có danh mục nào.</div>
-    </div>
-    @endforelse
 </div>
 
 @if ($categories->hasPages())

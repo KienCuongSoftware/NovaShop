@@ -23,6 +23,7 @@
         <table class="table table-hover mb-0">
             <thead class="thead-light">
                 <tr>
+                    <th style="width: 60px;">STT</th>
                     <th style="width: 60px;">Logo</th>
                     <th>Tên</th>
                     <th>Slug</th>
@@ -31,8 +32,10 @@
                 </tr>
             </thead>
             <tbody>
+                @php $stt = ($brands->currentPage() - 1) * $brands->perPage(); @endphp
                 @forelse ($brands as $brand)
                 <tr>
+                    <td class="align-middle">{{ ++$stt }}</td>
                     <td class="align-middle">
                         @if($brand->logo)
                             <img src="/images/brands/{{ basename($brand->logo) }}" alt="{{ $brand->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: contain; background: #f8f9fa;">
@@ -55,7 +58,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-5">Chưa có thương hiệu nào.</td>
+                    <td colspan="6" class="text-center text-muted py-5">Chưa có thương hiệu nào.</td>
                 </tr>
                 @endforelse
             </tbody>
