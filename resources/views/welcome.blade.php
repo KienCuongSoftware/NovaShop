@@ -210,15 +210,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                         </p>
                         <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                         @auth
-                        <div class="d-flex flex-nowrap gap-2 mt-auto product-card-actions">
-                            <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail">Xem chi tiết</a>
-                            <form action="{{ route('cart.add') }}" method="POST" class="product-card-add-form">
-                                @csrf
-                                <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                <input type="hidden" name="quantity" value="1">
-                                <button type="submit" class="btn btn-outline-danger btn-view-detail" title="Thêm vào giỏ">+ Giỏ</button>
-                            </form>
-                        </div>
+                        <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
                         @else
                         <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
                         @endauth
@@ -323,15 +315,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                     </p>
                     <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                     @auth
-                    <div class="d-flex flex-nowrap gap-2 mt-auto product-card-actions">
-                        <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail">Xem chi tiết</a>
-                        <form action="{{ route('cart.add') }}" method="POST" class="product-card-add-form">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $product->id }}">
-                            <input type="hidden" name="quantity" value="1">
-                            <button type="submit" class="btn btn-outline-danger btn-view-detail" title="Thêm vào giỏ">+ Giỏ</button>
-                        </form>
-                    </div>
+                    <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
                     @else
                     <a href="{{ route('login') }}" class="btn btn-outline-primary btn-view-detail mt-auto">Đăng nhập để xem</a>
                     @endauth
