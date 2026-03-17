@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -32,6 +33,26 @@ class Product extends Model
     public function getRouteKeyName(): string
     {
         return 'slug';
+    }
+
+    /**
+     * Chuẩn hóa tên sản phẩm trước khi lưu (mutator).
+     * - Bỏ khoảng trắng thừa, gộp nhiều khoảng trắng thành một.
+     * - Loại bỏ ký tự spam (!!!, ???...).
+     * - Viết hoa chữ cái đầu mỗi từ (Str::title), tránh HOA toàn bộ.
+     * Slug SEO được tạo tự động từ tên đã chuẩn hóa trong booted().
+     */
+    protected function setNameAttribute(?string $value): void
+    {
+        if ($value === null) {
+            $this->attributes['name'] = null;
+            return;
+        }
+        $value = trim($value);
+        $value = preg_replace('/\s+/', ' ', $value);
+        $value = preg_replace('/[!?]+/', ' ', $value);
+        $value = preg_replace('/\s+/', ' ', trim($value));
+        $this->attributes['name'] = Str::limit(Str::title($value), 255);
     }
 
     protected static function booted(): void
@@ -66,9 +87,20 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
+    /** Thuộc tính mà sản phẩm này dùng (vd: Màu, Size). Sync từ variants khi lưu. */
+    public function attributes(): BelongsToMany
+    {
+        return $this->belongsToMany(Attribute::class, 'product_attributes', 'product_id', 'attribute_id')->withTimestamps();
+    }
+
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->whereNull('product_variant_id')->orderBy('sort');
     }
 
     public function hasVariants(): bool
@@ -76,50 +108,60 @@ class Product extends Model
         return $this->variants()->exists();
     }
 
-    public function getDistinctSizesAttribute(): array
+    /**
+     * Các thuộc tính và giá trị dùng cho sản phẩm (từ variants).
+     * Trả về [ "Color" => ["Đen","Trắng"], "Size" => ["Nhỏ","Lớn"] ].
+     */
+    public function getAttributeOptionsForFrontend(): array
     {
-        return $this->variants()
-            ->whereNotNull('size')
-            ->where('size', '!=', '')
-            ->distinct()
-            ->pluck('size')
-            ->sort()
-            ->values()
-            ->all();
+        $options = [];
+        foreach ($this->variants as $v) {
+            foreach ($v->attributeValues as $av) {
+                $name = $av->attribute->name;
+                if (!isset($options[$name])) {
+                    $options[$name] = [];
+                }
+                if (!in_array($av->value, $options[$name], true)) {
+                    $options[$name][] = $av->value;
+                }
+            }
+        }
+        foreach ($options as $k => $v) {
+            sort($options[$k]);
+        }
+        return $options;
     }
 
-    public function getDistinctColorsAttribute(): array
+    /** Tìm variant theo map attribute_name => value (vd: ["Color" => "Đen", "Size" => "Nhỏ"]). */
+    public function getVariantByAttributeMap(array $selection): ?ProductVariant
     {
-        return $this->variants()
-            ->whereNotNull('color')
-            ->where('color', '!=', '')
-            ->distinct()
-            ->pluck('color')
-            ->sort()
-            ->values()
-            ->all();
-    }
-
-    public function getVariantByAttributes(?string $size, ?string $color): ?ProductVariant
-    {
-        $q = $this->variants();
-        if ($size !== null && $size !== '') {
-            $q->where('size', $size);
-        } else {
-            $q->whereNull('size');
+        $selection = array_filter($selection, fn ($v) => $v !== null && $v !== '');
+        if (empty($selection)) {
+            return null;
         }
-        if ($color !== null && $color !== '') {
-            $q->where('color', $color);
-        } else {
-            $q->whereNull('color');
+        foreach ($this->variants as $variant) {
+            $map = $variant->attribute_map;
+            if (count($map) !== count($selection)) {
+                continue;
+            }
+            $match = true;
+            foreach ($selection as $attrName => $value) {
+                if (($map[$attrName] ?? null) !== $value) {
+                    $match = false;
+                    break;
+                }
+            }
+            if ($match) {
+                return $variant;
+            }
         }
-        return $q->first();
+        return null;
     }
 
     public function getAvailableQuantityAttribute(): int
     {
         if ($this->hasVariants()) {
-            return (int) $this->variants()->sum('quantity');
+            return (int) $this->variants()->sum('stock');
         }
         return (int) $this->quantity;
     }

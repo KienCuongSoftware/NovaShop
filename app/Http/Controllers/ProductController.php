@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attribute;
 use App\Models\Product;
+use App\Models\ProductImage;
+use App\Models\ProductVariant;
 use App\Models\Category;
 use App\Models\Brand;
 use Illuminate\Http\Request;
@@ -57,7 +60,8 @@ class ProductController extends Controller
             }
         }
         $brands = Brand::orderBy('name')->get();
-        return view('admin.products.create', compact('parentCategories', 'categoriesByParent', 'categoryToParent', 'brands'));
+        $attributes = Attribute::with('attributeValues')->orderBy('name')->get();
+        return view('admin.products.create', compact('parentCategories', 'categoriesByParent', 'categoryToParent', 'brands', 'attributes'));
     }
 
     public function store(Request $request)
@@ -94,23 +98,63 @@ class ProductController extends Controller
             $data['image'] = $request->file('image')->store('products', 'public');
         }
 
-        Product::create($data);
+        $product = Product::create($data);
+
+        $variants = $request->input('variants', []);
+        if (is_array($variants)) {
+            foreach ($variants as $i => $v) {
+                $attrValues = isset($v['attribute_value']) && is_array($v['attribute_value'])
+                    ? array_filter(array_map('intval', $v['attribute_value']))
+                    : [];
+                $price = isset($v['price']) ? (float) $v['price'] : 0;
+                $stock = isset($v['stock']) ? (int) $v['stock'] : 0;
+                if (empty($attrValues) && $price <= 0 && $stock <= 0) {
+                    continue;
+                }
+                $variant = $product->variants()->create([
+                    'price' => $price,
+                    'stock' => $stock,
+                    'sku' => isset($v['sku']) && $v['sku'] !== '' ? trim($v['sku']) : null,
+                ]);
+                $variant->attributeValues()->sync($attrValues);
+                if ($request->hasFile("variants.{$i}.image")) {
+                    $path = $request->file("variants.{$i}.image")->store('products', 'public');
+                    $variant->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
+                }
+            }
+        }
+
+        if ($product->variants()->exists()) {
+            $product->update(['quantity' => $product->variants()->sum('stock')]);
+            $this->syncProductAttributes($product);
+        }
 
         $page = session('admin.products.page', 1);
         return redirect()->route('admin.products.index', ['page' => $page])
             ->with('success', 'Đã thêm sản phẩm thành công.');
     }
 
+    /** Đồng bộ product_attributes từ thuộc tính đang dùng trong các variant. */
+    private function syncProductAttributes(Product $product): void
+    {
+        $attributeIds = $product->variants()->with('attributeValues')->get()
+            ->flatMap(fn ($v) => $v->attributeValues->pluck('attribute_id'))
+            ->unique()
+            ->values()
+            ->all();
+        $product->attributes()->sync($attributeIds);
+    }
+
     public function show(Product $product)
     {
-        $product->load(['category', 'brand']);
+        $product->load(['category.parent', 'brand', 'variants.attributeValues.attribute', 'variants.images']);
         return view('admin.products.show', compact('product'));
     }
 
     /** Trả về view cho người dùng bình thường; lưu hành vi xem để gợi ý. */
     public function show_normal(Product $product)
     {
-        $product->load(['category.parent.parent', 'brand', 'variants']);
+        $product->load(['category.parent.parent', 'brand', 'variants.attributeValues.attribute', 'variants.images']);
         $recentIds = session('recent_product_ids', []);
         $recentIds = array_filter(array_unique(array_merge([$product->id], $recentIds)));
         session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);
@@ -124,7 +168,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load('brand');
+        $product->load(['brand', 'variants.attributeValues.attribute', 'variants.images']);
         $parentCategories = Category::roots()->orderBy('name')->get();
         $categoriesByParent = [];
         $categoryToParent = [];
@@ -137,7 +181,16 @@ class ProductController extends Controller
             }
         }
         $brands = Brand::orderBy('name')->get();
-        return view('admin.products.edit', compact('product', 'parentCategories', 'categoriesByParent', 'categoryToParent', 'brands'));
+        $attributes = $product->attributes()->with('attributeValues')->orderBy('name')->get();
+        if ($attributes->isEmpty() && $product->hasVariants()) {
+            $this->syncProductAttributes($product);
+            $product->load('attributes.attributeValues');
+            $attributes = $product->attributes()->with('attributeValues')->orderBy('name')->get();
+        }
+        if ($attributes->isEmpty()) {
+            $attributes = Attribute::with('attributeValues')->orderBy('name')->get();
+        }
+        return view('admin.products.edit', compact('product', 'parentCategories', 'categoriesByParent', 'categoryToParent', 'brands', 'attributes'));
     }
 
     public function update(Request $request, Product $product)
@@ -169,6 +222,10 @@ class ProductController extends Controller
         $data['is_active'] = $request->boolean('is_active');
         $data['old_price'] = $request->filled('old_price') ? $request->input('old_price') : null;
 
+        if ($product->hasVariants()) {
+            $data['quantity'] = $product->variants()->sum('stock');
+        }
+
         if ($request->hasFile('image')) {
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
@@ -193,5 +250,141 @@ class ProductController extends Controller
         $page = session('admin.products.page', 1);
         return redirect()->route('admin.products.index', ['page' => $page])
             ->with('success', 'Đã xóa sản phẩm thành công.');
+    }
+
+    public function storeVariant(Request $request, Product $product)
+    {
+        $attributeIds = $request->input('attribute_value', []);
+        $attributeValueIds = array_filter(array_map('intval', is_array($attributeIds) ? $attributeIds : []));
+        sort($attributeValueIds);
+
+        $request->validate([
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'sku' => 'nullable|string|max:100',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ], [
+            'price.required' => 'Vui lòng nhập giá.',
+            'stock.required' => 'Vui lòng nhập tồn kho.',
+        ]);
+
+        foreach ($product->variants as $v) {
+            $existingIds = $v->attributeValues->pluck('id')->sort()->values()->all();
+            if ($existingIds === $attributeValueIds) {
+                return redirect()->route('admin.products.edit', $product)
+                    ->with('error', 'Tổ hợp thuộc tính này đã tồn tại.');
+            }
+        }
+
+        $variant = $product->variants()->create([
+            'price' => $request->input('price'),
+            'stock' => (int) $request->input('stock'),
+            'sku' => $request->filled('sku') ? trim($request->input('sku')) : null,
+        ]);
+        $variant->attributeValues()->sync($attributeValueIds);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public');
+            $variant->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
+        }
+
+        $product->update(['quantity' => $product->variants()->sum('stock')]);
+        $this->syncProductAttributes($product);
+
+        return redirect()->route('admin.products.edit', $product)
+            ->with('success', 'Đã thêm biến thể.');
+    }
+
+    public function updateVariant(Request $request, Product $product, ProductVariant $variant)
+    {
+        if ($variant->product_id !== $product->id) {
+            abort(404);
+        }
+
+        $request->validate([
+            'price' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+            'sku' => 'nullable|string|max:100',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ], [
+            'price.required' => 'Vui lòng nhập giá.',
+            'stock.required' => 'Vui lòng nhập tồn kho.',
+        ]);
+
+        $variant->update([
+            'price' => $request->input('price'),
+            'stock' => (int) $request->input('stock'),
+            'sku' => $request->filled('sku') ? trim($request->input('sku')) : $variant->sku,
+        ]);
+
+        if ($request->hasFile('image')) {
+            foreach ($variant->images as $img) {
+                if ($img->image && Storage::disk('public')->exists($img->image)) {
+                    Storage::disk('public')->delete($img->image);
+                }
+                $img->delete();
+            }
+            $path = $request->file('image')->store('products', 'public');
+            $variant->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
+        }
+
+        $product->update(['quantity' => $product->variants()->sum('stock')]);
+
+        return redirect()->route('admin.products.edit', $product)
+            ->with('success', 'Đã cập nhật biến thể.');
+    }
+
+    public function updateVariantsBulk(Request $request, Product $product)
+    {
+        $variantsData = $request->input('variants', []);
+        if (!is_array($variantsData)) {
+            return redirect()->route('admin.products.edit', $product)
+                ->with('error', 'Dữ liệu không hợp lệ.');
+        }
+
+        $updated = 0;
+        foreach ($variantsData as $variantId => $data) {
+            $variant = $product->variants()->find($variantId);
+            if (!$variant || !is_array($data)) {
+                continue;
+            }
+            $price = isset($data['price']) ? (float) $data['price'] : $variant->price;
+            $stock = isset($data['stock']) ? (int) $data['stock'] : $variant->stock;
+            $variant->update(['price' => $price, 'stock' => $stock]);
+
+            if ($request->hasFile("variants.{$variantId}.image")) {
+                foreach ($variant->images as $img) {
+                    if ($img->image && Storage::disk('public')->exists($img->image)) {
+                        Storage::disk('public')->delete($img->image);
+                    }
+                    $img->delete();
+                }
+                $path = $request->file("variants.{$variantId}.image")->store('products', 'public');
+                $variant->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
+            }
+            $updated++;
+        }
+
+        $product->update(['quantity' => $product->variants()->sum('stock')]);
+
+        return redirect()->route('admin.products.edit', $product)
+            ->with('success', $updated ? "Đã cập nhật {$updated} biến thể." : 'Không có biến thể nào được cập nhật.');
+    }
+
+    public function destroyVariant(Product $product, ProductVariant $variant)
+    {
+        if ($variant->product_id !== $product->id) {
+            abort(404);
+        }
+        foreach ($variant->images as $img) {
+            if ($img->image && Storage::disk('public')->exists($img->image)) {
+                Storage::disk('public')->delete($img->image);
+            }
+        }
+        $variant->delete();
+        $product->update(['quantity' => $product->variants()->sum('stock')]);
+        $this->syncProductAttributes($product);
+        return redirect()->route('admin.products.edit', $product)
+            ->with('success', 'Đã xóa biến thể.');
     }
 }
