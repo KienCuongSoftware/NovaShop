@@ -7,8 +7,12 @@
 <link rel="icon" href="{{ url('/favicon.svg') }}" type="image/svg+xml">
     <link rel="icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    @livewireStyles
     <style>
-        body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 100px; }
+        body { display: flex; flex-direction: column; min-height: 100vh; padding-top: 100px; color: #111827; }
+        main { color: #111827; }
+        .text-muted { color: #5b6472 !important; }
+        small, .small { color: inherit; }
         .page-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
         .page-header h2 { margin: 0; font-size: 1.5rem; }
         .card { box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075); border-radius: 0.75rem; overflow: hidden; }
@@ -1276,6 +1280,7 @@
             }
         })();
     </script>
+    @livewireScripts
     @stack('scripts')
 </body>
 </html>
