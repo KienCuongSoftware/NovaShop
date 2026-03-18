@@ -52,6 +52,280 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
 </section>
 @endif
 
+@if(($activeFlashSale ?? null) && $activeFlashSale->items->isNotEmpty())
+<section class="flash-sale-section mb-4" id="welcome-flash-section">
+    {{-- Tab khung giờ [00:00] [02:00] [10:00] [12:00] --}}
+    @if(isset($todaySlots) && $todaySlots->isNotEmpty())
+    <div class="flash-sale-slots-tabs mb-2 d-flex flex-wrap align-items-center" id="welcome-flash-slots">
+        @foreach($todaySlots as $slot)
+        <span class="flash-sale-slot-tab {{ $slot->id === $activeFlashSale->id ? 'active' : '' }}" data-slot-id="{{ $slot->id }}" data-start="{{ $slot->start_time->format('H:i') }}" title="Khung giờ: {{ $slot->start_time->format('H:i') }} – {{ $slot->end_time->format('H:i') }}">{{ $slot->start_time->format('H:i') }}</span>
+        @endforeach
+    </div>
+    @endif
+    <div class="flash-sale-banner-shopee d-flex align-items-center justify-content-between flex-wrap mb-3">
+        <div class="d-flex align-items-center flash-sale-title-inline">
+            <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
+            <img src="{{ asset('images/flash-lightning.svg') }}" alt="" class="flash-sale-lightning-icon" width="20" height="18">
+            <span class="flash-sale-banner-title text-white font-weight-bold">ASH SALE</span>
+        </div>
+        <div class="d-flex align-items-center flex-wrap">
+            <svg class="flash-sale-clock-icon mr-1" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="flash-sale-ends-label text-white mr-2">KẾT THÚC TRONG</span>
+            <span class="flash-sale-countdown-boxes d-inline-flex align-items-center">
+                <span class="flash-sale-box" id="welcome-flash-h">00</span>
+                <span class="flash-sale-sep">:</span>
+                <span class="flash-sale-box" id="welcome-flash-m">00</span>
+                <span class="flash-sale-sep">:</span>
+                <span class="flash-sale-box" id="welcome-flash-s">00</span>
+            </span>
+        </div>
+    </div>
+    <style>
+    .flash-sale-banner-shopee { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); border-radius: 4px; padding: 0.5rem 1rem; }
+    .flash-sale-title-inline .flash-sale-lightning-icon { flex-shrink: 0; margin: 0 -0.05rem 0 0.15rem; vertical-align: middle; }
+    .flash-sale-title-inline .flash-sale-banner-title:last-child { margin-left: -0.45rem; }
+    .flash-sale-banner-title { font-size: 1rem; letter-spacing: 0.02em; }
+    .flash-sale-clock-icon { flex-shrink: 0; color: #fff; }
+    .flash-sale-ends-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; display: inline-flex; align-items: center; height: 1.75rem; line-height: 1; }
+    .flash-sale-countdown-boxes { font-weight: 700; font-size: 1rem; }
+    .flash-sale-box { background: #1a1a1a; color: #fff; min-width: 2.25rem; height: 1.75rem; padding: 0 0.45rem; text-align: center; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.15rem; }
+    .flash-sale-sep { color: #fff; margin: 0 0.1rem; font-weight: 700; }
+    .flash-sale-slots-tabs { gap: 0.25rem; }
+    .flash-sale-slot-tab { display: inline-block; padding: 0.35rem 0.6rem; border-radius: 4px; background: #e0e0e0; color: #333; font-weight: 600; font-size: 0.875rem; }
+    .flash-sale-slot-tab.active { background: #c62828; color: #fff; }
+    .flash-sale-section .flash-sale-card {
+        text-decoration: none !important;
+        border-radius: 8px;
+        padding: 6px;
+        transition: background 0.2s ease;
+    }
+    .flash-sale-section .flash-sale-card:hover { background: rgba(0,0,0,0.06); }
+    .flash-sale-track-wrap { position: relative; }
+    .flash-sale-track-wrap .flash-sale-track {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-left: 44px;
+        padding-right: 44px;
+    }
+    .flash-sale-track-wrap .flash-sale-track::-webkit-scrollbar { display: none; }
+    .flash-sale-track-arrow {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 44px; height: 44px; border-radius: 50%;
+        background: #fff; border: 1px solid #dee2e6; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 5; cursor: pointer; color: #333; font-size: 1.55rem; line-height: 1;
+        transition: background 0.2s, color 0.2s;
+    }
+    .flash-sale-track-arrow:hover { background: #c62828; color: #fff; border-color: #c62828; }
+    .flash-sale-track-arrow:focus,
+    .flash-sale-track-arrow:focus-visible { outline: none !important; border-color: #c62828 !important; box-shadow: 0 0 0 2px rgba(198,40,40,0.35); }
+    .flash-sale-track-arrow.prev { left: 0; }
+    .flash-sale-track-arrow.next { right: 0; }
+    .flash-sale-section { box-shadow: 0 6px 18px rgba(0,0,0,0.08); border-radius: 10px; padding-bottom: 0.5rem; }
+    </style>
+    @php
+        $flashDisplayItems = $activeFlashSale->items->filter(fn ($i) => $i->remaining > 0 && ($i->productVariant->product_id ?? null))
+            ->unique(fn ($i) => $i->productVariant->product_id)
+            ->take(12)
+            ->values();
+        @endphp
+    <div class="flash-sale-track-wrap position-relative">
+        <button type="button" class="flash-sale-track-arrow prev" id="welcome-flash-prev" aria-label="Trước">‹</button>
+        <button type="button" class="flash-sale-track-arrow next" id="welcome-flash-next" aria-label="Sau">›</button>
+        <div class="flash-sale-track overflow-auto pb-2" id="welcome-flash-track" style="display: flex; gap: 1rem; flex-wrap: nowrap; overflow-x: auto; scroll-behavior: smooth;">
+        @foreach($flashDisplayItems as $fsItem)
+            @php
+                $p = $fsItem->productVariant->product ?? null;
+                $variant = $fsItem->productVariant;
+            @endphp
+            @if($p)
+            <a href="{{ route('products.show', $p) }}" class="flash-sale-card text-decoration-none text-dark flex-shrink-0" style="width: 160px;">
+                <div class="bg-light rounded overflow-hidden mb-2" style="height: 160px;">
+                    @if($p->image)
+                        <img src="/images/products/{{ basename($p->image) }}" alt="{{ $p->name }}" class="w-100 h-100" style="object-fit: cover;">
+                    @else
+                        <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">N/A</div>
+                    @endif
+                </div>
+                <div class="small font-weight-bold text-truncate" style="max-width: 160px;" title="{{ $p->name }}">{{ Str::limit($p->name, 25) }}</div>
+                @php
+                    $orig = $variant ? (float) $variant->price : null;
+                    $sale = (float) $fsItem->sale_price;
+                    $pct = ($orig && $orig > 0 && $orig > $sale) ? (int) round((1 - ($sale / $orig)) * 100) : 0;
+                    $pct = max(0, min(99, $pct));
+                @endphp
+                <div class="text-danger font-weight-bold d-flex align-items-center">
+                    <span>{{ number_format($sale, 0, ',', '.') }}₫</span>
+                    @if($pct > 0)
+                        <span class="badge badge-light text-danger ml-2" style="font-weight: 800;">-{{ $pct }}%</span>
+                    @endif
+                </div>
+                @if($variant && (float) $variant->price > (float) $fsItem->sale_price)
+                    <small class="text-muted"><s>{{ number_format($variant->price, 0, ',', '.') }}₫</s></small>
+                @endif
+            </a>
+            @endif
+        @endforeach
+        </div>
+    </div>
+</section>
+@if($activeFlashSale->end_time)
+<script>
+(function() {
+    var endTime = new Date(@json($activeFlashSale->end_time->toIso8601String())).getTime();
+    var timerId = null;
+    var apiUrl = @json(route('api.flash-sale'));
+
+    function setCountdownNum(boxEl, val) {
+        if (boxEl) boxEl.textContent = val < 10 ? '0' + val : '' + val;
+    }
+
+    function renderProducts(items) {
+        var track = document.getElementById('welcome-flash-track');
+        if (!track || !items || !items.length) return;
+        var take = 12;
+        var html = '';
+        var count = 0;
+        var seenProductIds = {};
+        for (var i = 0; i < items.length && count < take; i++) {
+            var it = items[i];
+            if (!it.product || (it.remaining !== undefined && it.remaining <= 0)) continue;
+            var pid = it.product.id;
+            if (seenProductIds[pid]) continue;
+            seenProductIds[pid] = true;
+            count++;
+            var url = it.product.url || ('/products/' + (it.product.slug || ''));
+            var name = (it.product.name || '').substring(0, 25);
+            if ((it.product.name || '').length > 25) name += '...';
+            var img = it.product.image ? ('/images/products/' + it.product.image.replace(/^.*[/]/, '')) : '';
+            var salePrice = typeof it.sale_price === 'number' ? it.sale_price : parseInt(it.sale_price, 10);
+            var pct = it.discount_percent || 0;
+            var orig = it.variant && it.variant.price ? it.variant.price : salePrice;
+            html += '<a href="' + url + '" class="flash-sale-card text-decoration-none text-dark flex-shrink-0" style="width:160px;">';
+            html += '<div class="bg-light rounded overflow-hidden mb-2" style="height:160px;">';
+            if (img) html += '<img src="' + img + '" alt="" class="w-100 h-100" style="object-fit:cover;">';
+            else html += '<div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted small">N/A</div>';
+            html += '</div>';
+            html += '<div class="small font-weight-bold text-truncate" style="max-width:160px;" title="' + (it.product.name || '') + '">' + name + '</div>';
+            html += '<div class="text-danger font-weight-bold d-flex align-items-center">';
+            html += '<span>' + (salePrice + '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '₫</span>';
+            if (pct > 0) html += '<span class="badge badge-light text-danger ml-2" style="font-weight:800;">-' + pct + '%</span>';
+            html += '</div>';
+            if (orig > salePrice) html += '<small class="text-muted"><s>' + (orig + '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '₫</s></small>';
+            html += '</a>';
+        }
+        track.innerHTML = html;
+    }
+
+    function formatTime(d) {
+        if (!d) return '';
+        var h = d.getHours();
+        var m = d.getMinutes();
+        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+    }
+    function renderSlotTabs(slots, currentId) {
+        var wrap = document.getElementById('welcome-flash-slots');
+        if (!wrap || !slots || !slots.length) return;
+        var html = '';
+        for (var i = 0; i < slots.length; i++) {
+            var s = slots[i];
+            var start = s.start_time ? new Date(s.start_time) : null;
+            var end = s.end_time ? new Date(s.end_time) : null;
+            var label = formatTime(start) || (s.name || '');
+            var title = 'Khung giờ: ' + formatTime(start) + ' – ' + formatTime(end);
+            var active = (s.id === currentId) ? ' active' : '';
+            html += '<span class="flash-sale-slot-tab' + active + '" data-slot-id="' + s.id + '" title="' + title + '">' + label + '</span>';
+        }
+        wrap.innerHTML = html;
+    }
+
+    function updateSlotTabs(slots, currentId) {
+        var wrap = document.getElementById('welcome-flash-slots');
+        if (!wrap) return;
+        if (slots && slots.length) {
+            renderSlotTabs(slots, currentId);
+            return;
+        }
+        var tabs = wrap.querySelectorAll('.flash-sale-slot-tab');
+        tabs.forEach(function(tab) {
+            var id = parseInt(tab.getAttribute('data-slot-id'), 10);
+            if (id === currentId) tab.classList.add('active');
+            else tab.classList.remove('active');
+        });
+    }
+
+    function reloadFlashSale() {
+        fetch(apiUrl).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.current) {
+                endTime = new Date(data.current.end_time).getTime();
+                if (data.current.items) renderProducts(data.current.items);
+                if (data.slots && data.slots.length) updateSlotTabs(data.slots, data.current.id);
+            } else {
+                setCountdownNum(document.getElementById('welcome-flash-h'), 0);
+                setCountdownNum(document.getElementById('welcome-flash-m'), 0);
+                setCountdownNum(document.getElementById('welcome-flash-s'), 0);
+            }
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(run, 1000);
+        }).catch(function() {
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(run, 1000);
+        });
+    }
+
+    var hEl = document.getElementById('welcome-flash-h');
+    var mEl = document.getElementById('welcome-flash-m');
+    var sEl = document.getElementById('welcome-flash-s');
+    if (!hEl || !mEl || !sEl) return;
+
+    function run() {
+        var now = new Date().getTime();
+        var d = endTime - now;
+        if (d <= 0) {
+            if (timerId) { clearInterval(timerId); timerId = null; }
+            reloadFlashSale();
+            return;
+        }
+        var h = Math.floor((d / (1000 * 60 * 60)) % 24);
+        var m = Math.floor((d / (1000 * 60)) % 60);
+        var s = Math.floor((d / 1000) % 60);
+        setCountdownNum(hEl, h);
+        setCountdownNum(mEl, m);
+        setCountdownNum(sEl, s);
+    }
+    run();
+    timerId = setInterval(run, 1000);
+
+    (function setupFlashTrackArrows() {
+        var track = document.getElementById('welcome-flash-track');
+        var prevBtn = document.getElementById('welcome-flash-prev');
+        var nextBtn = document.getElementById('welcome-flash-next');
+        if (!track || !prevBtn || !nextBtn) return;
+        var step = 176;
+        function smoothScrollTrack(direction) {
+            var start = track.scrollLeft;
+            var dist = direction === 'prev' ? -Math.min(step, start) : Math.min(step, track.scrollWidth - track.clientWidth - start);
+            if (dist === 0) return;
+            var startTime = null;
+            function stepAnim(ts) {
+                if (!startTime) startTime = ts;
+                var elapsed = ts - startTime;
+                var duration = 280;
+                var t = Math.min(elapsed / duration, 1);
+                t = 1 - Math.pow(1 - t, 2);
+                track.scrollLeft = start + dist * t;
+                if (elapsed < duration) requestAnimationFrame(stepAnim);
+            }
+            requestAnimationFrame(stepAnim);
+        }
+        prevBtn.addEventListener('click', function() { smoothScrollTrack('prev'); });
+        nextBtn.addEventListener('click', function() { smoothScrollTrack('next'); });
+    })();
+})();
+</script>
+@endif
+@endif
+
 <div class="products-with-sidebar {{ ($showSidebarAndFilter ?? false) ? '' : 'products-no-sidebar' }}">
     @if($showSidebarAndFilter ?? false)
     {{-- Sidebar: Khi xem category cụ thể chỉ hiển thị danh mục con của nó --}}

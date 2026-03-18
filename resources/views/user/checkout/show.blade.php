@@ -55,6 +55,11 @@
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
                         @foreach($cart->items as $item)
+                        @php
+                            $fi = ($activeFlashSale ?? null) && $item->product_variant_id ? $activeFlashSale->items->firstWhere('product_variant_id', $item->product_variant_id) : null;
+                            $unitP = $fi && $fi->remaining > 0 ? (float) $fi->sale_price : ($item->productVariant ? (float) $item->productVariant->price : (float) $item->product->price);
+                            $lineTotal = $unitP * $item->quantity;
+                        @endphp
                         <li class="list-group-item d-flex align-items-center">
                             @if($item->product->image)
                                 <img src="/images/products/{{ basename($item->product->image) }}" alt="" class="rounded mr-3" style="width: 50px; height: 50px; object-fit: cover;">
@@ -66,9 +71,9 @@
                                 @if($item->variant_display)
                                     <small class="text-muted d-block">{{ $item->variant_display }}</small>
                                 @endif
-                                <small class="text-muted">{{ number_format($item->productVariant ? ($item->product->price + $item->productVariant->price_adjustment) : $item->product->price, 0, ',', '.') }}₫ × {{ $item->quantity }}</small>
+                                <small class="text-muted">{{ number_format($unitP, 0, ',', '.') }}₫ × {{ $item->quantity }}{!! $fi && $fi->remaining > 0 ? ' <span class="badge badge-danger">Flash</span>' : '' !!}</small>
                             </div>
-                            <span class="text-danger font-weight-bold">{{ number_format($item->subtotal, 0, ',', '.') }}₫</span>
+                            <span class="text-danger font-weight-bold">{{ number_format($lineTotal, 0, ',', '.') }}₫</span>
                         </li>
                         @endforeach
                     </ul>

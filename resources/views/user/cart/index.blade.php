@@ -34,6 +34,19 @@
                 </thead>
                 <tbody>
                     @foreach($cart->items as $item)
+                    @php
+                        $flashItem = ($activeFlashSale ?? null) && $item->product_variant_id
+                            ? $activeFlashSale->items->firstWhere('product_variant_id', $item->product_variant_id)
+                            : null;
+                        $unitPrice = $flashItem && $flashItem->remaining > 0
+                            ? (float) $flashItem->sale_price
+                            : ($item->productVariant ? (float) $item->productVariant->price : (float) $item->product->price);
+                        $maxQty = $item->productVariant ? $item->productVariant->stock : (int) $item->product->quantity;
+                        if ($flashItem) {
+                            $maxQty = min($maxQty, $flashItem->remaining);
+                        }
+                        $subtotal = $unitPrice * $item->quantity;
+                    @endphp
                     <tr>
                         <td>
                             @if($item->product->image)
@@ -48,11 +61,15 @@
                                 <br><small class="text-muted">{{ $item->variant_display }}</small>
                             @endif
                         </td>
-                        <td class="text-right">{{ number_format($item->productVariant ? ($item->product->price + $item->productVariant->price_adjustment) : $item->product->price, 0, ',', '.') }}₫</td>
+                        <td class="text-right">
+                            @if($flashItem && $flashItem->remaining > 0)
+                                <span class="text-danger font-weight-bold">{{ number_format($unitPrice, 0, ',', '.') }}₫</span>
+                                <br><small class="text-muted">Flash Sale</small>
+                            @else
+                                {{ number_format($unitPrice, 0, ',', '.') }}₫
+                            @endif
+                        </td>
                         <td class="text-center">
-                            @php
-                                $maxQty = $item->productVariant ? $item->productVariant->stock : $item->product->quantity;
-                            @endphp
                             <form action="{{ route('cart.update') }}" method="POST" class="d-inline">
                                 @csrf
                                 @method('PUT')
@@ -60,7 +77,7 @@
                                 <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $maxQty }}" class="form-control form-control-sm text-center d-inline-block" style="width: 70px;" onchange="this.form.submit()">
                             </form>
                         </td>
-                        <td class="text-right font-weight-bold text-danger">{{ number_format($item->subtotal, 0, ',', '.') }}₫</td>
+                        <td class="text-right font-weight-bold text-danger">{{ number_format($subtotal, 0, ',', '.') }}₫</td>
                         <td>
                             <form action="{{ route('cart.remove', $item) }}" method="POST" class="d-inline cart-remove-form" id="cart-remove-{{ $item->id }}">
                                 @csrf
@@ -76,7 +93,15 @@
     </div>
     <div class="card-footer">
         <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($cart->items->sum(fn($i) => $i->subtotal), 0, ',', '.') }}₫</span></span>
+            @php
+                    $cartTotal = 0;
+                    foreach ($cart->items as $i) {
+                        $fi = ($activeFlashSale ?? null) && $i->product_variant_id ? $activeFlashSale->items->firstWhere('product_variant_id', $i->product_variant_id) : null;
+                        $p = $fi && $fi->remaining > 0 ? (float) $fi->sale_price : ($i->productVariant ? (float) $i->productVariant->price : (float) $i->product->price);
+                        $cartTotal += $p * $i->quantity;
+                    }
+                @endphp
+                <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($cartTotal, 0, ',', '.') }}₫</span></span>
             <div class="d-flex mt-2 mt-md-0">
                 <a href="{{ route('welcome') }}" class="btn btn-outline-secondary mr-2">Tiếp tục mua sắm</a>
                 <a href="{{ route('checkout.show') }}" class="btn btn-danger">Mua hàng</a>

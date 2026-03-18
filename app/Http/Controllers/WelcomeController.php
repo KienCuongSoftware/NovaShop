@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\FlashSale;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,7 +47,11 @@ class WelcomeController extends Controller
 
         $activeCategoryIds = [];
         $showSidebarAndFilter = false;
-        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
+        $activeFlashSale = FlashSale::getCurrentOrNext();
+        $todaySlots = $activeFlashSale
+            ? FlashSale::whereDate('start_time', $activeFlashSale->start_time->toDateString())->orderBy('start_time')->get()
+            : FlashSale::getTodaySlots();
+        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
     /**
@@ -89,7 +94,11 @@ class WelcomeController extends Controller
 
         $activeCategoryIds = array_map(fn ($c) => $c->id, $category->getBreadcrumbPath());
         $showSidebarAndFilter = true;
-        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandSlug', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
+        $activeFlashSale = FlashSale::getCurrentOrNext();
+        $todaySlots = $activeFlashSale
+            ? FlashSale::whereDate('start_time', $activeFlashSale->start_time->toDateString())->orderBy('start_time')->get()
+            : FlashSale::getTodaySlots();
+        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandSlug', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
     public function search(Request $request)
@@ -126,7 +135,11 @@ class WelcomeController extends Controller
 
         $activeCategoryIds = $categoryId ? array_map(fn ($c) => $c->id, optional(Category::find($categoryId))->getBreadcrumbPath() ?? []) : [];
         $showSidebarAndFilter = true;
-        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter'));
+        $activeFlashSale = FlashSale::getCurrentOrNext();
+        $todaySlots = $activeFlashSale
+            ? FlashSale::whereDate('start_time', $activeFlashSale->start_time->toDateString())->orderBy('start_time')->get()
+            : FlashSale::getTodaySlots();
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
     /** Sidebar tìm kiếm: chỉ danh mục cha–con trực tiếp của sản phẩm tìm được. */

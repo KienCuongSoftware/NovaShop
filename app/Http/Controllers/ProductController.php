@@ -127,6 +127,7 @@ class ProductController extends Controller
         if ($product->variants()->exists()) {
             $product->update(['quantity' => $product->variants()->sum('stock')]);
             $this->syncProductAttributes($product);
+            $this->propagateImageByColor($product);
         }
 
         $page = session('admin.products.page', 1);
@@ -143,6 +144,74 @@ class ProductController extends Controller
             ->values()
             ->all();
         $product->attributes()->sync($attributeIds);
+    }
+
+    /** Trả về attribute_id của thuộc tính "màu" (color) nếu có. */
+    private function getColorAttributeId(Product $product): ?int
+    {
+        $attributes = $product->attributes()->get();
+        foreach ($attributes as $attr) {
+            $name = strtolower($attr->name ?? '');
+            if (in_array($name, ['màu', 'color', 'mau'], true) || str_contains($name, 'màu') || str_contains($name, 'color')) {
+                return (int) $attr->id;
+            }
+        }
+        return $attributes->isNotEmpty() ? (int) $attributes->first()->id : null;
+    }
+
+    /** Gán ảnh theo màu: cùng màu thì dùng chung ảnh (variant có ảnh chia sẻ cho các variant cùng màu chưa có ảnh). */
+    private function propagateImageByColor(Product $product): void
+    {
+        $colorAttrId = $this->getColorAttributeId($product);
+        if ($colorAttrId === null) {
+            return;
+        }
+        $variants = $product->variants()->with(['attributeValues', 'images'])->get();
+        $byColor = [];
+        foreach ($variants as $v) {
+            $colorValueId = $v->attributeValues->firstWhere('attribute_id', $colorAttrId)?->id;
+            if ($colorValueId === null) {
+                $colorValueId = 'other';
+            }
+            $byColor[$colorValueId] = $byColor[$colorValueId] ?? [];
+            $byColor[$colorValueId][] = $v;
+        }
+        foreach ($byColor as $variantsInColor) {
+            $sourceVariant = null;
+            foreach ($variantsInColor as $v) {
+                if ($v->images->isNotEmpty()) {
+                    $sourceVariant = $v;
+                    break;
+                }
+            }
+            if ($sourceVariant === null) {
+                continue;
+            }
+            $path = $sourceVariant->images->first()->image;
+            foreach ($variantsInColor as $v) {
+                if ($v->id === $sourceVariant->id) {
+                    continue;
+                }
+                if ($v->images->isEmpty()) {
+                    $v->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
+                }
+            }
+        }
+    }
+
+    /** Xóa ảnh của variant; chỉ xóa file trên đĩa khi không còn variant nào khác dùng chung path. */
+    private function deleteVariantImages(ProductVariant $variant): void
+    {
+        $productId = $variant->product_id;
+        foreach ($variant->images as $img) {
+            $path = $img->image;
+            $img->delete();
+            if ($path && ProductImage::where('product_id', $productId)->where('image', $path)->count() === 0) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+        }
     }
 
     public function show(Product $product)
@@ -163,7 +232,21 @@ class ProductController extends Controller
             $catIds = array_filter(array_unique(array_merge([$product->category_id], $catIds)));
             session(['recent_category_ids' => array_slice($catIds, 0, 5)]);
         }
-        return view('products.show', compact('product'));
+        $activeFlashSale = \App\Models\FlashSale::getCurrentOrNext();
+        $activeFlashSale = $activeFlashSale ? $activeFlashSale->load('items') : null;
+        $flashItemsByVariantId = [];
+        $flashSaleEndTime = null;
+        $now = now();
+        if ($activeFlashSale) {
+            $flashSaleEndTime = $activeFlashSale->end_time->toIso8601String();
+            foreach ($activeFlashSale->items as $item) {
+                $flashItemsByVariantId[$item->product_variant_id] = [
+                    'sale_price' => (float) $item->sale_price,
+                    'remaining' => $item->remaining,
+                ];
+            }
+        }
+        return view('products.show', compact('product', 'activeFlashSale', 'flashItemsByVariantId', 'flashSaleEndTime'));
     }
 
     public function edit(Product $product)
@@ -290,6 +373,7 @@ class ProductController extends Controller
 
         $product->update(['quantity' => $product->variants()->sum('stock')]);
         $this->syncProductAttributes($product);
+        $this->propagateImageByColor($product);
 
         return redirect()->route('admin.products.edit', $product)
             ->with('success', 'Đã thêm biến thể.');
@@ -318,14 +402,10 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            foreach ($variant->images as $img) {
-                if ($img->image && Storage::disk('public')->exists($img->image)) {
-                    Storage::disk('public')->delete($img->image);
-                }
-                $img->delete();
-            }
+            $this->deleteVariantImages($variant);
             $path = $request->file('image')->store('products', 'public');
             $variant->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
+            $this->propagateImageByColor($product);
         }
 
         $product->update(['quantity' => $product->variants()->sum('stock')]);
@@ -353,12 +433,7 @@ class ProductController extends Controller
             $variant->update(['price' => $price, 'stock' => $stock]);
 
             if ($request->hasFile("variants.{$variantId}.image")) {
-                foreach ($variant->images as $img) {
-                    if ($img->image && Storage::disk('public')->exists($img->image)) {
-                        Storage::disk('public')->delete($img->image);
-                    }
-                    $img->delete();
-                }
+                $this->deleteVariantImages($variant);
                 $path = $request->file("variants.{$variantId}.image")->store('products', 'public');
                 $variant->images()->create(['product_id' => $product->id, 'image' => $path, 'sort' => 0]);
             }
@@ -366,6 +441,7 @@ class ProductController extends Controller
         }
 
         $product->update(['quantity' => $product->variants()->sum('stock')]);
+        $this->propagateImageByColor($product);
 
         return redirect()->route('admin.products.edit', $product)
             ->with('success', $updated ? "Đã cập nhật {$updated} biến thể." : 'Không có biến thể nào được cập nhật.');
@@ -376,11 +452,7 @@ class ProductController extends Controller
         if ($variant->product_id !== $product->id) {
             abort(404);
         }
-        foreach ($variant->images as $img) {
-            if ($img->image && Storage::disk('public')->exists($img->image)) {
-                Storage::disk('public')->delete($img->image);
-            }
-        }
+        $this->deleteVariantImages($variant);
         $variant->delete();
         $product->update(['quantity' => $product->variants()->sum('stock')]);
         $this->syncProductAttributes($product);

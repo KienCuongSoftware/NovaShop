@@ -32,6 +32,11 @@ class ProductVariant extends Model
         return $this->hasMany(ProductImage::class, 'product_variant_id')->orderBy('sort');
     }
 
+    public function flashSaleItems(): HasMany
+    {
+        return $this->hasMany(FlashSaleItem::class, 'product_variant_id');
+    }
+
     /** Tên hiển thị từ tổ hợp giá trị thuộc tính (vd: "Đen / Nhỏ / Túi dài"). */
     public function getDisplayNameAttribute(): string
     {

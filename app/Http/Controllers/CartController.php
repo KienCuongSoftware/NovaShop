@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\FlashSaleItem;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,8 @@ class CartController extends Controller
             $cart = $user->cart()->create();
             $cart->load(['items.product', 'items.productVariant']);
         }
-        return view('user.cart.index', compact('cart'));
+        $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
+        return view('user.cart.index', compact('cart', 'activeFlashSale'));
     }
 
     public function add(Request $request)
@@ -44,6 +46,10 @@ class CartController extends Controller
                 return back()->with('error', 'Biến thể không hợp lệ.');
             }
             $availableQty = $variant->stock;
+            $flashItem = FlashSaleItem::activeForVariant($variantId);
+            if ($flashItem !== null) {
+                $availableQty = min($availableQty, $flashItem->remaining);
+            }
         } else {
             if ($variantId) {
                 return back()->with('error', 'Sản phẩm không có biến thể.');
@@ -66,6 +72,10 @@ class CartController extends Controller
         if ($item) {
             $newQty = $item->quantity + $quantity;
             $maxQty = $product->hasVariants() ? $product->variants()->find($item->product_variant_id)?->stock : $product->quantity;
+            $flashItem = $item->product_variant_id ? FlashSaleItem::activeForVariant($item->product_variant_id) : null;
+            if ($flashItem) {
+                $maxQty = min($maxQty, $flashItem->remaining);
+            }
             if ($newQty > $maxQty) {
                 return back()->with('error', 'Số lượng vượt quá tồn kho.');
             }
@@ -96,6 +106,10 @@ class CartController extends Controller
         $item = $cart->items()->with('productVariant')->findOrFail($request->input('cart_item_id'));
         $quantity = (int) $request->input('quantity');
         $maxQty = $item->productVariant ? $item->productVariant->stock : (int) $item->product->quantity;
+        $flashItem = $item->product_variant_id ? FlashSaleItem::activeForVariant($item->product_variant_id) : null;
+        if ($flashItem) {
+            $maxQty = min($maxQty, $flashItem->remaining);
+        }
         if ($quantity > $maxQty) {
             return back()->with('error', 'Số lượng vượt quá tồn kho.');
         }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FlashSaleItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
@@ -20,8 +21,14 @@ class CheckoutController extends Controller
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
         }
 
-        $total = $cart->items->sum(fn ($i) => $i->subtotal);
-        return view('user.checkout.show', compact('cart', 'total', 'user'));
+        $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
+        $total = 0;
+        foreach ($cart->items as $i) {
+            $fi = $activeFlashSale && $i->product_variant_id ? $activeFlashSale->items->firstWhere('product_variant_id', $i->product_variant_id) : null;
+            $p = $fi && $fi->remaining > 0 ? (float) $fi->sale_price : ($i->productVariant ? (float) $i->productVariant->price : (float) $i->product->price);
+            $total += $p * $i->quantity;
+        }
+        return view('user.checkout.show', compact('cart', 'total', 'user', 'activeFlashSale'));
     }
 
     public function placeOrder(Request $request)
@@ -66,10 +73,22 @@ class CheckoutController extends Controller
             ]);
 
             foreach ($cart->items as $item) {
+                $qty = $item->quantity;
                 $price = $item->productVariant
                     ? (float) $item->productVariant->price
                     : (float) $item->product->price;
-                $qty = $item->quantity;
+
+                if ($item->product_variant_id) {
+                    $flashItem = FlashSaleItem::where('product_variant_id', $item->product_variant_id)
+                        ->whereHas('flashSale', fn ($q) => $q->active())
+                        ->lockForUpdate()
+                        ->first();
+                    if ($flashItem && $flashItem->quantity - $flashItem->sold >= $qty) {
+                        $price = (float) $flashItem->sale_price;
+                        $flashItem->increment('sold', $qty);
+                    }
+                }
+
                 $total += $price * $qty;
                 OrderItem::create([
                     'order_id' => $order->id,
