@@ -10,6 +10,18 @@ class Brand extends Model
 {
     protected $fillable = ['name', 'slug', 'logo'];
 
+    /**
+     * Tên thương hiệu: khi đọc viết hoa chữ cái đầu mỗi từ (hiển thị);
+     * khi gán/lưu chuẩn hóa và viết hoa chữ cái đầu mỗi từ (giống sản phẩm).
+     */
+    protected function name(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn (?string $value) => $value !== null && $value !== '' ? Str::title($value) : $value,
+            set: fn (?string $value) => $value !== null && $value !== '' ? Str::title(trim(preg_replace('/\s+/', ' ', $value))) : $value,
+        );
+    }
+
     protected static function booted(): void
     {
         static::saving(function (Brand $brand) {

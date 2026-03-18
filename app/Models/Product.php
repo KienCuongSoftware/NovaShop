@@ -103,6 +103,12 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->whereNull('product_variant_id')->orderBy('sort');
     }
 
+    /** Alias của images() để tương thích với component LightBox. */
+    public function productImages(): HasMany
+    {
+        return $this->images();
+    }
+
     public function hasVariants(): bool
     {
         return $this->variants()->exists();
