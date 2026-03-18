@@ -51,10 +51,10 @@
                     <td class="align-middle">{{ $av->id }}</td>
                     <td class="align-middle">{{ $av->value }}</td>
                     <td class="align-middle text-right">
-                        <form action="{{ route('admin.attributes.values.destroy', [$attribute, $av]) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa giá trị này?');">
+                        <form action="{{ route('admin.attributes.values.destroy', [$attribute, $av]) }}" method="POST" class="d-inline" id="delete-value-form-{{ $av->id }}">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-delete-value" data-form-id="delete-value-form-{{ $av->id }}">Xóa</button>
                         </form>
                     </td>
                 </tr>
@@ -67,4 +67,49 @@
         </table>
     </div>
 </div>
+
+{{-- Modal xác nhận xóa giá trị thuộc tính --}}
+<div class="modal fade" id="deleteValueModal" tabindex="-1" aria-labelledby="deleteValueModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="deleteValueModalLabel">Xác nhận xóa</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body pt-0">
+                Bạn có chắc muốn xóa giá trị thuộc tính này?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" id="deleteValueConfirmBtn">Xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var formToSubmit = null;
+    document.querySelectorAll('.btn-delete-value').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id = this.getAttribute('data-form-id');
+            formToSubmit = document.getElementById(id);
+            if (!formToSubmit) return;
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#deleteValueModal').modal('show');
+            } else {
+                if (confirm('Xóa giá trị này?')) formToSubmit.submit();
+            }
+        });
+    });
+    var confirmBtn = document.getElementById('deleteValueConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (formToSubmit) formToSubmit.submit();
+            if (typeof $ !== 'undefined' && $.fn.modal) $('#deleteValueModal').modal('hide');
+        });
+    }
+})();
+</script>
 @endsection
