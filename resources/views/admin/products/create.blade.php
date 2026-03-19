@@ -99,13 +99,43 @@
                         <p class="text-muted small mb-3">Chọn giá trị từng thuộc tính rồi nhấn <strong>Tạo tất cả tổ hợp</strong> để sinh từng dòng.</p>
                         <div class="row mb-3" id="quick-combo-attrs">
                             @foreach($attributes as $attr)
+                            @php
+                                $attrName = (string) ($attr->name ?? '');
+                                $attrNameLower = mb_strtolower($attrName, 'UTF-8');
+                                $isColorAttr = str_contains($attrNameLower, 'màu') || str_contains($attrNameLower, 'mau') || str_contains($attrNameLower, 'color');
+                            @endphp
                             <div class="col-md-4 col-6 mb-2" data-attr-id="{{ $attr->id }}">
                                 <label class="small font-weight-bold text-dark d-block mb-1">{{ $attr->name }}</label>
-                                <div class="d-flex flex-wrap" style="gap: 0.5rem;">
-                                    @foreach($attr->attributeValues as $av)
-                                    <label class="mb-0 small text-muted"><input type="checkbox" class="quick-combo-value mr-1" data-attr-id="{{ $attr->id }}" data-value-id="{{ $av->id }}"> {{ $av->value }}</label>
-                                    @endforeach
-                                </div>
+                                @if($isColorAttr && ($attr->attributeValues->count() ?? 0) > 10)
+                                    <div class="quick-combo-toolbar mb-2" data-quick-filter="{{ $attr->id }}">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" class="form-control quick-combo-search" placeholder="Tìm màu..." data-attr-id="{{ $attr->id }}" autocomplete="off">
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-outline-secondary quick-combo-clear" data-attr-id="{{ $attr->id }}" title="Xóa tìm kiếm">×</button>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center justify-content-between mt-2" style="gap: 0.5rem;">
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-primary quick-combo-select-all" data-attr-id="{{ $attr->id }}">Chọn tất cả</button>
+                                                <button type="button" class="btn btn-outline-secondary quick-combo-unselect-all" data-attr-id="{{ $attr->id }}">Bỏ chọn</button>
+                                            </div>
+                                            <small class="text-muted quick-combo-count" data-attr-id="{{ $attr->id }}"></small>
+                                        </div>
+                                    </div>
+                                    <div class="quick-combo-values quick-combo-values-scroll" data-attr-id="{{ $attr->id }}">
+                                        @foreach($attr->attributeValues as $av)
+                                        <label class="mb-0 small text-muted quick-combo-item" data-text="{{ mb_strtolower((string)$av->value, 'UTF-8') }}">
+                                            <input type="checkbox" class="quick-combo-value mr-1" data-attr-id="{{ $attr->id }}" data-value-id="{{ $av->id }}"> {{ $av->value }}
+                                        </label>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="d-flex flex-wrap" style="gap: 0.5rem;">
+                                        @foreach($attr->attributeValues as $av)
+                                        <label class="mb-0 small text-muted"><input type="checkbox" class="quick-combo-value mr-1" data-attr-id="{{ $attr->id }}" data-value-id="{{ $av->id }}"> {{ $av->value }}</label>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
                             @endforeach
                         </div>
@@ -187,6 +217,25 @@
             .variants-attr-table .custom-file-input:lang(vi) ~ .custom-file-label::after { content: "Duyệt"; }
             .variants-attr-table .variant-image-cell-create { min-width: 1px; }
             .variants-attr-table .form-control-sm { font-size: 0.875rem; }
+
+            .quick-combo-values-scroll{
+                max-height: 220px;
+                overflow-y: auto;
+                padding: 0.5rem;
+                border: 1px solid #e9ecef;
+                border-radius: 0.5rem;
+                background: #fff;
+            }
+            .quick-combo-values-scroll .quick-combo-item{
+                display: inline-flex;
+                align-items: center;
+                margin-right: 0.75rem;
+                margin-bottom: 0.5rem;
+                white-space: nowrap;
+            }
+            .variant-image-shared{
+                opacity: 0.7;
+            }
             </style>
 
             <hr class="my-4">
@@ -263,6 +312,18 @@
     var parentSelect = document.getElementById('parent_category_id');
     var childSelect = document.getElementById('category_id');
 
+    // Share ảnh theo thuộc tính "Màu/Color": mỗi màu chỉ hiển thị 1 ô chọn ảnh
+    var colorAttrId = (function() {
+        var attrs = @json(($attributes ?? collect())->map(fn($a) => ['id' => $a->id, 'name' => $a->name])->values()->all());
+        for (var i = 0; i < attrs.length; i++) {
+            var name = (attrs[i].name || '').toString().toLowerCase();
+            if (name.indexOf('màu') !== -1 || name.indexOf('mau') !== -1 || name.indexOf('color') !== -1) {
+                return parseInt(attrs[i].id, 10);
+            }
+        }
+        return null;
+    })();
+
     function updateChildOptions() {
         var parentId = parentSelect.value;
         childSelect.innerHTML = '<option value="">-- Chọn danh mục con --</option>';
@@ -286,6 +347,142 @@
         parentSelect.value = categoryToParent[selectedId];
     }
     updateChildOptions();
+
+    function getColorValueId(row) {
+        if (!colorAttrId) return '';
+        var sel = row.querySelector('select[data-attr-id="' + colorAttrId + '"]');
+        return sel ? (sel.value || '') : '';
+    }
+
+    function getColorLabelText(valueId) {
+        if (!valueId || !colorAttrId) return '';
+        var sel = document.querySelector('select[data-attr-id="' + colorAttrId + '"]');
+        if (!sel) return '';
+        var opt = sel.querySelector('option[value="' + valueId + '"]');
+        return opt ? (opt.textContent || '').trim() : '';
+    }
+
+    function resetImageCell(row) {
+        var cell = row.querySelector('.variant-image-cell-create');
+        if (!cell) return;
+        var file = cell.querySelector('input[type="file"]');
+        var hint = cell.querySelector('.variant-shared-image-hint');
+        if (hint) hint.remove();
+        cell.classList.remove('variant-image-shared');
+        if (file) file.disabled = false;
+    }
+
+    function markSharedImageCell(row, colorText) {
+        var cell = row.querySelector('.variant-image-cell-create');
+        if (!cell) return;
+        var file = cell.querySelector('input[type="file"]');
+        var label = cell.querySelector('.custom-file-label');
+        var previewWrap = cell.querySelector('.variant-preview-wrap-create');
+        var previewImg = cell.querySelector('.variant-preview-img-create');
+        if (file) {
+            file.disabled = true;
+            file.value = '';
+        }
+        if (label) label.textContent = 'Dùng ảnh chung';
+        if (previewWrap) previewWrap.classList.add('d-none');
+        if (previewImg) previewImg.src = '';
+        cell.classList.add('variant-image-shared');
+        if (!cell.querySelector('.variant-shared-image-hint')) {
+            var hint = document.createElement('div');
+            hint.className = 'variant-shared-image-hint text-muted small mt-1';
+            hint.textContent = 'Dùng ảnh của màu ' + (colorText || '');
+            cell.appendChild(hint);
+        }
+    }
+
+    function syncSharedImagesByColor() {
+        if (!colorAttrId) return;
+        var tbody = document.getElementById('variants-tbody');
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr.variant-row'));
+        rows.forEach(resetImageCell);
+        var firstRowByColor = {};
+        rows.forEach(function(row) {
+            var colorValueId = getColorValueId(row);
+            if (!colorValueId) return; // chưa chọn màu => vẫn cho chọn ảnh
+            if (!firstRowByColor[colorValueId]) {
+                firstRowByColor[colorValueId] = row;
+            } else {
+                markSharedImageCell(row, getColorLabelText(colorValueId));
+            }
+        });
+    }
+
+    // Quick combo: search + select all for color attribute (and any block rendered with .quick-combo-values-scroll)
+    function updateQuickComboCount(attrId) {
+        var container = document.querySelector('.quick-combo-values-scroll[data-attr-id="' + attrId + '"]');
+        var countEl = document.querySelector('.quick-combo-count[data-attr-id="' + attrId + '"]');
+        if (!container || !countEl) return;
+        var all = container.querySelectorAll('label.quick-combo-item');
+        var visible = 0;
+        var checked = 0;
+        all.forEach(function(lbl){
+            if (lbl.style.display === 'none') return;
+            visible++;
+            var cb = lbl.querySelector('input[type="checkbox"]');
+            if (cb && cb.checked) checked++;
+        });
+        countEl.textContent = checked + ' đã chọn / ' + visible + ' đang hiện';
+    }
+
+    document.querySelectorAll('.quick-combo-search').forEach(function(input){
+        var attrId = input.getAttribute('data-attr-id');
+        var container = document.querySelector('.quick-combo-values-scroll[data-attr-id="' + attrId + '"]');
+        if (!container) return;
+        updateQuickComboCount(attrId);
+        input.addEventListener('input', function(){
+            var q = (this.value || '').trim().toLowerCase();
+            container.querySelectorAll('label.quick-combo-item').forEach(function(lbl){
+                var t = lbl.getAttribute('data-text') || '';
+                lbl.style.display = q === '' || t.indexOf(q) !== -1 ? '' : 'none';
+            });
+            updateQuickComboCount(attrId);
+        });
+        container.addEventListener('change', function(e){
+            if (e.target && e.target.matches('input[type="checkbox"].quick-combo-value')) {
+                updateQuickComboCount(attrId);
+            }
+        });
+    });
+
+    document.querySelectorAll('.quick-combo-clear').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var attrId = this.getAttribute('data-attr-id');
+            var input = document.querySelector('.quick-combo-search[data-attr-id="' + attrId + '"]');
+            if (input) { input.value = ''; input.dispatchEvent(new Event('input')); input.focus(); }
+        });
+    });
+    document.querySelectorAll('.quick-combo-select-all').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var attrId = this.getAttribute('data-attr-id');
+            var container = document.querySelector('.quick-combo-values-scroll[data-attr-id="' + attrId + '"]');
+            if (!container) return;
+            container.querySelectorAll('label.quick-combo-item').forEach(function(lbl){
+                if (lbl.style.display === 'none') return;
+                var cb = lbl.querySelector('input[type="checkbox"]');
+                if (cb) cb.checked = true;
+            });
+            updateQuickComboCount(attrId);
+        });
+    });
+    document.querySelectorAll('.quick-combo-unselect-all').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            var attrId = this.getAttribute('data-attr-id');
+            var container = document.querySelector('.quick-combo-values-scroll[data-attr-id="' + attrId + '"]');
+            if (!container) return;
+            container.querySelectorAll('label.quick-combo-item').forEach(function(lbl){
+                if (lbl.style.display === 'none') return;
+                var cb = lbl.querySelector('input[type="checkbox"]');
+                if (cb) cb.checked = false;
+            });
+            updateQuickComboCount(attrId);
+        });
+    });
 
     var variantIndex = 1;
     var tbody = document.getElementById('variants-tbody');
@@ -313,14 +510,16 @@
             clone.querySelectorAll('.variant-preview-wrap-create').forEach(function(w) { w.classList.add('d-none'); });
             clone.querySelectorAll('.variant-preview-img-create').forEach(function(i) { i.src = ''; });
             clone.querySelectorAll('.btn-remove-variant').forEach(function(btn) {
-                btn.onclick = function() { clone.remove(); };
+                btn.onclick = function() { clone.remove(); syncSharedImagesByColor(); };
             });
             tbody.appendChild(clone);
             variantIndex++;
+            syncSharedImagesByColor();
         });
         tbody.addEventListener('click', function(e) {
             if (e.target.classList.contains('btn-remove-variant') && tbody.querySelectorAll('.variant-row').length > 1) {
                 e.target.closest('tr').remove();
+                syncSharedImagesByColor();
             }
         });
     }
@@ -399,10 +598,11 @@
         clone.querySelectorAll('.variant-preview-wrap-create').forEach(function(w) { w.classList.add('d-none'); });
         clone.querySelectorAll('.variant-preview-img-create').forEach(function(i) { i.src = ''; });
         clone.querySelectorAll('.btn-remove-variant').forEach(function(btn) {
-            btn.onclick = function() { clone.remove(); };
+            btn.onclick = function() { clone.remove(); syncSharedImagesByColor(); };
         });
         document.getElementById('variants-tbody').appendChild(clone);
         variantIndex++;
+        syncSharedImagesByColor();
     }
 
     var btnGenerate = document.getElementById('btn-generate-combos');
@@ -431,8 +631,19 @@
             if (combinations.length > 0) {
                 showVariantNotify('Đã tạo ' + combinations.length + ' biến thể. Bạn có thể sửa giá/tồn kho từng dòng nếu cần.', 'success');
             }
+            syncSharedImagesByColor();
         });
     }
+    // Khi đổi "màu" trong từng dòng => re-sync để chỉ hiện 1 ô ảnh/màu
+    document.getElementById('variants-table') && document.getElementById('variants-table').addEventListener('change', function(e) {
+        if (!colorAttrId) return;
+        if (e.target && e.target.tagName === 'SELECT' && e.target.getAttribute('data-attr-id') == String(colorAttrId)) {
+            syncSharedImagesByColor();
+        }
+    });
+
+    // init
+    syncSharedImagesByColor();
 })();
 </script>
 @endsection

@@ -120,6 +120,16 @@
             <form action="{{ route('admin.products.variants.bulk', $product) }}" method="POST" enctype="multipart/form-data" id="variants-bulk-form">
                 @csrf
                 @method('PUT')
+                @php
+                    $colorAttrId = null;
+                    foreach (($attributes ?? collect()) as $a) {
+                        $n = mb_strtolower((string) ($a->name ?? ''), 'UTF-8');
+                        if (str_contains($n, 'màu') || str_contains($n, 'mau') || str_contains($n, 'color')) {
+                            $colorAttrId = (int) $a->id;
+                            break;
+                        }
+                    }
+                @endphp
                 <div class="card border shadow-sm mb-3 overflow-hidden">
                     <div class="card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between">
                         <span class="font-weight-bold text-dark small">Bảng biến thể ({{ $product->variants->count() }} dòng)</span>
@@ -138,7 +148,16 @@
                         </thead>
                         <tbody>
                             @foreach($product->variants as $v)
-                            <tr>
+                            @php
+                                $colorValueId = null;
+                                $colorText = null;
+                                if ($colorAttrId) {
+                                    $colorAv = $v->attributeValues?->firstWhere('attribute_id', $colorAttrId);
+                                    $colorValueId = $colorAv?->id;
+                                    $colorText = $colorAv?->value;
+                                }
+                            @endphp
+                            <tr data-color-value-id="{{ $colorValueId ?? '' }}" data-color-text="{{ $colorText ?? '' }}">
                                 <td class="align-middle">{{ $v->display_name }}</td>
                                 <td class="align-middle">
                                     <input type="number" name="variants[{{ $v->id }}][price]" class="form-control form-control-sm text-right" value="{{ old('variants.'.$v->id.'.price', $v->price) }}" min="0" step="1000" style="width: 100px;" required>
@@ -180,6 +199,7 @@
 .variants-edit-table .custom-file-sm .custom-file-label::after { padding: 0.25rem 0.5rem; font-size: 0.8rem; content: "Duyệt"; width: auto; }
 .variants-edit-table .form-control-sm { font-size: 0.875rem; }
 .variants-edit-table .variant-thumb-wrap { width: 72px; height: 72px; overflow: hidden; border-radius: 0.35rem; border: 1px solid #dee2e6; background: #f8f9fa; }
+.variant-image-shared { opacity: 0.7; }
 </style>
             @else
             <p class="text-muted mb-3">Chưa có biến thể. Thêm biến thể bằng form bên dưới.</p>
@@ -221,7 +241,8 @@
                     </div>
                     <div class="col-md-3 col-6 form-group mb-2">
                         <label class="small font-weight-bold text-dark">Ảnh (cùng màu dùng chung)</label>
-                        <input type="file" name="image" class="form-control-file form-control-sm" accept="image/*">
+                        <input type="file" name="image" class="form-control-file form-control-sm" accept="image/*" id="edit-new-variant-image">
+                        <small class="text-muted d-block mt-1" id="edit-new-variant-image-hint"></small>
                     </div>
                     <div class="col-md-2 col-6 form-group mb-2">
                         <button type="submit" class="btn btn-success btn-sm w-100">Thêm biến thể</button>
@@ -236,6 +257,18 @@
 
 <script>
 (function() {
+    // Xác định attribute id của "Màu/Color"
+    var colorAttrId = (function() {
+        var attrs = @json(($attributes ?? collect())->map(fn($a) => ['id' => $a->id, 'name' => $a->name])->values()->all());
+        for (var i = 0; i < attrs.length; i++) {
+            var name = (attrs[i].name || '').toString().toLowerCase();
+            if (name.indexOf('màu') !== -1 || name.indexOf('mau') !== -1 || name.indexOf('color') !== -1) {
+                return parseInt(attrs[i].id, 10);
+            }
+        }
+        return null;
+    })();
+
     document.querySelectorAll('.variant-edit-file-input').forEach(function(input) {
         input.addEventListener('change', function() {
             var label = this.nextElementSibling;
@@ -260,6 +293,90 @@
             }
         });
     });
+
+    function resetVariantImageCell(cell) {
+        if (!cell) return;
+        cell.classList.remove('variant-image-shared');
+        var hint = cell.querySelector('.variant-shared-image-hint');
+        if (hint) hint.remove();
+        var input = cell.querySelector('input[type="file"]');
+        if (input) input.disabled = false;
+        var label = cell.querySelector('.custom-file-label');
+        if (label) label.textContent = 'Đổi ảnh';
+    }
+
+    function markVariantImageShared(cell, colorText) {
+        if (!cell) return;
+        cell.classList.add('variant-image-shared');
+        var input = cell.querySelector('input[type="file"]');
+        if (input) { input.disabled = true; input.value = ''; }
+        var label = cell.querySelector('.custom-file-label');
+        if (label) label.textContent = 'Dùng ảnh chung';
+        if (!cell.querySelector('.variant-shared-image-hint')) {
+            var hint = document.createElement('div');
+            hint.className = 'variant-shared-image-hint text-muted small mt-1';
+            hint.textContent = 'Dùng ảnh của màu ' + (colorText || '');
+            cell.appendChild(hint);
+        }
+    }
+
+    // Bảng biến thể: cùng màu chỉ 1 dòng được đổi ảnh
+    function syncEditTableSharedImagesByColor() {
+        if (!colorAttrId) return;
+        var rows = Array.prototype.slice.call(document.querySelectorAll('.variants-edit-table tbody tr'));
+        rows.forEach(function(tr) {
+            resetVariantImageCell(tr.querySelector('.variant-image-cell'));
+        });
+        var firstByColor = {};
+        rows.forEach(function(tr) {
+            var colorValueId = (tr.getAttribute('data-color-value-id') || '').trim();
+            if (!colorValueId) return;
+            if (!firstByColor[colorValueId]) {
+                firstByColor[colorValueId] = tr;
+            } else {
+                var colorText = (tr.getAttribute('data-color-text') || '').trim();
+                markVariantImageShared(tr.querySelector('.variant-image-cell'), colorText);
+            }
+        });
+    }
+
+    // Form "Thêm biến thể mới": nếu chọn màu đã có ảnh => khóa input ảnh
+    function buildColorHasImageMap() {
+        var map = {};
+        Array.prototype.slice.call(document.querySelectorAll('.variants-edit-table tbody tr')).forEach(function(tr) {
+            var colorValueId = (tr.getAttribute('data-color-value-id') || '').trim();
+            if (!colorValueId) return;
+            var hasImg = !!tr.querySelector('.variant-current-img');
+            if (hasImg) map[colorValueId] = true;
+        });
+        return map;
+    }
+
+    function syncNewVariantImageInputByColor() {
+        if (!colorAttrId) return;
+        var sel = document.querySelector('#edit-add-variant-attrs select[data-attr-id="' + colorAttrId + '"]');
+        var input = document.getElementById('edit-new-variant-image');
+        var hint = document.getElementById('edit-new-variant-image-hint');
+        if (!sel || !input || !hint) return;
+
+        var colorValueId = (sel.value || '').trim();
+        if (!colorValueId) {
+            input.disabled = false;
+            hint.textContent = 'Chọn màu để áp dụng ảnh dùng chung.';
+            return;
+        }
+
+        var colorText = (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].textContent || '').trim();
+        var hasImageMap = buildColorHasImageMap();
+        if (hasImageMap[colorValueId]) {
+            input.disabled = true;
+            input.value = '';
+            hint.textContent = 'Màu "' + colorText + '" đã có ảnh. Hãy đổi ảnh ở 1 dòng biến thể màu này trong bảng phía trên.';
+        } else {
+            input.disabled = false;
+            hint.textContent = 'Ảnh này sẽ dùng chung cho các biến thể cùng màu "' + colorText + '".';
+        }
+    }
 
     var categoriesByParent = @json($categoriesByParent ?? []);
     var categoryToParent = @json($categoryToParent ?? []);
@@ -315,9 +432,22 @@
                     sel.appendChild(opt);
                     sel.value = data.id;
                 }
+                syncNewVariantImageInputByColor();
             })
             .catch(function() { alert('Không thêm được giá trị.'); });
     });
+
+    // Khi đổi màu ở form thêm biến thể => khóa/mở input ảnh
+    document.getElementById('edit-add-variant-attrs') && document.getElementById('edit-add-variant-attrs').addEventListener('change', function(e) {
+        if (!colorAttrId) return;
+        if (e.target && e.target.tagName === 'SELECT' && e.target.getAttribute('data-attr-id') == String(colorAttrId)) {
+            syncNewVariantImageInputByColor();
+        }
+    });
+
+    // init
+    syncEditTableSharedImagesByColor();
+    syncNewVariantImageInputByColor();
 
     document.querySelectorAll('.btn-delete-variant').forEach(function(btn) {
         btn.addEventListener('click', function() {
