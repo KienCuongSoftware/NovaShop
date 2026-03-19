@@ -59,4 +59,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class);
     }
+
+    public function addresses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    public function productReviews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\ProductReview::class, 'user_id');
+    }
 }

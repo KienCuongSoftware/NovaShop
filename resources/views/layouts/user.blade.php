@@ -51,7 +51,7 @@
             border-color: #bd2130;
         }
 
-        header .navbar-shopee {
+        header .navbar-main {
             background: #dc3545;
             padding: 0;
             flex-wrap: wrap;
@@ -74,8 +74,8 @@
         .navbar-top-row-right > a,
         .navbar-top-row-left a:hover,
         .navbar-top-row-right > a:hover,
-        header .navbar-shopee .navbar-top-row-left a,
-        header .navbar-shopee .navbar-top-row-right > a {
+        header .navbar-main .navbar-top-row-left a,
+        header .navbar-main .navbar-top-row-right > a {
             color: #fff !important;
         }
         .navbar-top-row-left a:hover,
@@ -232,6 +232,10 @@
             z-index: 1050;
             display: none;
         }
+
+        /* (Removed) Inline category suggestions under search input */
+
+        /* Removed: search suggestions dropdown (keep only search history dropdown). */
         .search-history-dropdown.show {
             display: block;
         }
@@ -837,7 +841,7 @@
             .products-with-sidebar { flex-direction: column; }
             .products-sidebar { width: 100%; min-width: 0; }
         }
-        /* Trang chủ - DANH MỤC (Shopee-style) */
+        /* Trang chủ - DANH MỤC */
         .home-categories-section {
             max-width: 1140px;
             margin-left: auto;
@@ -1085,7 +1089,7 @@
 </head>
 <body>
     <header>
-    <nav class="navbar navbar-shopee navbar-expand-lg navbar-light fixed-top">
+    <nav class="navbar navbar-main navbar-expand-lg navbar-light fixed-top">
         <div class="container">
             <div class="navbar-top-row d-none d-md-flex">
                 <div class="navbar-top-row-left">
@@ -1115,6 +1119,7 @@
                             <a href="{{ route('profile') }}">Quản lý tài khoản</a>
                             @if(!auth()->user()->is_admin)
                             <a href="{{ route('orders.index') }}">Đơn mua</a>
+                            <a href="{{ route('addresses.index') }}">Sổ địa chỉ</a>
                             @endif
                             <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
                         </div>
@@ -1145,6 +1150,7 @@
                                 </button>
                             </div>
                         </form>
+
                         <div class="search-history-dropdown" id="search-history-dropdown" role="listbox">
                             <div class="dropdown-title">Lịch sử tìm kiếm</div>
                             <div id="search-history-list"></div>
@@ -1294,6 +1300,7 @@
                 } else {
                     dropdown.classList.remove('show');
                 }
+
             }
             function hideDropdown() {
                 hideTimeout = setTimeout(function() {
@@ -1325,6 +1332,7 @@
             if (input && input.value.trim()) {
                 addToHistory(input.value.trim());
             }
+
         })();
     </script>
     @livewireScripts
