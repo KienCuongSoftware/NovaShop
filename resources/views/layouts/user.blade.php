@@ -687,6 +687,53 @@
         @media (min-width: 768px) {
             .brands-grid { grid-template-columns: repeat(6, 1fr); }
         }
+        /* Carousel thương hiệu (một dòng, mũi tên, không scrollbar) */
+        .brands-track-wrap { position: relative; }
+        .brands-track {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.75rem;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 0.25rem 44px;
+        }
+        .brands-track::-webkit-scrollbar { display: none; }
+        .brands-track-item.brands-grid-item {
+            flex: 0 0 auto;
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
+        }
+        @media (min-width: 576px) {
+            .brands-track-item.brands-grid-item { width: 108px; min-width: 108px; max-width: 108px; }
+        }
+        .brands-track-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            cursor: pointer;
+            color: #333;
+            font-size: 1.55rem;
+            line-height: 1;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .brands-track-arrow:hover { background: #c62828; color: #fff; border-color: #c62828; }
+        .brands-track-arrow:focus,
+        .brands-track-arrow:focus-visible { outline: none !important; border-color: #c62828 !important; box-shadow: 0 0 0 2px rgba(198,40,40,0.35); }
+        .brands-track-arrow.prev { left: 0; }
+        .brands-track-arrow.next { right: 0; }
         .brands-grid-item {
             display: flex;
             flex-direction: column;

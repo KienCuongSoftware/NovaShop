@@ -428,17 +428,49 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <h3 class="brands-section-title mb-0">Thương hiệu</h3>
             </div>
-            <div class="brands-grid">
-                @foreach($categoryBrands as $b)
-                <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="brands-grid-item {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
-                    @if($b->logo)
-                    <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brands-grid-logo" loading="lazy">
-                    @endif
-                    <span class="brands-grid-name">{{ $b->name }}</span>
-                </a>
-                @endforeach
+            <div class="brands-track-wrap position-relative">
+                <button type="button" class="brands-track-arrow prev" id="category-brands-prev" aria-label="Trước">‹</button>
+                <button type="button" class="brands-track-arrow next" id="category-brands-next" aria-label="Sau">›</button>
+                <div class="brands-track" id="category-brands-track">
+                    @foreach($categoryBrands as $b)
+                    <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="brands-grid-item brands-track-item {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
+                        @if($b->logo)
+                        <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brands-grid-logo" loading="lazy">
+                        @endif
+                        <span class="brands-grid-name">{{ $b->name }}</span>
+                    </a>
+                    @endforeach
+                </div>
             </div>
         </section>
+        <script>
+        (function() {
+            var track = document.getElementById('category-brands-track');
+            var prevBtn = document.getElementById('category-brands-prev');
+            var nextBtn = document.getElementById('category-brands-next');
+            if (!track || !prevBtn || !nextBtn) return;
+            var step = 220;
+            function smoothScroll(direction) {
+                var start = track.scrollLeft;
+                var maxScroll = track.scrollWidth - track.clientWidth;
+                var dist = direction === 'prev' ? -Math.min(step, start) : Math.min(step, maxScroll - start);
+                if (dist === 0) return;
+                var startTime = null;
+                function anim(ts) {
+                    if (!startTime) startTime = ts;
+                    var elapsed = ts - startTime;
+                    var duration = 280;
+                    var t = Math.min(elapsed / duration, 1);
+                    t = 1 - Math.pow(1 - t, 2);
+                    track.scrollLeft = start + dist * t;
+                    if (elapsed < duration) requestAnimationFrame(anim);
+                }
+                requestAnimationFrame(anim);
+            }
+            prevBtn.addEventListener('click', function() { smoothScroll('prev'); });
+            nextBtn.addEventListener('click', function() { smoothScroll('next'); });
+        })();
+        </script>
         @endif
 
         @if($showSidebarAndFilter ?? false)
