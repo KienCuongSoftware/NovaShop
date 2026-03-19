@@ -1,6 +1,6 @@
-# Contributing to Learn Laravel
+# Contributing to NovaShop
 
-Thank you for your interest in contributing. This document provides guidelines for contributing to this project.
+Thank you for your interest in contributing. This document provides guidelines for contributing to NovaShop.
 
 ## Getting Started
 
