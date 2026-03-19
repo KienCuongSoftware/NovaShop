@@ -9,9 +9,14 @@ use Illuminate\Validation\Rule;
 
 class AttributeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $attributes = Attribute::withCount('attributeValues')->orderBy('name')->get();
+        $attributes = Attribute::withCount('attributeValues')
+            ->orderBy('name')
+            ->paginate(7)
+            ->withQueryString();
+
+        session(['admin.attributes.page' => $attributes->currentPage()]);
         return view('admin.attributes.index', compact('attributes'));
     }
 
@@ -29,7 +34,8 @@ class AttributeController extends Controller
             'name.unique' => 'Thuộc tính này đã tồn tại.',
         ]);
         Attribute::create(['name' => trim($request->input('name'))]);
-        return redirect()->route('admin.attributes.index')->with('success', 'Đã thêm thuộc tính.');
+        $page = session('admin.attributes.page', 1);
+        return redirect()->route('admin.attributes.index', ['page' => $page])->with('success', 'Đã thêm thuộc tính.');
     }
 
     public function edit(Attribute $attribute)
@@ -47,13 +53,15 @@ class AttributeController extends Controller
             'name.unique' => 'Thuộc tính này đã tồn tại.',
         ]);
         $attribute->update(['name' => trim($request->input('name'))]);
-        return redirect()->route('admin.attributes.index')->with('success', 'Đã cập nhật thuộc tính.');
+        $page = session('admin.attributes.page', 1);
+        return redirect()->route('admin.attributes.index', ['page' => $page])->with('success', 'Đã cập nhật thuộc tính.');
     }
 
     public function destroy(Attribute $attribute)
     {
         $attribute->delete();
-        return redirect()->route('admin.attributes.index')->with('success', 'Đã xóa thuộc tính.');
+        $page = session('admin.attributes.page', 1);
+        return redirect()->route('admin.attributes.index', ['page' => $page])->with('success', 'Đã xóa thuộc tính.');
     }
 
     /** Thêm giá trị cho thuộc tính (form trong edit hoặc AJAX từ form sản phẩm). */

@@ -15,16 +15,16 @@
         <table class="table table-hover mb-0">
             <thead class="thead-light">
                 <tr>
-                    <th>ID</th>
+                    <th style="width: 70px;">STT</th>
                     <th>Tên thuộc tính</th>
                     <th>Số giá trị</th>
                     <th style="width: 240px; min-width: 240px;" class="text-right">Thao tác</th>
-bb                </tr>
+                </tr>
             </thead>
             <tbody>
                 @forelse ($attributes as $attr)
                 <tr>
-                    <td class="align-middle">{{ $attr->id }}</td>
+                    <td class="align-middle text-muted">{{ ($attributes->currentPage() - 1) * $attributes->perPage() + $loop->iteration }}</td>
                     <td class="align-middle font-weight-bold">{{ $attr->name }}</td>
                     <td class="align-middle text-muted">{{ $attr->attribute_values_count ?? 0 }}</td>
                     <td class="align-middle text-right">
@@ -47,6 +47,68 @@ bb                </tr>
         </table>
     </div>
 </div>
+
+@if ($attributes->hasPages())
+<div class="mt-3 d-flex justify-content-center">
+    @php
+        $paginator = $attributes;
+        $current = $paginator->currentPage();
+        $last = $paginator->lastPage();
+        $elements = [];
+        if ($last <= 6) {
+            for ($i = 1; $i <= $last; $i++) { $elements[] = $i; }
+        } else {
+            $start = max(1, $current - 2);
+            $end = min($last, $start + 5);
+            if ($end - $start < 5) {
+                $start = max(1, $end - 5);
+            }
+            $elements = [];
+            if ($start > 1) {
+                $elements = [1, '...'];
+            }
+            for ($i = $start; $i <= $end; $i++) {
+                $elements[] = $i;
+            }
+            if ($end < $last) {
+                $elements[] = '...';
+                $elements[] = $last;
+            }
+        }
+    @endphp
+    <nav>
+        <ul class="pagination">
+            <li class="page-item {{ $paginator->onFirstPage() ? 'disabled' : '' }}">
+                @if($paginator->onFirstPage())
+                    <span class="page-link">&lsaquo;</span>
+                @else
+                    <a class="page-link" href="{{ $paginator->previousPageUrl() }}">&lsaquo;</a>
+                @endif
+            </li>
+            @foreach($elements as $el)
+                @if($el === '...')
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                @else
+                    <li class="page-item {{ (int)$el === (int)$current ? 'active' : '' }}">
+                        @if((int)$el === (int)$current)
+                            <span class="page-link">{{ $el }}</span>
+                        @else
+                            <a class="page-link" href="{{ $paginator->url($el) }}">{{ $el }}</a>
+                        @endif
+                    </li>
+                @endif
+            @endforeach
+            <li class="page-item {{ !$paginator->hasMorePages() ? 'disabled' : '' }}">
+                @if(!$paginator->hasMorePages())
+                    <span class="page-link">&rsaquo;</span>
+                @else
+                    <a class="page-link" href="{{ $paginator->nextPageUrl() }}">&rsaquo;</a>
+                @endif
+            </li>
+        </ul>
+    </nav>
+</div>
+@endif
 
 @if($attributes->isNotEmpty())
 <script>
