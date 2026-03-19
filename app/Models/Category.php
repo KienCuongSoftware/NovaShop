@@ -19,6 +19,16 @@ class Category extends Model
         return 'slug';
     }
 
+    /** Hiển thị tên: viết hoa chữ cái đầu mỗi từ (UTF-8, vd: "thời trang nam" → "Thời Trang Nam"). */
+    public function getNameAttribute(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return mb_convert_case(trim($value), MB_CASE_TITLE, 'UTF-8');
+    }
+
     protected static function booted(): void
     {
         static::saving(function (Category $category) {
