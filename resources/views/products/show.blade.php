@@ -433,7 +433,22 @@ window.productHasVariants = true;
     var variants = @json($variantsPayload);
     var defaultImage = @json($defaultImage);
     var flashSaleEndTime = @json($flashSaleEndTime ?? null);
+    var attrNames = @json($hasVariants && !empty($attributeOptions) ? array_keys($attributeOptions) : []);
     var firstAttrName = @json($hasVariants && !empty($attributeOptions) ? array_key_first($attributeOptions) : null);
+    var colorAttrName = (function() {
+        for (var i = 0; i < attrNames.length; i++) {
+            var n = (attrNames[i] || '').toString().toLowerCase();
+            if (n === 'màu' || n === 'mau' || n === 'color' || n.indexOf('màu') !== -1 || n.indexOf('color') !== -1) return attrNames[i];
+        }
+        return firstAttrName;
+    })();
+    var sizeAttrName = (function() {
+        for (var i = 0; i < attrNames.length; i++) {
+            var n = (attrNames[i] || '').toString().toLowerCase();
+            if (n === 'size' || n.indexOf('size') !== -1 || n.indexOf('kích') !== -1 || n.indexOf('kich') !== -1) return attrNames[i];
+        }
+        return null;
+    })();
     var mainImg = document.getElementById('main-product-image');
     var priceEl = document.getElementById('product-price');
     var priceWrapEl = document.getElementById('product-price-wrap');
@@ -488,7 +503,7 @@ window.productHasVariants = true;
         if (!colorVal) return null;
         for (var i = 0; i < variants.length; i++) {
             var v = variants[i];
-            if ((v.attr[firstAttrName] || '') !== colorVal) continue;
+            if ((v.attr[colorAttrName] || '') !== colorVal) continue;
             if (v.image && v.image !== defaultImage) return v;
         }
         return null;
@@ -580,7 +595,20 @@ window.productHasVariants = true;
         } else {
             variantInput.value = '';
             priceEl.textContent = @json($product->variants->first()->price ?? $product->price).toLocaleString('vi-VN') + '₫';
-            stockEl.textContent = '';
+            // Nếu chỉ chọn Màu (chưa chọn Size) => hiển thị tổng tồn kho của màu đó (cộng tất cả size)
+            var selectedColor = colorAttrName ? (selection[colorAttrName] || '') : '';
+            var selectedSize = sizeAttrName ? (selection[sizeAttrName] || '') : '';
+            if (selectedColor && (!sizeAttrName || !selectedSize)) {
+                var sum = 0;
+                variants.forEach(function(vv) {
+                    if ((vv.attr[colorAttrName] || '') !== selectedColor) return;
+                    var effStock = (vv.flash_remaining != null && vv.flash_remaining > 0) ? Math.min(vv.stock || 0, vv.flash_remaining) : (vv.stock || 0);
+                    sum += effStock;
+                });
+                stockEl.textContent = 'Màu ' + selectedColor + ': còn lại ' + sum.toLocaleString('vi-VN') + ' sản phẩm (tất cả size)';
+            } else {
+                stockEl.textContent = '';
+            }
             btnAdd.disabled = true;
             if (flashPriceRow && flashPriceEl) {
                 // Chưa chọn đủ thuộc tính: vẫn hiển thị giá flash tham chiếu (nếu có) như Shopee.
@@ -618,7 +646,17 @@ window.productHasVariants = true;
             if (qtyMinusBtn) qtyMinusBtn.disabled = true;
             if (qtyPlusBtn) qtyPlusBtn.disabled = true;
             if (stockLabel) {
-                stockLabel.textContent = totalStock > 0 ? 'CÒN HÀNG' : 'HẾT HÀNG';
+                if (selectedColor && (!sizeAttrName || !selectedSize)) {
+                    var sumLabel = 0;
+                    variants.forEach(function(vv) {
+                        if ((vv.attr[colorAttrName] || '') !== selectedColor) return;
+                        var effStock = (vv.flash_remaining != null && vv.flash_remaining > 0) ? Math.min(vv.stock || 0, vv.flash_remaining) : (vv.stock || 0);
+                        sumLabel += effStock;
+                    });
+                    stockLabel.textContent = (sumLabel > 0 ? sumLabel.toLocaleString('vi-VN') + ' SẢN PHẨM CÓ SẴN' : 'HẾT HÀNG');
+                } else {
+                    stockLabel.textContent = totalStock > 0 ? 'CÒN HÀNG' : 'HẾT HÀNG';
+                }
                 stockLabel.classList.add('product-stock-status');
             }
             if (mainImg) {
