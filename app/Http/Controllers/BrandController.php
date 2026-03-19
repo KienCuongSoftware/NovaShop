@@ -19,7 +19,7 @@ class BrandController extends Controller
                     ->orWhere('slug', 'like', '%' . $esc . '%');
             })
             ->orderBy('name')
-            ->paginate(10)
+            ->paginate(7)
             ->withQueryString();
         session(['admin.brands.page' => $brands->currentPage()]);
         return view('admin.brands.index', compact('brands', 'q'));
