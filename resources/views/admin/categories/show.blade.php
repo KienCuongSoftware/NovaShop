@@ -24,6 +24,37 @@
             </dd>
             @endif
         </dl>
+        @if($category->children->isNotEmpty())
+        <hr>
+        <div>
+            <h5 class="mb-3">Danh mục con</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 60px;">Cấp</th>
+                            <th>Tên</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($category->children as $child)
+                            <tr>
+                                <td class="text-muted">1</td>
+                                <td class="font-weight-bold">{{ $child->name }}</td>
+                            </tr>
+                            @foreach($child->children ?? [] as $leaf)
+                                <tr>
+                                    <td class="text-muted">2</td>
+                                    <td class="text-muted">— {{ $leaf->name }}</td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted d-block mt-2">Muốn sửa/thêm/xóa danh mục con, hãy bấm <strong>Sửa</strong> ở danh mục cha.</small>
+        </div>
+        @endif
         <hr>
         <div class="d-flex gap-2">
             <a class="btn btn-primary" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>

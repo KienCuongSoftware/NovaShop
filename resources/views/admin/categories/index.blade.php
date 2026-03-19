@@ -61,50 +61,6 @@
                             </form>
                         </td>
                     </tr>
-                    @foreach($category->children as $child)
-                        <tr>
-                            <td class="align-middle"></td>
-                            <td class="align-middle">
-                                @if($child->image)
-                                    <img src="/images/categories/{{ basename($child->image) }}" alt="{{ $child->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
-                                @else
-                                    <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1rem;">📂</div>
-                                @endif
-                            </td>
-                            <td class="align-middle pl-4">└ {{ $child->name }}</td>
-                            <td class="align-middle text-right">
-                                <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $child) }}">Xem</a>
-                                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $child) }}">Sửa</a>
-                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $child->id }}" data-name="{{ $child->name }}">Xóa</button>
-                                <form id="delete-form-{{ $child->id }}" action="{{ route('admin.categories.destroy', $child) }}" method="POST" class="d-none">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                            </td>
-                        </tr>
-                        @foreach($child->children as $leaf)
-                            <tr>
-                                <td class="align-middle"></td>
-                                <td class="align-middle">
-                                    @if($leaf->image)
-                                        <img src="/images/categories/{{ basename($leaf->image) }}" alt="{{ $leaf->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
-                                    @else
-                                        <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1rem;">📂</div>
-                                    @endif
-                                </td>
-                                <td class="align-middle pl-5 text-muted">├ {{ $leaf->name }}</td>
-                                <td class="align-middle text-right">
-                                    <a class="btn btn-outline-info btn-sm" href="{{ route('admin.categories.show', $leaf) }}">Xem</a>
-                                    <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.categories.edit', $leaf) }}">Sửa</a>
-                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $leaf->id }}" data-name="{{ $leaf->name }}">Xóa</button>
-                                    <form id="delete-form-{{ $leaf->id }}" action="{{ route('admin.categories.destroy', $leaf) }}" method="POST" class="d-none">
-                                        @csrf
-                                        @method('DELETE')
-                                    </form>
-                                </td>
-                            </tr>
-                        @endforeach
-                    @endforeach
                 @empty
                 <tr>
                     <td colspan="4" class="text-center text-muted py-5">Chưa có danh mục nào.</td>

@@ -62,6 +62,63 @@
                 </div>
                 @endif
             </div>
+
+            @if($category->parent_id === null)
+            <hr>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">Quản lý danh mục con</h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addChildRow({{ (int) $category->id }})">+ Thêm cấp 1</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addLeafRow()">+ Thêm cấp 2</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" id="childrenTable">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 80px;">Cấp</th>
+                            <th>Tên</th>
+                            <th style="width: 160px;">Thuộc</th>
+                            <th style="width: 90px;" class="text-right">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($category->children as $child)
+                            <tr data-level="1" data-id="{{ $child->id }}">
+                                <td class="text-muted">1</td>
+                                <td>
+                                    <input class="form-control form-control-sm" name="children[{{ $child->id }}][name]" value="{{ $child->name }}">
+                                </td>
+                                <td class="text-muted">—</td>
+                                <td class="text-right">
+                                    <label class="mb-0 small text-muted">
+                                        <input type="checkbox" name="delete_ids[]" value="{{ $child->id }}"> Xóa
+                                    </label>
+                                </td>
+                            </tr>
+                            @foreach($child->children ?? [] as $leaf)
+                                <tr data-level="2" data-id="{{ $leaf->id }}">
+                                    <td class="text-muted">2</td>
+                                    <td>
+                                        <input class="form-control form-control-sm" name="children[{{ $leaf->id }}][name]" value="{{ $leaf->name }}">
+                                    </td>
+                                    <td class="text-muted">{{ $child->name }}</td>
+                                    <td class="text-right">
+                                        <label class="mb-0 small text-muted">
+                                            <input type="checkbox" name="delete_ids[]" value="{{ $leaf->id }}"> Xóa
+                                        </label>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <small class="text-muted d-block mt-2">
+                Ghi chú: hệ thống chỉ xóa được danh mục <strong>lá</strong> và <strong>không có sản phẩm</strong>. Nếu trùng tên trong cùng cấp, hệ thống sẽ bỏ qua dòng đó.
+            </small>
+            @endif
+
             <hr>
             <div class="d-flex justify-content-between align-items-center">
                 <a href="{{ route('admin.categories.index') }}" class="btn btn-link text-muted">Hủy</a>
@@ -84,6 +141,61 @@ function previewImage(input) {
         };
         reader.readAsDataURL(input.files[0]);
     }
+}
+
+function addChildRow(parentId) {
+    var tbody = document.querySelector('#childrenTable tbody');
+    if (!tbody) return;
+    var idx = tbody.querySelectorAll('tr[data-new="1"]').length;
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-level', '1');
+    tr.setAttribute('data-new', '1');
+    tr.innerHTML = `
+        <td class="text-muted">1</td>
+        <td><input class="form-control form-control-sm" name="new_children[${idx}][name]" value="" placeholder="Tên danh mục cấp 1"></td>
+        <td class="text-muted">—</td>
+        <td class="text-right">
+            <input type="hidden" name="new_children[${idx}][parent_id]" value="${parentId}">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">X</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function addLeafRow() {
+    var tbody = document.querySelector('#childrenTable tbody');
+    if (!tbody) return;
+    var roots = [];
+    document.querySelectorAll('#childrenTable tr[data-level="1"]').forEach(function(tr) {
+        var id = tr.getAttribute('data-id');
+        var input = tr.querySelector('input[name^="children["]');
+        var name = input ? (input.value || '').trim() : '';
+        if (id) {
+            roots.push({ id: id, name: name || ('ID ' + id) });
+        }
+    });
+    if (!roots.length) {
+        alert('Bạn cần có ít nhất 1 danh mục cấp 1 để thêm cấp 2.');
+        return;
+    }
+    var idx = tbody.querySelectorAll('tr[data-new="1"]').length;
+    var options = roots.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-level', '2');
+    tr.setAttribute('data-new', '1');
+    tr.innerHTML = `
+        <td class="text-muted">2</td>
+        <td><input class="form-control form-control-sm" name="new_children[${idx}][name]" value="" placeholder="Tên danh mục cấp 2"></td>
+        <td>
+            <select class="form-control form-control-sm" name="new_children[${idx}][parent_id]">
+                ${options}
+            </select>
+        </td>
+        <td class="text-right">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">X</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
 }
 </script>
 @endsection

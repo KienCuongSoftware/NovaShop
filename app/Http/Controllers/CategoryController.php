@@ -6,24 +6,22 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class CategoryController extends Controller
 {
     public function index(Request $request)
     {
         $q = trim((string) $request->input('q', ''));
-        $categories = Category::roots()->with('children.children')
+        $categories = Category::roots()
             ->when($q !== '', function ($query) use ($q) {
                 $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-                $query->where('name', 'like', '%' . $esc . '%')
-                    ->orWhereHas('children', function ($sub) use ($esc) {
-                        $sub->where('name', 'like', '%' . $esc . '%')
-                            ->orWhereHas('children', fn ($s) => $s->where('name', 'like', '%' . $esc . '%'));
-                    });
+                $query->where('name', 'like', '%' . $esc . '%');
             })
             ->oldest()
-            ->paginate(10)
+            ->paginate(7)
             ->withQueryString();
+
         session(['admin.categories.page' => $categories->currentPage()]);
         return view('admin.categories.index', compact('categories', 'q'));
     }
@@ -74,11 +72,13 @@ class CategoryController extends Controller
 
     public function show(Category $category)
     {
+        $category->load(['parent', 'children.children']);
         return view('admin.categories.show', compact('category'));
     }
 
     public function edit(Category $category)
     {
+        $category->load(['children.children']);
         $excludeIds = $category->getDescendantIds(); // không cho chọn chính nó hoặc con làm cha
         $parentCategories = Category::roots()->with('children')->whereNotIn('id', $excludeIds)->orderBy('name')->get();
         return view('admin.categories.edit', compact('category', 'parentCategories', 'excludeIds'));
@@ -130,6 +130,86 @@ class CategoryController extends Controller
         }
 
         $category->update($data);
+
+        // Nếu đang sửa danh mục gốc: cho phép quản lý danh mục con ngay tại đây.
+        if ($category->isRoot()) {
+            $descendantIds = $category->getDescendantIds();
+            $allowedExistingIds = array_values(array_filter($descendantIds, fn ($id) => (int) $id !== (int) $category->id));
+
+            // Xóa các danh mục con (chỉ cho xóa "lá" và không có sản phẩm).
+            $deleteIds = array_filter(array_map('intval', (array) $request->input('delete_ids', [])));
+            if (!empty($deleteIds)) {
+                $deleteIds = array_values(array_intersect($deleteIds, $allowedExistingIds));
+                if (!empty($deleteIds)) {
+                    $toDelete = Category::whereIn('id', $deleteIds)->get();
+                    foreach ($toDelete as $c) {
+                        if ($c->children()->exists() || $c->products()->exists()) {
+                            continue;
+                        }
+                        if ($c->image && Storage::disk('public')->exists($c->image)) {
+                            Storage::disk('public')->delete($c->image);
+                        }
+                        $c->delete();
+                    }
+                }
+            }
+
+            // Cập nhật tên danh mục con hiện có.
+            $childrenInput = (array) $request->input('children', []);
+            $updateIds = array_filter(array_map('intval', array_keys($childrenInput)));
+            $updateIds = array_values(array_intersect($updateIds, $allowedExistingIds));
+            if (!empty($updateIds)) {
+                $cats = Category::whereIn('id', $updateIds)->get()->keyBy('id');
+                foreach ($updateIds as $id) {
+                    $cat = $cats->get($id);
+                    if (!$cat) {
+                        continue;
+                    }
+                    $name = trim((string) ($childrenInput[$id]['name'] ?? ''));
+                    if ($name === '') {
+                        continue;
+                    }
+                    if (mb_strlen($name, 'UTF-8') > 255) {
+                        $name = mb_substr($name, 0, 255, 'UTF-8');
+                    }
+                    $dup = Category::query()
+                        ->where('parent_id', $cat->parent_id)
+                        ->where('name', $name)
+                        ->where('id', '!=', $cat->id)
+                        ->exists();
+                    if ($dup) {
+                        continue;
+                    }
+                    $cat->update(['name' => $name]);
+                }
+            }
+
+            // Thêm mới danh mục con (chỉ cho tạo ở level 1 hoặc level 2).
+            $newItems = (array) $request->input('new_children', []);
+            if (!empty($newItems)) {
+                $level1Ids = $category->children()->pluck('id')->map(fn ($v) => (int) $v)->all();
+                $allowedParentIds = array_merge([(int) $category->id], $level1Ids);
+
+                foreach ($newItems as $row) {
+                    if (!is_array($row)) {
+                        continue;
+                    }
+                    $name = trim((string) ($row['name'] ?? ''));
+                    $pid = isset($row['parent_id']) && $row['parent_id'] !== '' ? (int) $row['parent_id'] : (int) $category->id;
+                    if ($name === '' || !in_array($pid, $allowedParentIds, true)) {
+                        continue;
+                    }
+                    if (mb_strlen($name, 'UTF-8') > 255) {
+                        $name = mb_substr($name, 0, 255, 'UTF-8');
+                    }
+                    $dup = Category::query()->where('parent_id', $pid)->where('name', $name)->exists();
+                    if ($dup) {
+                        continue;
+                    }
+                    Category::create(['name' => $name, 'parent_id' => $pid]);
+                }
+            }
+        }
 
         $page = session('admin.categories.page', 1);
         return redirect()->route('admin.categories.index', ['page' => $page])
