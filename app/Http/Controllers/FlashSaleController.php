@@ -14,7 +14,8 @@ class FlashSaleController extends Controller
         $flashSales = FlashSale::withCount('items')
             ->with(['items.productVariant:id,product_id'])
             ->orderByDesc('start_time')
-            ->paginate(10);
+            ->paginate(7)
+            ->withQueryString();
 
         // Hiển thị đúng: items_count = số biến thể, products_count = số sản phẩm (unique product_id)
         $flashSales->getCollection()->transform(function ($fs) {
@@ -22,6 +23,7 @@ class FlashSaleController extends Controller
             $fs->products_count = $productIds->count();
             return $fs;
         });
+        session(['admin.flash_sales.page' => $flashSales->currentPage()]);
         return view('admin.flash_sales.index', compact('flashSales'));
     }
 
@@ -92,7 +94,8 @@ class FlashSaleController extends Controller
     public function destroy(FlashSale $flash_sale)
     {
         $flash_sale->delete();
-        return redirect()->route('admin.flash-sales.index')->with('success', 'Đã xóa chương trình Flash Sale.');
+        $page = session('admin.flash_sales.page', 1);
+        return redirect()->route('admin.flash-sales.index', ['page' => $page])->with('success', 'Đã xóa chương trình Flash Sale.');
     }
 
     /** Thêm biến thể vào flash sale (AJAX hoặc form). */

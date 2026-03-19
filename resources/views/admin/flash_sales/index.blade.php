@@ -73,7 +73,63 @@
     </div>
     @if($flashSales->hasPages())
     <div class="card-footer">
-        {{ $flashSales->links() }}
+        @php
+            $paginator = $flashSales;
+            $current = $paginator->currentPage();
+            $last = $paginator->lastPage();
+            $elements = [];
+            if ($last <= 6) {
+                for ($i = 1; $i <= $last; $i++) { $elements[] = $i; }
+            } else {
+                $start = max(1, $current - 2);
+                $end = min($last, $start + 5);
+                if ($end - $start < 5) {
+                    $start = max(1, $end - 5);
+                }
+                $elements = [];
+                if ($start > 1) {
+                    $elements = [1, '...'];
+                }
+                for ($i = $start; $i <= $end; $i++) {
+                    $elements[] = $i;
+                }
+                if ($end < $last) {
+                    $elements[] = '...';
+                    $elements[] = $last;
+                }
+            }
+        @endphp
+        <nav class="d-flex justify-content-center">
+            <ul class="pagination mb-0">
+                <li class="page-item {{ $paginator->onFirstPage() ? 'disabled' : '' }}">
+                    @if($paginator->onFirstPage())
+                        <span class="page-link">&lsaquo;</span>
+                    @else
+                        <a class="page-link" href="{{ $paginator->previousPageUrl() }}">&lsaquo;</a>
+                    @endif
+                </li>
+                @foreach($elements as $el)
+                    @if($el === '...')
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    @else
+                        <li class="page-item {{ (int)$el === (int)$current ? 'active' : '' }}">
+                            @if((int)$el === (int)$current)
+                                <span class="page-link">{{ $el }}</span>
+                            @else
+                                <a class="page-link" href="{{ $paginator->url($el) }}">{{ $el }}</a>
+                            @endif
+                        </li>
+                    @endif
+                @endforeach
+                <li class="page-item {{ !$paginator->hasMorePages() ? 'disabled' : '' }}">
+                    @if(!$paginator->hasMorePages())
+                        <span class="page-link">&rsaquo;</span>
+                    @else
+                        <a class="page-link" href="{{ $paginator->nextPageUrl() }}">&rsaquo;</a>
+                    @endif
+                </li>
+            </ul>
+        </nav>
     </div>
     @endif
 </div>
