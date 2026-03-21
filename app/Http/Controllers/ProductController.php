@@ -221,7 +221,7 @@ class ProductController extends Controller
     }
 
     /** Trả về view cho người dùng bình thường; lưu hành vi xem để gợi ý. */
-    public function show_normal(Product $product)
+    public function show_normal(Product $product, Request $request)
     {
         $product->load(['category.parent.parent', 'brand', 'variants.attributeValues.attribute', 'variants.images']);
         $recentIds = session('recent_product_ids', []);
@@ -232,11 +232,11 @@ class ProductController extends Controller
             $catIds = array_filter(array_unique(array_merge([$product->category_id], $catIds)));
             session(['recent_category_ids' => array_slice($catIds, 0, 5)]);
         }
-        $activeFlashSale = \App\Models\FlashSale::getCurrentOrNext();
-        $activeFlashSale = $activeFlashSale ? $activeFlashSale->load('items') : null;
+        // Chỉ áp dụng FLASH SALE khi slot đang diễn ra (now nằm trong [start_time, end_time)).
+        // Tránh trường hợp hiển thị giá kiểu flash cho "slot kế tiếp" dù người dùng đang không có flash sale.
+        $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
         $flashItemsByVariantId = [];
         $flashSaleEndTime = null;
-        $now = now();
         if ($activeFlashSale) {
             $flashSaleEndTime = $activeFlashSale->end_time->toIso8601String();
             foreach ($activeFlashSale->items as $item) {
@@ -246,7 +246,53 @@ class ProductController extends Controller
                 ];
             }
         }
-        return view('products.show', compact('product', 'activeFlashSale', 'flashItemsByVariantId', 'flashSaleEndTime'));
+
+        // Reviews: trung bình, phân bố sao, danh sách đánh giá.
+        // Lưu ý: tách/clone builder để query phân bố không dính sang query lấy danh sách (MySQL only_full_group_by).
+        $baseReviewsQuery = \App\Models\ProductReview::query()->where('product_id', $product->id);
+
+        // Lọc theo số sao (1..5)
+        $ratingFilterRaw = $request->query('rating');
+        $ratingFilter = in_array((int) $ratingFilterRaw, [1, 2, 3, 4, 5], true) ? (int) $ratingFilterRaw : null;
+
+        $reviewCount = (int) (clone $baseReviewsQuery)->count();
+        $avgRating = $reviewCount > 0 ? (float) (clone $baseReviewsQuery)->avg('rating') : 0.0;
+        $avgRating = round($avgRating, 1);
+
+        $reviewDistribution = (clone $baseReviewsQuery)
+            ->selectRaw('rating, COUNT(*) as cnt')
+            ->groupBy('rating')
+            ->pluck('cnt', 'rating');
+
+        $reviewsQuery = (clone $baseReviewsQuery);
+        if ($ratingFilter !== null) {
+            $reviewsQuery->where('rating', $ratingFilter);
+        }
+
+        $reviews = $reviewsQuery
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->paginate(10);
+
+        if ($ratingFilter !== null) {
+            $reviews->appends(['rating' => $ratingFilter]);
+        }
+
+        // Trả về riêng phần review khi frontend gọi AJAX (không reload trang).
+        if ($request->boolean('reviews_partial')) {
+            return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews'));
+        }
+
+        return view('products.show', compact(
+            'product',
+            'activeFlashSale',
+            'flashItemsByVariantId',
+            'flashSaleEndTime',
+            'reviewCount',
+            'avgRating',
+            'reviewDistribution',
+            'reviews'
+        ));
     }
 
     public function edit(Product $product)

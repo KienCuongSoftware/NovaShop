@@ -103,7 +103,7 @@
                         <button type="button" class="product-gallery-arrow product-gallery-next border-0 rounded-circle shadow bg-danger text-white" aria-label="Ảnh sau" style="width: 48px; height: 48px; position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; line-height: 1;">›</button>
                     </div>
 
-                    {{-- Modal xem ảnh lớn (kiểu Shopee: vừa phải, căn giữa) --}}
+                    {{-- Modal xem ảnh lớn --}}
                     <div class="modal fade" id="productImageModal" tabindex="-1" aria-labelledby="productImageModalLabel" aria-hidden="true" data-backdrop="true" data-keyboard="true">
                         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable product-image-modal-dialog">
                             <div class="modal-content border-0 shadow-lg">
@@ -135,7 +135,7 @@
                         </div>
                     </div>
                     <style>
-                    /* Modal ảnh sản phẩm: thu nhỏ, căn giữa như Shopee */
+                    /* Modal ảnh sản phẩm */
                     #productImageModal .product-image-modal-dialog {
                         max-width: min(720px, 90%);
                         margin-left: auto;
@@ -277,7 +277,7 @@
                     <div class="mb-3" id="variant-options-wrap">
                         @if(!empty($showFlashCountdown) && !empty($flashSaleEndTime ?? null))
                         <div class="flash-sale-card mb-3" id="flash-sale-card" style="{{ $showFlashCountdown ? '' : 'display:none;' }}">
-                            <div class="flash-sale-banner-shopee d-flex align-items-center justify-content-between flex-wrap" id="flash-sale-countdown-wrap">
+                            <div class="flash-sale-banner d-flex align-items-center justify-content-between flex-wrap" id="flash-sale-countdown-wrap">
                                 <div class="d-flex align-items-center flash-sale-title-inline">
                                     <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
                                     <img src="{{ asset('images/flash-lightning.svg') }}" alt="" class="flash-sale-lightning-icon" width="20" height="18">
@@ -303,7 +303,7 @@
                         </div>
                         <style>
                         .flash-sale-card { border-radius: 4px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
-                        .flash-sale-banner-shopee { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); padding: 0.5rem 1rem; }
+                        .flash-sale-banner { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); padding: 0.5rem 1rem; }
                         .flash-sale-title-inline .flash-sale-lightning-icon { flex-shrink: 0; margin: 0 -0.05rem 0 0.15rem; vertical-align: middle; }
                         .flash-sale-title-inline .flash-sale-banner-title:last-child { margin-left: -0.45rem; }
                         .flash-sale-banner-title { font-size: 1rem; letter-spacing: 0.02em; }
@@ -313,6 +313,8 @@
                         .flash-sale-box { background: #1a1a1a; color: #fff; min-width: 2.25rem; height: 1.75rem; padding: 0 0.45rem; text-align: center; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.15rem; }
                         .flash-sale-sep { color: #fff; margin: 0 0.1rem; font-weight: 700; }
                         .flash-sale-price-row { background: #fff0f1; padding: 0.55rem 1rem; }
+                        /* Khi KHÔNG có flash sale thì vẫn giữ nền/padding giống block flash để UI đồng nhất */
+                        #product-price-wrap { background: #fff0f1; padding: 0.55rem 1rem; border-radius: 4px; }
                         .flash-sale-price { color: #dc3545; font-weight: 900; font-size: 1.35rem; letter-spacing: 0.01em; }
                         .flash-sale-old-price { color: rgba(0,0,0,0.5) !important; }
                         .flash-sale-discount { font-weight: 800; }
@@ -329,7 +331,6 @@
                         <p class="text-muted small mb-2" id="variant-stock" aria-hidden="true"></p>
                     </div>
                     @elseif($product->quantity !== null)
-                    <p class="text-muted small mb-3">Còn lại: <strong>{{ number_format($product->quantity, 0, ',', '.') }}</strong> sản phẩm</p>
                     @endif
 
                     <div class="mt-4">
@@ -381,9 +382,272 @@
                 </div>
             </div>
             @endif
+
+            {{-- Đánh giá sản phẩm --}}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div id="product-reviews-block" class="border-top pt-4 product-reviews-section" style="background:#fffbf8; border-radius: 10px; padding: 1.25rem;">
+                        <h6 class="font-weight-bold text-dark mb-3">ĐÁNH GIÁ SẢN PHẨM</h6>
+
+                        <style>
+                            .product-reviews-section { background:#fffbf8; border-radius: 10px; }
+                            .product-reviews-section .review-stars .star { font-size: 1.25rem; line-height: 1; }
+                            .product-reviews-section .review-filter-btn { white-space: nowrap; }
+                            .product-reviews-section .reviews-list-wrap { background: #ffffff; border-radius: 10px; padding: 1rem; }
+                            .product-reviews-section .reviews-list-wrap .review-item { background: #ffffff; }
+                            .product-reviews-section .review-item { border-top: 1px solid rgba(0,0,0,0.06); padding-top: 14px; background: #ffffff; border-radius: 8px; }
+                        </style>
+
+                        @php
+                            $reviewCountSafe = (int) ($reviewCount ?? 0);
+                            $avgRatingSafe = (float) ($avgRating ?? 0);
+                            $dist = $reviewDistribution ?? collect();
+                            if (!($dist instanceof \Illuminate\Support\Collection)) {
+                                $dist = collect($dist);
+                            }
+                            $getCnt = function($rating) use ($dist) {
+                                $cnt = $dist[(string)$rating] ?? $dist[$rating] ?? 0;
+                                return (int) $cnt;
+                            };
+                        @endphp
+
+                        <div class="d-flex flex-wrap align-items-center justify-content-between" style="gap: 1rem;">
+                            <div>
+                                <div class="d-flex align-items-center" style="gap: .5rem;">
+                                    <div style="color:#d11a2a; font-weight:800; font-size: 1.75rem;">
+                                        {{ number_format($avgRatingSafe, 1, ',', '.') }}
+                                    </div>
+                                    <div class="text-muted" style="font-weight:600;">trên 5</div>
+                                </div>
+                                <div class="review-stars mt-1 d-flex" aria-label="{{ $avgRatingSafe }} trên 5">
+                                    @for($i=1;$i<=5;$i++)
+                                        <span class="star {{ $i <= (int) floor($avgRatingSafe) ? 'text-warning' : 'text-muted' }}">
+                                            {!! $i <= (int) floor($avgRatingSafe) ? '&#9733;' : '&#9734;' !!}
+                                        </span>
+                                    @endfor
+                                </div>
+                                <div class="text-muted small mt-1">
+                                    ({{ $reviewCountSafe }} đánh giá)
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap" style="gap: .5rem;">
+                                @php
+                                    $activeRating = (int) request()->query('rating');
+                                    if (!in_array($activeRating, [1,2,3,4,5], true)) $activeRating = null;
+                                    $baseReviewParams = request()->except(['rating', 'page']);
+                                    $baseReviewParams = is_array($baseReviewParams) ? $baseReviewParams : [];
+                                    $allHref = route('products.show', $product) . '?' . http_build_query(array_merge($baseReviewParams, ['page' => 1]));
+                                @endphp
+
+                                <a href="{{ $allHref }}"
+                                   class="btn btn-sm review-filter-btn {{ $activeRating === null ? 'btn-outline-danger' : 'btn-light' }}"
+                                   style="border-width:2px;"
+                                >
+                                    Tất Cả ({{ $reviewCountSafe }})
+                                </a>
+
+                                @foreach([5,4,3,2,1] as $r)
+                                    @php
+                                        $cnt = $getCnt($r);
+                                        $isActive = $activeRating === (int)$r;
+                                        $href = route('products.show', $product) . '?' . http_build_query(array_merge($baseReviewParams, ['rating' => $r, 'page' => 1]));
+                                    @endphp
+                                    @if($cnt > 0)
+                                        <a href="{{ $href }}"
+                                           class="btn btn-sm review-filter-btn {{ $isActive ? 'btn-outline-danger' : 'btn-light' }}"
+                                           style="border-width:2px;"
+                                        >
+                                            {{ $r }} Sao ({{ number_format($cnt, 0, ',', '.') }})
+                                        </a>
+                                    @else
+                                        <a href="javascript:void(0)"
+                                           class="btn btn-sm review-filter-btn btn-light text-muted"
+                                           style="border-width:2px;"
+                                           aria-disabled="true"
+                                        >
+                                            {{ $r }} Sao (0)
+                                        </a>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="mt-4 reviews-list-wrap">
+                            @if(isset($reviews) && $reviews->count() > 0)
+                                @foreach($reviews as $rv)
+                                    <div class="review-item mb-3">
+                                        <div class="d-flex align-items-start" style="gap: 12px;">
+                                            <div>
+                                                @if($rv->user?->avatar)
+                                                    <img src="/images/avatars/{{ basename($rv->user->avatar) }}" alt="{{ $rv->user->name }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border:1px solid rgba(0,0,0,0.08);">
+                                                @else
+                                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width:36px;height:36px;border:1px solid rgba(0,0,0,0.08);">
+                                                        {{ strtoupper(substr($rv->user->name ?? 'U', 0, 1)) }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center flex-wrap" style="gap: .5rem;">
+                                                    <strong>{{ $rv->user?->name ?? 'Người dùng' }}</strong>
+                                                    <div class="review-stars d-flex" style="gap: 2px;">
+                                                        @for($i=1;$i<=5;$i++)
+                                                            <span class="star {{ $i <= (int)$rv->rating ? 'text-warning' : 'text-muted' }}">
+                                                                {!! $i <= (int)$rv->rating ? '&#9733;' : '&#9734;' !!}
+                                                            </span>
+                                                        @endfor
+                                                    </div>
+                                                </div>
+                                                <div class="text-muted small mt-1">
+                                                    {{ optional($rv->created_at)->format('Y-m-d H:i') }}
+                                                    @if(!empty($rv->variant_classification))
+                                                        <span class="text-muted">| Phân loại hàng: {{ $rv->variant_classification }}</span>
+                                                    @endif
+                                                </div>
+                                                @if(!empty($rv->title))
+                                                    <div class="font-weight-bold mt-1">{{ $rv->title }}</div>
+                                                @endif
+                                                <div class="text-secondary mt-1" style="white-space: pre-line;">
+                                                    {{ $rv->content }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @else
+                                <div class="text-muted py-4">Chưa có đánh giá nào.</div>
+                            @endif
+                        </div>
+
+                        @if(isset($reviews) && $reviews->hasPages())
+                            @php
+                                $paginator = $reviews;
+                                $current = $paginator->currentPage();
+                                $last = $paginator->lastPage();
+                                $elements = [];
+                                if ($last <= 6) {
+                                    for ($i = 1; $i <= $last; $i++) { $elements[] = $i; }
+                                } else {
+                                    $start = max(1, $current - 2);
+                                    $end = min($last, $start + 5);
+                                    if ($end - $start < 5) {
+                                        $start = max(1, $end - 5);
+                                    }
+                                    $elements = [];
+                                    if ($start > 1) {
+                                        $elements = [1, '...'];
+                                    }
+                                    for ($i = $start; $i <= $end; $i++) {
+                                        $elements[] = $i;
+                                    }
+                                    if ($end < $last) {
+                                        $elements[] = '...';
+                                        $elements[] = $last;
+                                    }
+                                }
+                            @endphp
+                            <div class="mt-3 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination mb-0">
+                                        <li class="page-item {{ $paginator->onFirstPage() ? 'disabled' : '' }}">
+                                            @if($paginator->onFirstPage())
+                                                <span class="page-link">&lsaquo;</span>
+                                            @else
+                                                <a class="page-link" href="{{ $paginator->previousPageUrl() }}">&lsaquo;</a>
+                                            @endif
+                                        </li>
+                                        @foreach($elements as $el)
+                                            @if($el === '...')
+                                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                                            @else
+                                                <li class="page-item {{ (int)$el === (int)$current ? 'active' : '' }}">
+                                                    @if((int)$el === (int)$current)
+                                                        <span class="page-link">{{ $el }}</span>
+                                                    @else
+                                                        <a class="page-link" href="{{ $paginator->url($el) }}">{{ $el }}</a>
+                                                    @endif
+                                                </li>
+                                            @endif
+                                        @endforeach
+                                        <li class="page-item {{ !$paginator->hasMorePages() ? 'disabled' : '' }}">
+                                            @if(!$paginator->hasMorePages())
+                                                <span class="page-link">&rsaquo;</span>
+                                            @else
+                                                <a class="page-link" href="{{ $paginator->nextPageUrl() }}">&rsaquo;</a>
+                                            @endif
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+                    <script>
+                        (function() {
+                            // AJAX partial loading for review filter/pagination (không load lại trang).
+                            function appendPartialFlag(url) {
+                                try {
+                                    var u = new URL(url, window.location.origin);
+                                    u.searchParams.set('reviews_partial', '1');
+                                    return u.toString();
+                                } catch (e) {
+                                    return url;
+                                }
+                            }
+
+                            function stripPartialFlag(url) {
+                                try {
+                                    var u = new URL(url, window.location.origin);
+                                    u.searchParams.delete('reviews_partial');
+                                    return u.toString();
+                                } catch (e) {
+                                    return url;
+                                }
+                            }
+
+                            document.addEventListener('click', function(e) {
+                                var block = document.getElementById('product-reviews-block');
+                                if (!block) return;
+                                if (!block.contains(e.target)) return;
+
+                                var a = e.target.closest('a');
+                                if (!a) return;
+
+                                var href = a.getAttribute('href');
+                                if (!href || href === 'javascript:void(0)') return;
+
+                                var isFilterOrPage = a.classList.contains('review-filter-btn') || a.classList.contains('page-link');
+                                if (!isFilterOrPage) return;
+
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                var fetchUrl = appendPartialFlag(href);
+                                var pushUrl = stripPartialFlag(href);
+
+                                // Cập nhật URL nhưng không reload.
+                                try { window.history.pushState({}, '', pushUrl); } catch (err) {}
+
+                                fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                                    .then(function(r) { return r.text(); })
+                                    .then(function(html) {
+                                        var tmp = document.createElement('div');
+                                        tmp.innerHTML = html;
+                                        var newBlock = tmp.querySelector('#product-reviews-block');
+                                        if (!newBlock) return;
+                                        block.replaceWith(newBlock);
+                                    })
+                                    .catch(function() {
+                                        // Nếu lỗi thì để nguyên (không reload lại).
+                                    });
+                            }, true);
+                        })();
+                    </script>
 
 @if($hasVariants)
 <style>
@@ -521,13 +785,54 @@ window.productHasVariants = true;
                 }
             }
             if (otherMatch && v.attr[attrName]) {
-                available[v.attr[attrName]] = true;
+                var effectiveStock = (v.flash_remaining != null && v.flash_remaining > 0)
+                    ? Math.min(v.stock || 0, v.flash_remaining)
+                    : (v.stock || 0);
+                if (effectiveStock > 0) {
+                    available[v.attr[attrName]] = true;
+                }
             }
         });
         return available;
     }
 
     var totalStock = variants.reduce(function(s, v) { return s + (v.stock || 0); }, 0);
+
+    function updateQtyMaxWarning() {
+        if (!stockEl) return;
+        // Chỉ hiển thị warning khi đã chọn đủ variant (có id trong input ẩn).
+        if (!variantInput || !variantInput.value) return;
+
+        var qtyInput = document.getElementById('product-quantity-input');
+        if (!qtyInput) return;
+
+        var val = parseInt(qtyInput.value, 10) || 1;
+        var max = parseInt(qtyInput.getAttribute('max'), 10) || 999;
+        var isMax = val >= max;
+
+        if (isMax) {
+            stockEl.textContent = 'Số lượng bạn chọn đã đạt mức tối đa của sản phẩm này';
+            stockEl.classList.remove('text-muted');
+            stockEl.classList.add('text-danger');
+            // Giữ hiển thị trên cùng 1 hàng như dòng "SẢN PHẨM CÓ SẴN" (tránh xuống dòng do flex-wrap).
+            stockEl.style.whiteSpace = 'nowrap';
+            stockEl.style.fontSize = '0.78rem';
+            stockEl.style.lineHeight = '1.1';
+            stockEl.style.overflow = 'hidden';
+            stockEl.style.textOverflow = 'ellipsis';
+            return;
+        }
+
+        // Không đạt max -> xóa nội dung & trả về style trung tính.
+        stockEl.textContent = '';
+        stockEl.classList.add('text-muted');
+        stockEl.classList.remove('text-danger');
+        stockEl.style.whiteSpace = '';
+        stockEl.style.fontSize = '';
+        stockEl.style.lineHeight = '';
+        stockEl.style.overflow = '';
+        stockEl.style.textOverflow = '';
+    }
 
     function updateState() {
         var v = findVariant();
@@ -536,7 +841,7 @@ window.productHasVariants = true;
             var val = btn.getAttribute('data-value');
             btn.classList.toggle('active', selection[attr] === val);
             var available = getAvailableValues(attr);
-            btn.disabled = Object.keys(available).length > 0 && !available[val];
+            btn.disabled = !available[val];
         });
         var qtyInput = document.getElementById('product-quantity-input');
         var stockLabel = document.getElementById('product-stock-label');
@@ -570,7 +875,9 @@ window.productHasVariants = true;
                     if (priceWrapEl) priceWrapEl.style.display = '';
                 }
             }
-            stockEl.textContent = 'Còn lại: ' + effectiveStock + ' sản phẩm';
+            // Removed: dòng "Còn lại: X sản phẩm" khi đã chọn đủ thuộc tính.
+            // Sẽ hiển thị thông báo màu đỏ khi người dùng chọn số lượng chạm max.
+            if (stockEl) stockEl.textContent = '';
             btnAdd.disabled = effectiveStock < 1;
             if (qtyInput) {
                 qtyInput.max = Math.max(1, effectiveStock);
@@ -599,19 +906,14 @@ window.productHasVariants = true;
             var selectedColor = colorAttrName ? (selection[colorAttrName] || '') : '';
             var selectedSize = sizeAttrName ? (selection[sizeAttrName] || '') : '';
             if (selectedColor && (!sizeAttrName || !selectedSize)) {
-                var sum = 0;
-                variants.forEach(function(vv) {
-                    if ((vv.attr[colorAttrName] || '') !== selectedColor) return;
-                    var effStock = (vv.flash_remaining != null && vv.flash_remaining > 0) ? Math.min(vv.stock || 0, vv.flash_remaining) : (vv.stock || 0);
-                    sum += effStock;
-                });
-                stockEl.textContent = 'Màu ' + selectedColor + ': còn lại ' + sum.toLocaleString('vi-VN') + ' sản phẩm (tất cả size)';
+                // Ẩn dòng "Màu X: còn lại ... (tất cả size)" khi người dùng mới chọn màu.
+                stockEl.textContent = '';
             } else {
                 stockEl.textContent = '';
             }
             btnAdd.disabled = true;
             if (flashPriceRow && flashPriceEl) {
-                // Chưa chọn đủ thuộc tính: vẫn hiển thị giá flash tham chiếu (nếu có) như Shopee.
+                // Chưa chọn đủ thuộc tính: vẫn hiển thị giá flash tham chiếu (nếu có).
                 var firstFlash = null;
                 for (var i = 0; i < variants.length; i++) {
                     if (variants[i].flash_price != null && variants[i].flash_remaining > 0) { firstFlash = variants[i]; break; }
@@ -677,6 +979,8 @@ window.productHasVariants = true;
             qtyInput.value = val;
             hiddenQty.value = val;
         }
+        // Khi chọn đủ variant và đạt max -> hiện thông báo đỏ.
+        if (typeof updateQtyMaxWarning === 'function') updateQtyMaxWarning();
     }
 
     function setGalleryActive(src) {
