@@ -78,7 +78,7 @@
                                 @if($product->image)
                                     <img src="/images/products/{{ basename($product->image) }}" alt="" class="rounded mr-2 flex-shrink-0" style="width: 32px; height: 32px; object-fit: cover;" loading="lazy">
                                 @else
-                                    <div class="rounded bg-light mr-2 flex-shrink-0 d-flex align-items-center justify-content-center text-muted" style="width: 32px; height: 32px; font-size: 0.9rem;">📦</div>
+                                    <div class="rounded bg-light mr-2 flex-shrink-0 d-flex align-items-center justify-content-center text-muted product-no-img" style="width: 32px; height: 32px;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><polyline points="4 8 10 8 10 16"/></svg></div>
                                 @endif
                                 <span class="text-truncate d-inline-block" style="max-width: 110px;" title="{{ $product->name }}">{{ Str::limit($product->name, 22) }}</span>
                             </div>
@@ -94,13 +94,17 @@
                         <td class="text-right align-middle"><strong class="text-danger">{{ number_format($product->price, 0, ',', '.') }}₫</strong></td>
                         <td class="text-center align-middle">{{ number_format($product->quantity, 0, ',', '.') }}</td>
                         <td class="text-center align-middle text-nowrap">
-                            <a class="btn btn-outline-info btn-sm" href="{{ route('admin.products.show', $product) }}">Xem</a>
-                            <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.products.edit', $product) }}">Sửa</a>
-                            <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product) }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
-                            </form>
+                            @if($product->id ?? null)
+                                <a class="btn btn-outline-info btn-sm" href="{{ route('admin.products.show', $product) }}">Xem</a>
+                                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.products.edit', $product) }}">Sửa</a>
+                                <form id="delete-form-{{ $product->id }}" action="{{ route('admin.products.destroy', $product) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" class="btn btn-outline-danger btn-sm btn-delete" data-form-id="delete-form-{{ $product->id }}" data-name="{{ $product->name }}">Xóa</button>
+                                </form>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
                         </td>
                     </tr>
                     @empty

@@ -75,8 +75,38 @@
         .page-header .admin-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
         .page-header .admin-search-form .input-group { border-radius: 0.5rem; overflow: hidden; }
         .page-header .admin-search-form .form-control { border-radius: 0.5rem 0 0 0.5rem; border-right: 0; }
-        .page-header .admin-search-form .input-group-append .btn { border-radius: 0 0.5rem 0.5rem 0; }
+        .page-header .admin-search-form .input-group-append .btn { border-radius: 0 0.5rem 0.5rem 0; background: #dc3545; border-color: #dc3545; color: #fff; }
+        .page-header .admin-search-form .input-group-append .btn:hover { background: #c82333; border-color: #bd2130; color: #fff; }
         .page-header .admin-toolbar .btn-success { border-radius: 0.5rem; }
+        /* Phần tìm kiếm trong toàn bộ trang admin: bo góc + nút đỏ */
+        .admin-main .admin-search-form .form-control,
+        .admin-main .admin-search-form input.form-control { border-radius: 0.5rem; }
+        .admin-main .admin-search-form .input-group .form-control:first-child { border-radius: 0.5rem 0 0 0.5rem; }
+        .admin-main .admin-search-form .input-group-append .btn,
+        .admin-main .admin-search-form button[type="submit"].btn {
+            border-radius: 0 0.5rem 0.5rem 0;
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .admin-main .admin-search-form .input-group-append .btn:hover,
+        .admin-main .admin-search-form button[type="submit"].btn:hover {
+            background: #c82333;
+            border-color: #bd2130;
+            color: #fff;
+        }
+        .admin-main .admin-search-form.d-flex .form-control { border-radius: 0.5rem; }
+        .admin-main .admin-search-form.d-flex button[type="submit"].btn {
+            border-radius: 0.5rem;
+            background: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .admin-main .admin-search-form.d-flex button[type="submit"].btn:hover {
+            background: #c82333;
+            border-color: #bd2130;
+            color: #fff;
+        }
         /* Phân trang: căn giữa, màu đỏ */
         .admin-main .card-footer {
             display: flex;
@@ -146,10 +176,19 @@
                 <a class="nav-link {{ request()->routeIs('admin.flash-sales.*') ? 'active' : '' }}" href="{{ route('admin.flash-sales.index') }}">
                     Flash Sale
                 </a>
+                <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
+                    Đơn hàng
+                </a>
+                <a class="nav-link {{ request()->routeIs('admin.inventory-logs.*') ? 'active' : '' }}" href="{{ route('admin.inventory-logs.index') }}">
+                    Nhập/xuất kho
+                </a>
                 <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
                     Người dùng
                 </a>
                 <div class="nav-divider"></div>
+                <a class="nav-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}" href="{{ route('admin.profile.edit') }}">
+                    Thông tin tài khoản
+                </a>
                 <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();">
                     Đăng xuất
                 </a>

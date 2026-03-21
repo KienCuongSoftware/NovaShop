@@ -8,6 +8,19 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
 
 @section('content')
 @php
+    // Map: product_id => FlashSaleItem rẻ nhất (còn hàng) để hiển thị giá FLASH SALE
+    $flashBestItemByProductId = [];
+    if (!empty($activeFlashSale ?? null) && !empty($activeFlashSale->items)) {
+        foreach ($activeFlashSale->items as $fi) {
+            if (($fi->remaining ?? 0) <= 0) continue;
+            $pid = $fi->productVariant->product_id ?? null;
+            if (!$pid) continue;
+            if (!isset($flashBestItemByProductId[$pid]) || (float)$fi->sale_price < (float)$flashBestItemByProductId[$pid]->sale_price) {
+                $flashBestItemByProductId[$pid] = $fi;
+            }
+        }
+    }
+
     $currentSort = $currentSort ?? 'popular';
     $priceMin = $priceMin ?? null;
     $priceMax = $priceMax ?? null;
@@ -27,11 +40,15 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         : (isset($q) ? route('search', array_filter(['q' => $q, 'category_id' => $categoryId ?? null])) : route('welcome'));
 @endphp
 
+
 @if(isset($q) && $q !== '')
 <div class="mb-3">
     <p class="text-muted mb-0">Kết quả tìm kiếm: <strong>{{ $q }}</strong></p>
 </div>
 @endif
+
+{{-- Removed: "Gợi ý theo danh mục" --}}
+
 @if(!($showSidebarAndFilter ?? false) && isset($categories) && $categories->isNotEmpty())
 <section class="home-categories-section mb-4">
     <h2 class="home-categories-title mb-3 font-weight-bold">DANH MỤC</h2>
@@ -62,7 +79,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         @endforeach
     </div>
     @endif
-    <div class="flash-sale-banner-shopee d-flex align-items-center justify-content-between flex-wrap mb-3">
+    <div class="flash-sale-banner d-flex align-items-center justify-content-between flex-wrap mb-3">
         <div class="d-flex align-items-center flash-sale-title-inline">
             <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
             <img src="{{ asset('images/flash-lightning.svg') }}" alt="" class="flash-sale-lightning-icon" width="20" height="18">
@@ -81,7 +98,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
         </div>
     </div>
     <style>
-    .flash-sale-banner-shopee { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); border-radius: 4px; padding: 0.5rem 1rem; }
+    .flash-sale-banner { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); border-radius: 4px; padding: 0.5rem 1rem; }
     .flash-sale-title-inline .flash-sale-lightning-icon { flex-shrink: 0; margin: 0 -0.05rem 0 0.15rem; vertical-align: middle; }
     .flash-sale-title-inline .flash-sale-banner-title:last-child { margin-left: -0.45rem; }
     .flash-sale-banner-title { font-size: 1rem; letter-spacing: 0.02em; }
@@ -383,12 +400,12 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
             <h3 class="products-sidebar-price-title mb-2">Thương hiệu</h3>
             <div class="products-sidebar-brands-list sidebar-brands-wrap" id="sidebar-brands-wrap">
                 <a href="{{ route('category.products', $category) }}{{ ($priceMin || $priceMax) ? '?' . http_build_query(array_filter(['price_min' => $priceMin, 'price_max' => $priceMax])) : '' }}" class="products-sidebar-brand-item {{ !($brandSlug ?? null) ? 'active' : '' }}">
-                    <span class="brand-check">{{ !($brandSlug ?? null) ? '✓' : '' }}</span>
+                    <span class="brand-check">{!! !($brandSlug ?? null) ? '&#10003;' : '' !!}</span>
                     <span>Tất cả</span>
                 </a>
                 @foreach($categoryBrands as $b)
                 <a href="{{ route('category.products', array_filter(['category' => $category, 'brand' => $b->slug, 'price_min' => $priceMin, 'price_max' => $priceMax])) }}" class="products-sidebar-brand-item sidebar-brand-link {{ ($brandSlug ?? null) === $b->slug ? 'active' : '' }}">
-                    <span class="brand-check">{{ ($brandSlug ?? null) === $b->slug ? '✓' : '' }}</span>
+                    <span class="brand-check">{!! ($brandSlug ?? null) === $b->slug ? '&#10003;' : '' !!}</span>
                     @if($b->logo)
                     <img src="/images/brands/{{ basename($b->logo) }}" alt="{{ $b->name }}" class="brand-logo-thumb">
                     @endif
@@ -508,12 +525,44 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                             <h5 class="card-title product-card-title">{{ $product->name }}</h5>
                             <p class="card-text small product-card-desc">{{ Str::limit($product->description, 80) }}</p>
                         </div>
-                        <p class="card-text mb-1">
-                            @if($product->old_price !== null)
-                                <span class="product-card-price-old">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                        <div class="card-text mb-1 d-flex align-items-center">
+                            @php
+                                $fi = $flashBestItemByProductId[$product->id] ?? null;
+                            @endphp
+                            @if($fi)
+                                @php
+                                    $origVariantPrice = $fi->productVariant->price ?? $product->price;
+                                    $salePrice = (float) $fi->sale_price;
+                                    $pct = ($origVariantPrice && $origVariantPrice > 0 && $origVariantPrice > $salePrice)
+                                        ? (int) round((1 - ($salePrice / $origVariantPrice)) * 100)
+                                        : 0;
+                                    $pct = max(0, min(99, $pct));
+                                @endphp
+                                <span class="product-card-price-old">{{ number_format((float)$origVariantPrice, 0, ',', '.') }}₫</span>
+                                <span class="product-card-price-new">{{ number_format((float)$fi->sale_price, 0, ',', '.') }}₫</span>
+                                @if($pct > 0)
+                                    <span class="badge badge-light text-danger ml-auto" style="font-weight: 800;">-{{ $pct }}%</span>
+                                @endif
+                            @else
+                                @php $pct = 0; @endphp
+                                @if($product->old_price !== null)
+                                    @php
+                                        $oldPrice = (float) $product->old_price;
+                                        $newPrice = (float) $product->price;
+                                        $pct = ($oldPrice > 0 && $oldPrice > $newPrice)
+                                            ? (int) round((1 - ($newPrice / $oldPrice)) * 100)
+                                            : 0;
+                                        $pct = max(0, min(99, $pct));
+                                    @endphp
+                                    <span class="product-card-price-old">{{ number_format($oldPrice, 0, ',', '.') }}₫</span>
+                                @endif
+
+                                <span class="product-card-price-new">{{ number_format($product->price, 0, ',', '.') }}₫</span>
+                                @if($pct > 0)
+                                    <span class="badge badge-light text-danger ml-auto" style="font-weight: 800;">-{{ $pct }}%</span>
+                                @endif
                             @endif
-                            <span class="product-card-price-new">{{ number_format($product->price, 0, ',', '.') }}₫</span>
-                        </p>
+                        </div>
                         <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                         @auth
                         <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>
@@ -596,7 +645,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
 
 @if(isset($suggestedProducts) && $suggestedProducts->isNotEmpty())
 <section class="suggested-today mt-5 pt-4 border-top">
-    <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #333;">Gợi ý hôm nay</h2>
+    <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #f28b82;">GỢI Ý HÔM NAY</h2>
     <div class="row">
         @foreach($suggestedProducts as $product)
         <div class="col-6 col-md-4 col-lg-3 mb-4">
@@ -613,12 +662,44 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                         <h5 class="card-title product-card-title">{{ $product->name }}</h5>
                         <p class="card-text small product-card-desc">{{ Str::limit($product->description, 80) }}</p>
                     </div>
-                    <p class="card-text mb-1">
-                        @if($product->old_price !== null)
-                            <span class="product-card-price-old">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
+                    <div class="card-text mb-1 d-flex align-items-center">
+                        @php
+                            $fi = $flashBestItemByProductId[$product->id] ?? null;
+                        @endphp
+                        @if($fi)
+                            @php
+                                $origVariantPrice = $fi->productVariant->price ?? $product->price;
+                                $salePrice = (float) $fi->sale_price;
+                                $pct = ($origVariantPrice && $origVariantPrice > 0 && $origVariantPrice > $salePrice)
+                                    ? (int) round((1 - ($salePrice / $origVariantPrice)) * 100)
+                                    : 0;
+                                $pct = max(0, min(99, $pct));
+                            @endphp
+                            <span class="product-card-price-old">{{ number_format((float)$origVariantPrice, 0, ',', '.') }}₫</span>
+                            <span class="product-card-price-new">{{ number_format((float)$fi->sale_price, 0, ',', '.') }}₫</span>
+                            @if($pct > 0)
+                                <span class="badge badge-light text-danger ml-auto" style="font-weight: 800;">-{{ $pct }}%</span>
+                            @endif
+                        @else
+                            @php $pct = 0; @endphp
+                            @if($product->old_price !== null)
+                                @php
+                                    $oldPrice = (float) $product->old_price;
+                                    $newPrice = (float) $product->price;
+                                    $pct = ($oldPrice > 0 && $oldPrice > $newPrice)
+                                        ? (int) round((1 - ($newPrice / $oldPrice)) * 100)
+                                        : 0;
+                                    $pct = max(0, min(99, $pct));
+                                @endphp
+                                <span class="product-card-price-old">{{ number_format($oldPrice, 0, ',', '.') }}₫</span>
+                            @endif
+
+                            <span class="product-card-price-new">{{ number_format($product->price, 0, ',', '.') }}₫</span>
+                            @if($pct > 0)
+                                <span class="badge badge-light text-danger ml-auto" style="font-weight: 800;">-{{ $pct }}%</span>
+                            @endif
                         @endif
-                        <span class="product-card-price-new">{{ number_format($product->price, 0, ',', '.') }}₫</span>
-                    </p>
+                    </div>
                     <p class="card-text small product-card-category mb-2">Danh mục: {{ optional($product->category)->name }}</p>
                     @auth
                     <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-view-detail mt-auto">Xem chi tiết</a>

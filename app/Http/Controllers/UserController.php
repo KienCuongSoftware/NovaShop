@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
@@ -116,13 +117,21 @@ class UserController extends Controller
 
     public function profile()
     {
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            abort(403);
+        }
         return view('profile.edit', compact('user'));
     }
 
     public function profileUpdate(Request $request)
     {
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
+        if (!$user) {
+            abort(403);
+        }
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,

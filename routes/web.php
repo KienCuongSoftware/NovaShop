@@ -4,11 +4,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminInventoryLogController;
+use App\Http\Controllers\AdminOrderController;
+use App\Http\Controllers\AdminProfileController;
 use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PayPalController;
@@ -110,11 +114,19 @@ Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
     Route::put('/profile', [UserController::class, 'profileUpdate'])->name('profile.update');
+    Route::get('/addresses', [AddressController::class, 'index'])->name('addresses.index');
+    Route::get('/addresses/create', [AddressController::class, 'create'])->name('addresses.create');
+    Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
+    Route::get('/addresses/{address}/edit', [AddressController::class, 'edit'])->name('addresses.edit');
+    Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
+    Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
+    Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.set-default');
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::put('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::get('/checkout/shipping-fee', [CheckoutController::class, 'shippingFee'])->name('checkout.shipping-fee');
     Route::post('/checkout/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place-order');
     Route::get('/order-success/{order}', [OrderController::class, 'success'])->name('order.success');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
@@ -126,6 +138,10 @@ Route::middleware(['auth'])->group(function () {
 // Route dành cho admin (sử dụng middleware để kiểm tra quyền)
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    // Sửa lỗi gõ nhầm: /admin/procucts/... → /admin/products/...
+    Route::get('/admin/procucts/{path}', function (string $path) {
+        return redirect('/admin/products/' . $path, 301);
+    })->where('path', '.*');
     // URL cũ /admin/products/update/{id}: GET → redirect sang edit, POST → gọi update (tránh MethodNotAllowedHttpException)
     Route::get('/admin/products/update/{id}', function (int $id) {
         $product = \App\Models\Product::findOrFail($id);
@@ -156,6 +172,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/flash-sales/{flash_sale}/items', [FlashSaleController::class, 'storeItem'])->name('admin.flash_sales.items.store');
     Route::put('/admin/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'updateItem'])->name('admin.flash_sales.items.update');
     Route::delete('/admin/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'destroyItem'])->name('admin.flash_sales.items.destroy');
+    // Đơn hàng: danh sách + chi tiết + cập nhật trạng thái
+    Route::get('/admin/orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+    Route::get('/admin/orders/{order}', [AdminOrderController::class, 'show'])->name('admin.orders.show');
+    Route::put('/admin/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('admin.orders.update-status');
+    Route::get('/admin/inventory-logs', [AdminInventoryLogController::class, 'index'])->name('admin.inventory-logs.index');
+    Route::get('/admin/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
+    Route::put('/admin/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
 });
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)

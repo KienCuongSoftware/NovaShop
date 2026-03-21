@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
         User::firstOrCreate(
             ['email' => 'admin@example.com'],
             [
-                'name' => 'Admin User',
+                'name' => 'Quản trị viên',
                 'password' => Hash::make('password'), // Sử dụng mật khẩu mặc định là password
                 'is_admin' => true,
             ]

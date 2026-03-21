@@ -17,16 +17,60 @@ class WelcomeController extends Controller
         $excludeIds = session('recent_product_ids', []);
         $categoryIds = session('recent_category_ids', []);
 
-        if (empty($categoryIds)) {
-            return collect();
+        $max = 20;
+        $step = 4;
+
+        $chosenIds = collect($excludeIds)->filter()->values();
+
+        $baseQuery = Product::with('category')->when(!$categoryIds || empty($categoryIds), function ($q) {
+            // Nếu chưa có lịch sử danh mục thì lấy random toàn site.
+        }, function ($q) use ($categoryIds) {
+            $q->whereIn('category_id', $categoryIds);
+        });
+
+        if (!empty($chosenIds->all())) {
+            $baseQuery->whereNotIn('id', $chosenIds->all());
         }
 
-        return Product::with('category')
-            ->whereIn('category_id', $categoryIds)
-            ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
-            ->inRandomOrder()
-            ->limit(9)
-            ->get();
+        $products = $baseQuery->inRandomOrder()->limit($max)->get();
+        $products = $products->values();
+
+        // Nếu chưa đủ 4 món để render ít nhất 1 hàng -> bù thêm từ pool random toàn site.
+        if ($products->count() < $step) {
+            $toNeed = $step - $products->count();
+            $more = Product::with('category')
+                ->when(!$categoryIds || empty($categoryIds), function ($q) {
+                    // Không làm gì thêm
+                }, function ($q) use ($categoryIds) {
+                    // Cố gắng lấy tiếp theo filter đang có, nếu không đủ thì fallback ở bước sau.
+                    $q->whereIn('category_id', $categoryIds);
+                })
+                ->whereNotIn('id', array_values(array_unique(array_merge($excludeIds, $products->pluck('id')->all()))))
+                ->inRandomOrder()
+                ->limit($toNeed)
+                ->get();
+
+            $products = $products->merge($more)->unique('id')->values();
+        }
+
+        // Luôn trả về số lượng là bội của 4: 4, 8, 12, 16, 20...
+        $desiredCount = (int) ceil(max($step, $products->count()) / $step) * $step;
+        $desiredCount = min($desiredCount, $max);
+
+        if ($products->count() < $desiredCount) {
+            $needed = $desiredCount - $products->count();
+            $more = Product::with('category')
+                // Fallback: bỏ filter category khi không đủ để bù tiếp.
+                ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
+                ->whereNotIn('id', $products->pluck('id')->all())
+                ->inRandomOrder()
+                ->limit($needed)
+                ->get();
+
+            $products = $products->merge($more)->unique('id')->values();
+        }
+
+        return $products->take($desiredCount);
     }
 
     /**
@@ -128,6 +172,21 @@ class WelcomeController extends Controller
 
         $products = $productsQuery->with('category');
         $products = $this->applySort($products, $request)->paginate(12)->withQueryString();
+
+        // Update session để gợi ý theo hành vi tìm kiếm
+        // (lấy các sản phẩm thuộc trang kết quả đầu tiên)
+        $foundProducts = $products->getCollection();
+        $foundProductIds = $foundProducts->pluck('id')->all();
+        $foundCategoryIds = $foundProducts->pluck('category_id')->filter()->all();
+
+        $recentIds = session('recent_product_ids', []);
+        $recentIds = array_values(array_filter(array_unique(array_merge($foundProductIds, $recentIds))));
+        session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);
+
+        $recentCatIds = session('recent_category_ids', []);
+        $recentCatIds = array_values(array_filter(array_unique(array_merge($foundCategoryIds, $recentCatIds))));
+        session(['recent_category_ids' => array_slice($recentCatIds, 0, 5)]);
+
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
