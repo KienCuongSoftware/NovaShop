@@ -43,8 +43,12 @@ class PayPalController extends Controller
 
     public function createOrder(Order $order)
     {
+        // Đơn đã tạo trước khi vào PayPal; chỉ cho thanh toán khi còn unpaid/payment_failed.
         if ($order->payment_method !== Order::PAYMENT_METHOD_PAYPAL || $order->payment_status === Order::PAYMENT_STATUS_PAID) {
             return redirect()->route('orders.index')->with('error', 'Đơn hàng không hợp lệ hoặc đã thanh toán.');
+        }
+        if (! in_array($order->status, [Order::STATUS_UNPAID, Order::STATUS_PAYMENT_FAILED], true)) {
+            return redirect()->route('orders.index')->with('error', 'Đơn hàng không ở trạng thái chờ thanh toán.');
         }
 
         $token = $this->getAccessToken();
@@ -54,7 +58,7 @@ class PayPalController extends Controller
 
         $base = $this->getBaseUrl();
         $returnUrl = url()->route('paypal.success', ['order' => $order->id]);
-        $cancelUrl = url()->route('cart.index');
+        $cancelUrl = url()->route('orders.index', ['status' => Order::STATUS_UNPAID]);
 
         $payload = [
             'intent' => 'CAPTURE',
@@ -99,9 +103,11 @@ class PayPalController extends Controller
 
         $order->payments()->create([
             'payment_method' => 'paypal',
+            'gateway' => 'paypal',
             'transaction_id' => $paypalOrderId,
             'amount' => $order->total_amount,
             'status' => 'pending',
+            'response_payload' => $response->json(),
         ]);
 
         return redirect()->away($approveUrl);
@@ -152,16 +158,35 @@ class PayPalController extends Controller
                 'status' => $response->status(),
                 'body' => $body,
             ]);
-            $order->update(['payment_status' => Order::PAYMENT_STATUS_FAILED]);
-            return redirect()->route('orders.index')->with('error', 'Thanh toán PayPal thất bại: ' . $message);
+            // Đơn vẫn tồn tại; chuyển sang "Chờ thanh toán" để user retry.
+            $order->update([
+                'status' => Order::STATUS_PAYMENT_FAILED,
+                'payment_status' => Order::PAYMENT_STATUS_FAILED,
+                'shipping_status' => Order::mapShippingStatusFromOrderStatus(Order::STATUS_PAYMENT_FAILED),
+            ]);
+            $order->payments()->where('transaction_id', $paypalOrderId)->update([
+                'status' => 'failed',
+                'failure_reason' => $message,
+                'error_code' => (string) $response->status(),
+                'response_payload' => $decoded,
+            ]);
+            return redirect()->route('orders.index', ['status' => Order::STATUS_UNPAID])
+                ->with('error', 'Thanh toán PayPal thất bại: ' . $message);
         }
 
+        // Thanh toán thành công: chuyển sang Chờ xử lý, đánh dấu đã thanh toán.
         $order->update([
             'payment_status' => Order::PAYMENT_STATUS_PAID,
-            'status' => Order::STATUS_PROCESSING,
+            'status' => Order::STATUS_PENDING,
+            'shipping_status' => Order::mapShippingStatusFromOrderStatus(Order::STATUS_PENDING),
         ]);
 
-        $order->payments()->where('transaction_id', $paypalOrderId)->update(['status' => 'completed']);
+        $order->payments()->where('transaction_id', $paypalOrderId)->update([
+            'status' => 'completed',
+            'response_payload' => $response->json(),
+            'failure_reason' => null,
+            'error_code' => null,
+        ]);
 
         return redirect()->route('order.success', ['order' => $order->id])
             ->with('success', 'Thanh toán thành công.');
