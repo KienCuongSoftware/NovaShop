@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryLog;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -13,16 +17,21 @@ class OrderController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $status = $request->query('status', 'all');
+        $shippingStatus = $request->query('shipping_status', 'all');
         $q = trim((string) $request->query('q', ''));
 
         $query = $user->orders()->with(['items.product'])->latest();
 
         if ($status !== 'all') {
-            if ($status === Order::STATUS_PENDING_PAYMENT) {
+            if ($status === Order::STATUS_UNPAID) {
                 $query->pendingPaymentTab();
-            } elseif (array_key_exists($status, Order::statusLabels())) {
+            } elseif (in_array($status, Order::tabStatusKeys(), true)) {
                 $query->where('status', $status);
             }
+        }
+
+        if ($shippingStatus !== 'all' && in_array($shippingStatus, Order::tabShippingStatusKeys(), true)) {
+            $query->where('shipping_status', $shippingStatus);
         }
 
         if ($q !== '') {
@@ -36,7 +45,7 @@ class OrderController extends Controller
 
         $orders = $query->paginate(10)->withQueryString();
 
-        return view('user.orders.index', compact('orders', 'status'));
+        return view('user.orders.index', compact('orders', 'status', 'shippingStatus'));
     }
 
     public function success(Order $order)
@@ -55,10 +64,38 @@ class OrderController extends Controller
         if (!$order->canCancel()) {
             return redirect()->route('orders.index')->with('error', 'Đơn hàng không thể hủy.');
         }
-        $order->update([
-            'status' => Order::STATUS_CANCELLED,
-            'payment_status' => $order->payment_method === Order::PAYMENT_METHOD_PAYPAL ? Order::PAYMENT_STATUS_FAILED : $order->payment_status,
-        ]);
+
+        DB::transaction(function () use ($order) {
+            $order->loadMissing('items');
+            foreach ($order->items as $item) {
+                if ($item->product_variant_id) {
+                    $variant = ProductVariant::query()->where('id', $item->product_variant_id)->lockForUpdate()->first();
+                    if ($variant) {
+                        $variant->increment('stock', $item->quantity);
+                    }
+                } else {
+                    $product = Product::query()->where('id', $item->product_id)->lockForUpdate()->first();
+                    if ($product) {
+                        $product->increment('quantity', $item->quantity);
+                    }
+                }
+
+                InventoryLog::create([
+                    'product_variant_id' => $item->product_variant_id,
+                    'order_id' => $order->id,
+                    'type' => 'import',
+                    'quantity' => $item->quantity,
+                    'source' => 'order_cancel',
+                    'note' => 'Hủy đơn, hoàn lại tồn kho.',
+                ]);
+            }
+
+            $order->update([
+                'status' => Order::STATUS_CANCELLED,
+                'shipping_status' => Order::mapShippingStatusFromOrderStatus(Order::STATUS_CANCELLED),
+                'payment_status' => $order->payment_method === Order::PAYMENT_METHOD_PAYPAL ? Order::PAYMENT_STATUS_FAILED : $order->payment_status,
+            ]);
+        });
         return redirect()->route('orders.index')->with('success', 'Đã hủy đơn hàng #' . $order->id);
     }
 }
