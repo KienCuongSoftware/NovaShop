@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Xác định sản phẩm dùng thuộc tính nào (tầng 3: product_attributes).
-     * Giống Shopee/Lazada: danh sách attribute_values là toàn hệ thống,
+     * Danh sách attribute_values là toàn hệ thống,
      * mỗi sản phẩm chỉ chọn những thuộc tính và giá trị cần dùng.
      */
     public function up(): void

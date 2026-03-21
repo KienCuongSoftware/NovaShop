@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductVariant extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = ['product_id', 'price', 'stock', 'sku'];
 
     protected $casts = [
@@ -16,9 +19,31 @@ class ProductVariant extends Model
         'stock' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (ProductVariant $variant) {
+            $variant->syncProductPriceQuantity();
+        });
+        static::deleted(function (ProductVariant $variant) {
+            $variant->syncProductPriceQuantity();
+        });
+    }
+
+    /** Đồng bộ product.price = min(variants.price), product.quantity = sum(variants.stock) để hiển thị. */
+    public function syncProductPriceQuantity(): void
+    {
+        $product = $this->product;
+        if (!$product) {
+            return;
+        }
+        $minPrice = (float) static::query()->where('product_id', $product->id)->min('price');
+        $totalStock = (int) static::query()->where('product_id', $product->id)->sum('stock');
+        $product->updateQuietly(['price' => $minPrice, 'quantity' => $totalStock]);
+    }
+
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function attributeValues(): BelongsToMany

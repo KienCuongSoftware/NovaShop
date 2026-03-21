@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Ảnh sản phẩm: ảnh chung → product_id, product_variant_id = null;
+ * ảnh riêng biến thể → product_variant_id (và product_id của variant). Mỗi bản ghi chỉ gắn 1 cấp.
+ */
 class ProductImage extends Model
 {
     protected $fillable = ['product_id', 'product_variant_id', 'image', 'sort'];

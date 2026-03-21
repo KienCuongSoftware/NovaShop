@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Product extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'category_id',
         'brand_id',
@@ -98,6 +101,11 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->whereNull('product_variant_id')->orderBy('sort');
@@ -170,5 +178,20 @@ class Product extends Model
             return (int) $this->variants()->sum('stock');
         }
         return (int) $this->quantity;
+    }
+
+    /** Giá hiển thị thống nhất: dùng giá variant thấp nhất nếu sản phẩm có biến thể. */
+    public function getEffectivePriceAttribute(): float
+    {
+        if ($this->hasVariants()) {
+            return (float) ($this->variants()->min('price') ?? 0);
+        }
+        return (float) $this->price;
+    }
+
+    /** Tồn kho hiển thị thống nhất: tổng stock variant hoặc quantity của product. */
+    public function getEffectiveStockAttribute(): int
+    {
+        return $this->available_quantity;
     }
 }
