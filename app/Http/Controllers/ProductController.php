@@ -8,7 +8,12 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Category;
 use App\Models\Brand;
+use App\Models\CompareItem;
+use App\Models\StockNotificationSubscription;
+use App\Models\WishlistItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
@@ -283,6 +288,44 @@ class ProductController extends Controller
             return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews'));
         }
 
+        $rawIds = DB::table('order_items as oi')
+            ->join('order_items as oi2', function ($join) {
+                $join->on('oi.order_id', '=', 'oi2.order_id')
+                    ->whereColumn('oi2.product_id', '!=', 'oi.product_id');
+            })
+            ->where('oi.product_id', $product->id)
+            ->whereNull('oi.deleted_at')
+            ->whereNull('oi2.deleted_at')
+            ->select('oi2.product_id', DB::raw('COUNT(*) as pair_count'))
+            ->groupBy('oi2.product_id')
+            ->orderByDesc('pair_count')
+            ->limit(8)
+            ->pluck('oi2.product_id');
+        $order = $rawIds->all();
+        $boughtTogetherProducts = collect();
+        if (count($order) > 0) {
+            $boughtTogetherProducts = Product::query()
+                ->whereIn('id', $order)
+                ->where('is_active', true)
+                ->get()
+                ->sortBy(fn ($p) => array_search($p->id, $order, true))
+                ->values();
+        }
+
+        $inWishlist = false;
+        $onCompare = false;
+        $stockSubscribedVariantIds = collect();
+        $stockSubscribedSimple = false;
+        if (Auth::check()) {
+            $inWishlist = WishlistItem::where('user_id', Auth::id())->where('product_id', $product->id)->exists();
+            $onCompare = CompareItem::where('user_id', Auth::id())->where('product_id', $product->id)->exists();
+            $subs = StockNotificationSubscription::where('user_id', Auth::id())
+                ->where('product_id', $product->id)
+                ->get(['product_variant_id']);
+            $stockSubscribedVariantIds = $subs->pluck('product_variant_id')->filter(fn ($id) => $id !== null)->values();
+            $stockSubscribedSimple = $subs->contains(fn ($s) => $s->product_variant_id === null);
+        }
+
         return view('products.show', compact(
             'product',
             'activeFlashSale',
@@ -291,7 +334,12 @@ class ProductController extends Controller
             'reviewCount',
             'avgRating',
             'reviewDistribution',
-            'reviews'
+            'reviews',
+            'boughtTogetherProducts',
+            'inWishlist',
+            'onCompare',
+            'stockSubscribedVariantIds',
+            'stockSubscribedSimple'
         ));
     }
 

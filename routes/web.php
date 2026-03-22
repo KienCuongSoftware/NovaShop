@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminInventoryLogController;
 use App\Http\Controllers\AdminOrderController;
@@ -19,7 +20,11 @@ use App\Http\Controllers\PayPalController;
 use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\StockAlertInboxController;
+use App\Http\Controllers\StockNotificationController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\CompareController;
 
 // Favicon: Laravel phục vụ trực tiếp để chắc chắn hiển thị trên mọi trang
 Route::get('/favicon.ico', function () {
@@ -125,6 +130,18 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::put('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
+    Route::post('/cart/coupon', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
+    Route::delete('/cart/coupon', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::delete('/wishlist/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
+    Route::get('/compare', [CompareController::class, 'index'])->name('compare.index');
+    Route::post('/compare/add', [CompareController::class, 'add'])->name('compare.add');
+    Route::delete('/compare/{product}', [CompareController::class, 'remove'])->name('compare.remove');
+    Route::post('/compare/clear', [CompareController::class, 'clear'])->name('compare.clear');
+    Route::post('/stock-notifications', [StockNotificationController::class, 'store'])->name('stock-notifications.store');
+    Route::delete('/stock-notifications/{product}', [StockNotificationController::class, 'destroy'])->name('stock-notifications.destroy');
+    Route::get('/notifications/stock', [StockAlertInboxController::class, 'index'])->name('stock-alerts.index');
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
     Route::get('/checkout/shipping-fee', [CheckoutController::class, 'shippingFee'])->name('checkout.shipping-fee');
     Route::post('/checkout/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place-order');
@@ -168,6 +185,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('/admin/attributes', AttributeController::class, ['as' => 'admin'])->except(['show']);
     Route::post('/admin/attributes/{attribute}/values', [AttributeController::class, 'storeValue'])->name('admin.attributes.values.store');
     Route::delete('/admin/attributes/{attribute}/values/{attributeValue}', [AttributeController::class, 'destroyValue'])->name('admin.attributes.values.destroy');
+    Route::resource('/admin/coupons', AdminCouponController::class, ['as' => 'admin', 'parameters' => ['coupons' => 'coupon']]);
     Route::resource('/admin/flash-sales', FlashSaleController::class, ['as' => 'admin']);
     Route::post('/admin/flash-sales/{flash_sale}/items', [FlashSaleController::class, 'storeItem'])->name('admin.flash_sales.items.store');
     Route::put('/admin/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'updateItem'])->name('admin.flash_sales.items.update');
