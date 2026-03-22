@@ -53,7 +53,7 @@ class AdminOrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['user', 'items.product', 'items.productVariant.attributeValues.attribute']);
+        $order->load(['user', 'coupon', 'items.product', 'items.productVariant.attributeValues.attribute']);
         return view('admin.orders.show', compact('order'));
     }
 

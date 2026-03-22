@@ -63,6 +63,17 @@
                 </div>
             </div>
             <div class="card-footer">
+                @php $lineSubtotal = (float) $order->subtotal; @endphp
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted">Tạm tính</span>
+                    <span>{{ number_format($lineSubtotal, 0, ',', '.') }}₫</span>
+                </div>
+                @if((int) ($order->discount_amount ?? 0) > 0)
+                <div class="d-flex justify-content-between align-items-center mb-1 text-success">
+                    <span>Giảm giá @if($order->coupon) ({{ $order->coupon->code }}) @endif</span>
+                    <span>−{{ number_format($order->discount_amount, 0, ',', '.') }}₫</span>
+                </div>
+                @endif
                 @if((int) ($order->shipping_fee ?? 0) > 0)
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-muted">Phí ship</span>

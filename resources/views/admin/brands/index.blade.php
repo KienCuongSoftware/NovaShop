@@ -40,7 +40,9 @@
                         @if($brand->logo)
                             <img src="/images/brands/{{ basename($brand->logo) }}" alt="{{ $brand->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: contain; background: #f8f9fa;">
                         @else
-                            <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px; font-size: 1.25rem;">🏷️</div>
+                            <div class="rounded bg-light d-flex align-items-center justify-content-center text-muted" style="width: 48px; height: 48px;" title="Không có logo">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                            </div>
                         @endif
                     </td>
                     <td class="align-middle font-weight-bold">{{ $brand->name }}</td>
