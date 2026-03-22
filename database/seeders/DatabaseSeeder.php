@@ -17,15 +17,21 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Nguyễn Văn Thử',
-            'email' => 'test@example.com',
-        ]);
+        // Tránh lỗi duplicate email khi chạy `db:seed` nhiều lần
+        if (! User::query()->where('email', 'test@example.com')->exists()) {
+            User::factory()->create([
+                'name' => 'Nguyễn Văn Thử',
+                'email' => 'test@example.com',
+            ]);
+        }
 
         $this->call([
             OrderSeeder::class,
             AddressSeeder::class,
             InventoryLogSeeder::class,
         ]);
+
+        // Yêu thích / so sánh / thông báo / coupon mẫu (cần đã có sản phẩm trong DB)
+        $this->call([NovaShopFeaturesSampleSeeder::class]);
     }
 }

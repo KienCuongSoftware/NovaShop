@@ -64,7 +64,7 @@ return [
     |---------------------------------------------------------------------------
     | This value determines the default configuration for the artisan make command
     | You can configure the component type (sfc, mfc, class) and whether to use
-    | the high-voltage (⚡) emoji as a prefix in the sfc|mfc component names.
+    | a short prefix in the sfc|mfc component names.
     |
     */
 
