@@ -82,7 +82,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
     <div class="flash-sale-banner d-flex align-items-center justify-content-between flex-wrap mb-3">
         <div class="d-flex align-items-center flash-sale-title-inline">
             <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
-            <img src="{{ asset('images/flash-lightning.svg') }}" alt="" class="flash-sale-lightning-icon" width="20" height="18">
+            @include('partials.icon-flash-bolt')
             <span class="flash-sale-banner-title text-white font-weight-bold">ASH SALE</span>
         </div>
         <div class="d-flex align-items-center flex-wrap">

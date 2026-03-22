@@ -280,7 +280,7 @@
                             <div class="flash-sale-banner d-flex align-items-center justify-content-between flex-wrap" id="flash-sale-countdown-wrap">
                                 <div class="d-flex align-items-center flash-sale-title-inline">
                                     <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
-                                    <img src="{{ asset('images/flash-lightning.svg') }}" alt="" class="flash-sale-lightning-icon" width="20" height="18">
+                                    @include('partials.icon-flash-bolt')
                                     <span class="flash-sale-banner-title text-white font-weight-bold">ASH SALE</span>
                                 </div>
                                 <div class="d-flex align-items-center flex-wrap">
@@ -364,8 +364,101 @@
                             <input type="hidden" name="product_variant_id" value="" id="product_variant_id">
                             @endif
                             <input type="hidden" name="quantity" id="add-to-cart-quantity" value="1">
-                            <button type="submit" class="btn btn-danger" id="btn-add-cart" @if($hasVariants) disabled @endif>Thêm vào giỏ</button>
+                            <button type="submit" class="btn btn-danger px-4" id="btn-add-cart" @if($hasVariants) disabled @endif>Thêm vào giỏ</button>
                         </form>
+                        <style>
+                            #btn-add-cart { border-radius: 10px; }
+                            .product-secondary-actions { gap: 0.5rem !important; }
+                            .product-secondary-actions .product-action-btn {
+                                border-radius: 10px;
+                                padding: 0.45rem 1rem;
+                                font-size: 0.875rem;
+                                font-weight: 600;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 0.4rem;
+                                border-width: 2px;
+                                line-height: 1.2;
+                                transition: background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+                            }
+                            .product-secondary-actions .product-action-btn svg {
+                                width: 17px;
+                                height: 17px;
+                                flex-shrink: 0;
+                            }
+                            .product-secondary-actions .product-action-btn:disabled {
+                                opacity: 0.55;
+                                cursor: not-allowed;
+                            }
+                            .product-secondary-actions .product-action-btn.btn-outline-compare {
+                                color: #495057;
+                                border-color: #ced4da;
+                                background: #fff;
+                            }
+                            .product-secondary-actions .product-action-btn.btn-outline-compare:hover:not(:disabled) {
+                                color: #dc3545;
+                                border-color: #dc3545;
+                                background: #fff5f5;
+                            }
+                            .product-secondary-actions .product-action-btn.btn-outline-stock {
+                                color: #c82333;
+                                border-color: #f5b5bd;
+                                background: #fffafb;
+                            }
+                            .product-secondary-actions .product-action-btn.btn-outline-stock:hover:not(:disabled) {
+                                border-color: #dc3545;
+                                background: #fff0f1;
+                                box-shadow: 0 2px 8px rgba(220, 53, 69, 0.12);
+                            }
+                            .product-secondary-actions .badge-stock-pill {
+                                border-radius: 10px;
+                                padding: 0.45rem 1rem;
+                                font-weight: 600;
+                            }
+                        </style>
+                        <div class="mt-3 d-flex flex-wrap align-items-center product-secondary-actions">
+                            <form action="{{ route('wishlist.toggle') }}" method="POST" class="d-inline mb-0">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <button type="submit" class="btn btn-sm product-action-btn {{ ($inWishlist ?? false) ? 'btn-danger' : 'btn-outline-danger' }}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="{{ ($inWishlist ?? false) ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                    {{ ($inWishlist ?? false) ? 'Đã yêu thích' : 'Yêu thích' }}
+                                </button>
+                            </form>
+                            <form action="{{ route('compare.add') }}" method="POST" class="d-inline mb-0">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <button type="submit" class="btn btn-sm product-action-btn btn-outline-compare" @if($onCompare ?? false) disabled @endif>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="14" rx="1"/><rect x="14" y="5" width="7" height="14" rx="1"/><path d="M10 9h4M10 15h4"/></svg>
+                                    So sánh
+                                </button>
+                            </form>
+                            @if(!$hasVariants && (int) $product->quantity <= 0)
+                                @if($stockSubscribedSimple ?? false)
+                                    <span class="badge badge-secondary badge-stock-pill align-self-center">Đã đăng ký thông báo</span>
+                                @else
+                                    <form action="{{ route('stock-notifications.store') }}" method="POST" class="d-inline mb-0">
+                                        @csrf
+                                        <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                        <button type="submit" class="btn btn-sm product-action-btn btn-outline-stock">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                            <span class="product-action-btn-label">Báo khi có hàng</span>
+                                        </button>
+                                    </form>
+                                @endif
+                            @endif
+                            @if($hasVariants)
+                                <form id="stock-notify-form" action="{{ route('stock-notifications.store') }}" method="POST" class="d-inline mb-0" style="display: none;">
+                                    @csrf
+                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                    <input type="hidden" name="product_variant_id" id="stock-notify-variant-id" value="">
+                                    <button type="submit" class="btn btn-sm product-action-btn btn-outline-stock" id="stock-notify-btn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                        <span class="product-action-btn-label">Báo khi có hàng</span>
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
                         @else
                         <a href="{{ route('login') }}" class="btn btn-danger">Đăng nhập để thêm vào giỏ</a>
                         @endauth
@@ -378,6 +471,29 @@
                     <div class="border-top pt-4">
                         <h6 class="font-weight-bold text-dark mb-2">Mô tả sản phẩm</h6>
                         <p class="text-secondary mb-0" style="white-space: pre-line;">{{ $product->description }}</p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            @if(isset($boughtTogetherProducts) && $boughtTogetherProducts->isNotEmpty())
+            <div class="row mt-4">
+                <div class="col-12 border-top pt-4">
+                    <h6 class="font-weight-bold text-dark mb-3">Thường mua cùng</h6>
+                    <div class="row">
+                        @foreach($boughtTogetherProducts as $bp)
+                        <div class="col-6 col-md-3 mb-3">
+                            <a href="{{ route('products.show', $bp) }}" class="text-dark d-block card h-100 border shadow-sm">
+                                @if($bp->image)
+                                    <img src="/images/products/{{ basename($bp->image) }}" class="card-img-top p-2" alt="" style="height: 120px; object-fit: contain;">
+                                @endif
+                                <div class="card-body p-2">
+                                    <div class="small font-weight-bold">{{ Str::limit($bp->name, 42) }}</div>
+                                    <div class="text-danger small">{{ number_format($bp->effective_price, 0, ',', '.') }}₫</div>
+                                </div>
+                            </a>
+                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -726,6 +842,30 @@ window.productHasVariants = true;
     var btnAdd = document.getElementById('btn-add-cart');
     var form = document.getElementById('add-to-cart-form');
     var selection = {};
+    var stockSubscribedIds = @json(($stockSubscribedVariantIds ?? collect())->values()->all());
+
+    function updateStockNotifyVisibility() {
+        var form = document.getElementById('stock-notify-form');
+        var btn = document.getElementById('stock-notify-btn');
+        var vidInput = document.getElementById('stock-notify-variant-id');
+        if (!form || !btn || !vidInput) return;
+        var v = findVariant();
+        if (v) {
+            var effectiveStock = (v.flash_remaining != null && v.flash_remaining > 0) ? Math.min(v.stock, v.flash_remaining) : v.stock;
+            vidInput.value = v.id;
+            if (effectiveStock < 1) {
+                form.style.display = 'inline';
+                var sub = stockSubscribedIds.indexOf(v.id) !== -1;
+                btn.disabled = sub;
+                var stockLbl = btn.querySelector('.product-action-btn-label');
+                if (stockLbl) stockLbl.textContent = sub ? 'Đã đăng ký' : 'Báo khi có hàng';
+            } else {
+                form.style.display = 'none';
+            }
+        } else {
+            form.style.display = 'none';
+        }
+    }
 
     function findVariant() {
         for (var i = 0; i < variants.length; i++) {
@@ -967,6 +1107,7 @@ window.productHasVariants = true;
             }
             setGalleryActive(defaultImage);
         }
+        updateStockNotifyVisibility();
     }
 
     function syncQuantityToHidden() {
@@ -1147,6 +1288,8 @@ updateArrowState();
     #product-gallery { width: calc(100% - 80px) !important; min-width: 0 !important; max-width: none !important; }
 }
 </style>
+@else
+<script>window.productHasVariants = false;</script>
 @endif
 
 {{-- Chọn số lượng: nút +/- và đồng bộ (chạy cả khi không có biến thể) --}}
