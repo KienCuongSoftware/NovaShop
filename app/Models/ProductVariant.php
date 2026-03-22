@@ -22,6 +22,13 @@ class ProductVariant extends Model
     protected static function booted(): void
     {
         static::saved(function (ProductVariant $variant) {
+            if ($variant->wasChanged('stock')) {
+                $old = (int) $variant->getOriginal('stock');
+                $new = (int) $variant->stock;
+                if ($old === 0 && $new > 0) {
+                    app(\App\Services\StockNotificationService::class)->notifyVariantAvailable($variant);
+                }
+            }
             $variant->syncProductPriceQuantity();
         });
         static::deleted(function (ProductVariant $variant) {

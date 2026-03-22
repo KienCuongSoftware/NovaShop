@@ -12,7 +12,7 @@ class Order extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id', 'address_id', 'status', 'total_amount', 'shipping_fee', 'shipping_distance_km',
+        'user_id', 'coupon_id', 'discount_amount', 'address_id', 'status', 'total_amount', 'shipping_fee', 'shipping_distance_km',
         'shipping_address_snapshot', 'phone_snapshot', 'lat', 'lng', 'notes',
         'payment_method', 'payment_status', 'shipping_status',
     ];
@@ -30,6 +30,7 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:0',
+        'discount_amount' => 'integer',
         'shipping_fee' => 'integer',
         'shipping_distance_km' => 'decimal:2',
     ];
@@ -138,6 +139,11 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function address(): BelongsTo

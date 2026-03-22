@@ -69,4 +69,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\ProductReview::class, 'user_id');
     }
+
+    public function wishlistItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WishlistItem::class);
+    }
+
+    public function compareItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CompareItem::class)->orderBy('sort_order');
+    }
+
+    public function stockNotificationSubscriptions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StockNotificationSubscription::class);
+    }
 }

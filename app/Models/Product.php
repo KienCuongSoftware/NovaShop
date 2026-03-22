@@ -78,6 +78,20 @@ class Product extends Model
                 $product->slug = $slug;
             }
         });
+
+        static::saved(function (Product $product) {
+            if (!$product->wasChanged('quantity')) {
+                return;
+            }
+            if ($product->variants()->exists()) {
+                return;
+            }
+            $old = (int) $product->getOriginal('quantity');
+            $new = (int) $product->quantity;
+            if ($old === 0 && $new > 0) {
+                app(\App\Services\StockNotificationService::class)->notifySimpleProductAvailable($product);
+            }
+        });
     }
 
     public function category(): BelongsTo
