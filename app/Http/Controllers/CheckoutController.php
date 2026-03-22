@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Coupon;
 use App\Models\FlashSaleItem;
 use App\Models\InventoryLog;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\CartPricingService;
+use App\Services\CouponService;
 use App\Services\ShippingFeeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +22,7 @@ class CheckoutController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $cart = $user->cart()->with(['items.product', 'items.productVariant'])->first();
+        $cart = $user->cart()->with(['items.product.category', 'items.productVariant', 'coupon'])->first();
 
         if (!$cart || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
@@ -27,13 +30,21 @@ class CheckoutController extends Controller
 
         $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
         $addresses = $user->addresses()->orderByDesc('is_default')->orderBy('id')->get();
-        $total = 0;
-        foreach ($cart->items as $i) {
-            $fi = $activeFlashSale && $i->product_variant_id ? $activeFlashSale->items->firstWhere('product_variant_id', $i->product_variant_id) : null;
-            $p = $fi && $fi->remaining > 0 ? (float) $fi->sale_price : ($i->productVariant ? (float) $i->productVariant->price : (float) $i->product->price);
-            $total += $p * $i->quantity;
+        $flashByVariant = $activeFlashSale?->items->keyBy('product_variant_id');
+        $subtotal = (int) round(CartPricingService::cartSubtotal($cart, $flashByVariant));
+        $coupon = $cart->coupon;
+        $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+        if (!$couponResult['ok']) {
+            if ($cart->coupon_id) {
+                $cart->update(['coupon_id' => null]);
+            }
+            $discount = 0;
+        } else {
+            $discount = $couponResult['discount'];
         }
-        return view('user.checkout.show', compact('cart', 'total', 'user', 'activeFlashSale', 'addresses'));
+        $subtotalAfterDiscount = max(0, $subtotal - $discount);
+
+        return view('user.checkout.show', compact('cart', 'user', 'activeFlashSale', 'addresses', 'subtotal', 'discount', 'subtotalAfterDiscount'));
     }
 
     /**
@@ -55,7 +66,7 @@ class CheckoutController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $cart = $user->cart()->with(['items.product', 'items.productVariant'])->first();
+        $cart = $user->cart()->with(['items.product.category', 'items.productVariant', 'coupon'])->first();
 
         if (!$cart || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
@@ -126,7 +137,10 @@ class CheckoutController extends Controller
         try {
             DB::transaction(function () use ($user, $cart, $request, $orderPayload, &$order) {
             $total = 0;
-            $order = $user->orders()->create($orderPayload);
+            $order = $user->orders()->create(array_merge($orderPayload, [
+                'coupon_id' => null,
+                'discount_amount' => 0,
+            ]));
 
             foreach ($cart->items as $item) {
                 $qty = $item->quantity;
@@ -190,12 +204,32 @@ class CheckoutController extends Controller
                 ]);
             }
 
+            $coupon = null;
+            if ($cart->coupon_id) {
+                $coupon = Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first();
+            }
+            $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+            if (!$couponResult['ok']) {
+                throw new \RuntimeException($couponResult['message'] ?? 'Mã giảm giá không hợp lệ.');
+            }
+            $discountAmount = (int) $couponResult['discount'];
+            $grandTotal = (int) $total - $discountAmount + (int) $orderPayload['shipping_fee'];
+            if ($grandTotal < 0) {
+                $grandTotal = 0;
+            }
+
             $order->update([
-                'total_amount' => $total + (int) $orderPayload['shipping_fee'],
+                'total_amount' => $grandTotal,
+                'discount_amount' => $discountAmount,
+                'coupon_id' => $coupon?->id,
                 'shipping_fee' => $orderPayload['shipping_fee'],
                 'shipping_distance_km' => $orderPayload['shipping_distance_km'],
             ]);
+            if ($coupon && $discountAmount > 0) {
+                $coupon->increment('uses_count');
+            }
             $cart->items()->delete();
+            $cart->update(['coupon_id' => null]);
             });
         } catch (\Throwable $e) {
             return redirect()->route('cart.index')->with('error', $e->getMessage());

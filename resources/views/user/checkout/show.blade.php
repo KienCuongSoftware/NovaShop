@@ -120,7 +120,17 @@
                 <div class="card-footer">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Tạm tính</span>
-                        <span id="subtotal-amount">{{ number_format($total, 0, ',', '.') }}₫</span>
+                        <span id="subtotal-amount">{{ number_format($subtotal ?? 0, 0, ',', '.') }}₫</span>
+                    </div>
+                    @if(($discount ?? 0) > 0)
+                    <div class="d-flex justify-content-between align-items-center mb-2 text-success">
+                        <span>Giảm giá ({{ $cart->coupon?->code }})</span>
+                        <span id="discount-amount">−{{ number_format($discount, 0, ',', '.') }}₫</span>
+                    </div>
+                    @endif
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Sau giảm giá</span>
+                        <span id="after-discount-amount">{{ number_format($subtotalAfterDiscount ?? ($subtotal ?? 0), 0, ',', '.') }}₫</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>Phí ship</span>
@@ -128,7 +138,7 @@
                     </div>
                     <div class="d-flex justify-content-between align-items-center font-weight-bold text-danger h5 mb-0">
                         <span>Tổng tiền</span>
-                        <span id="total-amount">{{ number_format($total, 0, ',', '.') }}₫</span>
+                        <span id="total-amount">{{ number_format(($subtotalAfterDiscount ?? ($subtotal ?? 0)), 0, ',', '.') }}₫</span>
                     </div>
                 </div>
             </div>
@@ -146,7 +156,7 @@
 @push('scripts')
 <script>
 (function() {
-    var subtotal = {{ (int) $total }};
+    var subtotal = {{ (int) ($subtotalAfterDiscount ?? $subtotal ?? 0) }};
     var shippingFee = 0;
     var shippingFeeEl = document.getElementById('shipping-fee-amount');
     var totalEl = document.getElementById('total-amount');

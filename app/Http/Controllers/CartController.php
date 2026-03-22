@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Coupon;
 use App\Models\FlashSaleItem;
 use App\Models\Product;
+use App\Services\CartPricingService;
+use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,13 +18,67 @@ class CartController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $cart = $user->cart()->with(['items.product', 'items.productVariant'])->first();
+        $cart = $user->cart()->with(['items.product.category', 'items.productVariant', 'coupon'])->first();
         if (!$cart) {
             $cart = $user->cart()->create();
-            $cart->load(['items.product', 'items.productVariant']);
+            $cart->load(['items.product.category', 'items.productVariant', 'coupon']);
         }
         $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
-        return view('user.cart.index', compact('cart', 'activeFlashSale'));
+        $flashByVariant = $activeFlashSale?->items->keyBy('product_variant_id');
+        $cartSubtotal = (int) round(CartPricingService::cartSubtotal($cart, $flashByVariant));
+        $couponDiscount = 0;
+        $couponError = null;
+        if ($cart->coupon_id && $cart->coupon) {
+            $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $cart->coupon);
+            if ($couponResult['ok']) {
+                $couponDiscount = $couponResult['discount'];
+            } else {
+                $couponError = $couponResult['message'];
+                $cart->update(['coupon_id' => null]);
+                $cart->refresh();
+            }
+        }
+        $totalAfterCoupon = max(0, $cartSubtotal - $couponDiscount);
+
+        return view('user.cart.index', compact('cart', 'activeFlashSale', 'cartSubtotal', 'couponDiscount', 'totalAfterCoupon', 'couponError'));
+    }
+
+    public function applyCoupon(Request $request)
+    {
+        $request->validate(['code' => 'required|string|max:64'], ['code.required' => 'Vui lòng nhập mã giảm giá.']);
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $cart = $user->cart()->firstOrCreate([]);
+        $cart->load(['items.product.category', 'items.productVariant']);
+
+        $code = strtoupper(trim($request->input('code')));
+        $coupon = Coupon::where('code', $code)->first();
+        if (!$coupon) {
+            return back()->with('error', 'Mã giảm giá không tồn tại.');
+        }
+
+        $cart->coupon()->associate($coupon);
+        $cart->save();
+
+        $result = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+        if (!$result['ok']) {
+            $cart->update(['coupon_id' => null]);
+
+            return back()->with('error', $result['message']);
+        }
+
+        return back()->with('success', 'Đã áp dụng mã giảm giá.');
+    }
+
+    public function removeCoupon()
+    {
+        $cart = Auth::user()->cart;
+        if ($cart) {
+            $cart->update(['coupon_id' => null]);
+        }
+
+        return back()->with('success', 'Đã bỏ mã giảm giá.');
     }
 
     public function add(Request $request)

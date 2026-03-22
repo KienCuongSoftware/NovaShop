@@ -92,16 +92,34 @@
         </div>
     </div>
     <div class="card-footer">
+        <div class="mb-3">
+            <div class="d-flex flex-wrap align-items-center">
+                <form action="{{ route('cart.coupon.apply') }}" method="POST" class="form-inline mb-2">
+                    @csrf
+                    <label class="sr-only" for="coupon-code">Mã giảm giá</label>
+                    <input type="text" name="code" id="coupon-code" class="form-control mr-2" placeholder="Mã giảm giá / voucher" value="{{ old('code', $cart->coupon?->code) }}" style="min-width: 180px;">
+                    <button type="submit" class="btn btn-outline-danger">Áp dụng</button>
+                </form>
+                @if($cart->coupon_id)
+                <form action="{{ route('cart.coupon.remove') }}" method="POST" class="mb-2 ml-2">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-link p-0">Bỏ mã</button>
+                </form>
+                @endif
+            </div>
+            @if(!empty($couponError))
+                <div class="small text-danger">{{ $couponError }}</div>
+            @endif
+        </div>
         <div class="d-flex justify-content-between align-items-center flex-wrap">
-            @php
-                    $cartTotal = 0;
-                    foreach ($cart->items as $i) {
-                        $fi = ($activeFlashSale ?? null) && $i->product_variant_id ? $activeFlashSale->items->firstWhere('product_variant_id', $i->product_variant_id) : null;
-                        $p = $fi && $fi->remaining > 0 ? (float) $fi->sale_price : ($i->productVariant ? (float) $i->productVariant->price : (float) $i->product->price);
-                        $cartTotal += $p * $i->quantity;
-                    }
-                @endphp
-                <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($cartTotal, 0, ',', '.') }}₫</span></span>
+            <div>
+                <div class="small text-muted">Tạm tính: {{ number_format($cartSubtotal ?? 0, 0, ',', '.') }}₫</div>
+                @if(($couponDiscount ?? 0) > 0)
+                <div class="small text-success">Giảm giá: −{{ number_format($couponDiscount, 0, ',', '.') }}₫</div>
+                @endif
+                <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($totalAfterCoupon ?? ($cartSubtotal ?? 0), 0, ',', '.') }}₫</span></span>
+            </div>
             <div class="d-flex mt-2 mt-md-0">
                 <a href="{{ route('welcome') }}" class="btn btn-outline-secondary mr-2">Tiếp tục mua sắm</a>
                 <a href="{{ route('checkout.show') }}" class="btn btn-danger">Mua hàng</a>
