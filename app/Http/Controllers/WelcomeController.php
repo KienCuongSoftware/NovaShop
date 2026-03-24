@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\FlashSale;
 use App\Models\Product;
+use App\Services\CatalogCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,13 +22,13 @@ class WelcomeController extends Controller
 
         $chosenIds = collect($excludeIds)->filter()->values();
 
-        $baseQuery = Product::with('category')->when(!$categoryIds || empty($categoryIds), function ($q) {
+        $baseQuery = Product::with('category')->when(! $categoryIds || empty($categoryIds), function ($q) {
             // Nếu chưa có lịch sử danh mục thì lấy random toàn site.
         }, function ($q) use ($categoryIds) {
             $q->whereIn('category_id', $categoryIds);
         });
 
-        if (!empty($chosenIds->all())) {
+        if (! empty($chosenIds->all())) {
             $baseQuery->whereNotIn('id', $chosenIds->all());
         }
 
@@ -39,7 +39,7 @@ class WelcomeController extends Controller
         if ($products->count() < $step) {
             $toNeed = $step - $products->count();
             $more = Product::with('category')
-                ->when(!$categoryIds || empty($categoryIds), function ($q) {
+                ->when(! $categoryIds || empty($categoryIds), function ($q) {
                     // Không làm gì thêm
                 }, function ($q) use ($categoryIds) {
                     // Cố gắng lấy tiếp theo filter đang có, nếu không đủ thì fallback ở bước sau.
@@ -61,7 +61,7 @@ class WelcomeController extends Controller
             $needed = $desiredCount - $products->count();
             $more = Product::with('category')
                 // Fallback: bỏ filter category khi không đủ để bù tiếp.
-                ->when(!empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
+                ->when(! empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
                 ->whereNotIn('id', $products->pluck('id')->all())
                 ->inRandomOrder()
                 ->limit($needed)
@@ -82,7 +82,7 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
+        $categories = CatalogCache::rootCategoryTree();
         $products = $this->buildProductQuery(null, $request)->paginate(12)->withQueryString();
         $suggestedProducts = $this->getSuggestedProducts();
         $currentSort = $this->getSortParam($request);
@@ -91,10 +91,8 @@ class WelcomeController extends Controller
 
         $activeCategoryIds = [];
         $showSidebarAndFilter = false;
-        $activeFlashSale = FlashSale::getCurrentOrNext();
-        $todaySlots = $activeFlashSale
-            ? FlashSale::whereDate('start_time', $activeFlashSale->start_time->toDateString())->orderBy('start_time')->get()
-            : FlashSale::getTodaySlots();
+        ['activeFlashSale' => $activeFlashSale, 'todaySlots' => $todaySlots] = CatalogCache::flashSaleWelcomeContext();
+
         return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
@@ -107,7 +105,8 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
+        $categories = CatalogCache::rootCategoryTree();
+
         return view('all-categories', compact('categories'));
     }
 
@@ -120,7 +119,7 @@ class WelcomeController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        $categories = Category::roots()->with('children.children')->orderBy('name')->get();
+        $categories = CatalogCache::rootCategoryTree();
         $sidebarCategories = $category->children()->with('children')->orderBy('name')->get();
         $sidebarParent = $category->parent;
 
@@ -138,10 +137,8 @@ class WelcomeController extends Controller
 
         $activeCategoryIds = array_map(fn ($c) => $c->id, $category->getBreadcrumbPath());
         $showSidebarAndFilter = true;
-        $activeFlashSale = FlashSale::getCurrentOrNext();
-        $todaySlots = $activeFlashSale
-            ? FlashSale::whereDate('start_time', $activeFlashSale->start_time->toDateString())->orderBy('start_time')->get()
-            : FlashSale::getTodaySlots();
+        ['activeFlashSale' => $activeFlashSale, 'todaySlots' => $todaySlots] = CatalogCache::flashSaleWelcomeContext();
+
         return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandSlug', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
@@ -162,7 +159,7 @@ class WelcomeController extends Controller
             })
             ->when($q !== '', function ($query) use ($q) {
                 $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-                $pattern = '%' . $esc . '%';
+                $pattern = '%'.$esc.'%';
                 $query->where('name', 'like', $pattern);
             });
         $productsQuery = $this->applyPriceFilter($productsQuery, $request);
@@ -194,10 +191,8 @@ class WelcomeController extends Controller
 
         $activeCategoryIds = $categoryId ? array_map(fn ($c) => $c->id, optional(Category::find($categoryId))->getBreadcrumbPath() ?? []) : [];
         $showSidebarAndFilter = true;
-        $activeFlashSale = FlashSale::getCurrentOrNext();
-        $todaySlots = $activeFlashSale
-            ? FlashSale::whereDate('start_time', $activeFlashSale->start_time->toDateString())->orderBy('start_time')->get()
-            : FlashSale::getTodaySlots();
+        ['activeFlashSale' => $activeFlashSale, 'todaySlots' => $todaySlots] = CatalogCache::flashSaleWelcomeContext();
+
         return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
@@ -210,7 +205,7 @@ class WelcomeController extends Controller
         $showCategoryIds = [];
         foreach ($resultCategoryIds as $cid) {
             $cat = Category::find($cid);
-            if (!$cat) {
+            if (! $cat) {
                 continue;
             }
             foreach ($cat->getBreadcrumbPath() as $c) {
@@ -259,8 +254,10 @@ class WelcomeController extends Controller
             ->values();
         if ($includeSelf || $filteredChildren->isNotEmpty()) {
             $category->setRelation('children', $filteredChildren);
+
             return $category;
         }
+
         return null;
     }
 
@@ -269,6 +266,7 @@ class WelcomeController extends Controller
     {
         $sort = trim((string) $request->input('sort', ''));
         $allowed = ['popular', 'newest', 'bestselling', 'price_asc', 'price_desc'];
+
         return in_array($sort, $allowed) ? $sort : 'popular';
     }
 
@@ -294,6 +292,7 @@ class WelcomeController extends Controller
                 }
             });
         $query = $this->applyPriceFilter($query, $request);
+
         return $this->applySort($query, $request);
     }
 
@@ -308,6 +307,7 @@ class WelcomeController extends Controller
         if ($max !== null && $max > 0) {
             $query->where('price', '<=', $max);
         }
+
         return $query;
     }
 
@@ -315,6 +315,7 @@ class WelcomeController extends Controller
     protected function applySort($query, Request $request)
     {
         $sort = $this->getSortParam($request);
+
         return match ($sort) {
             'newest' => $query->latest(),
             'bestselling' => $query->orderByDesc('quantity'),

@@ -1,8 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminInventoryLogController;
@@ -13,18 +11,20 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CompareController;
+use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PayPalController;
-use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\StockAlertInboxController;
 use App\Http\Controllers\StockNotificationController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\CompareController;
+use App\Services\CatalogCache;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 // Favicon: Laravel phục vụ trực tiếp để chắc chắn hiển thị trên mọi trang
 Route::get('/favicon.ico', function () {
@@ -36,19 +36,17 @@ Route::get('/favicon.ico', function () {
 });
 Route::get('/favicon.svg', function () {
     $path = public_path('favicon.svg');
-    if (!file_exists($path)) {
+    if (! file_exists($path)) {
         abort(404);
     }
+
     return response()->file($path, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'public, max-age=86400']);
 });
 
 // API Flash Sale: slot hiện tại/tiếp theo + danh sách slot trong ngày (cho countdown reload khi hết giờ)
 Route::get('/api/flash-sale', function () {
-    $current = \App\Models\FlashSale::getCurrentOrNext();
-    $slots = $current
-        ? \App\Models\FlashSale::whereDate('start_time', $current->start_time->toDateString())->orderBy('start_time')->get()
-        : \App\Models\FlashSale::getTodaySlots();
-    if (!$current) {
+    ['activeFlashSale' => $current, 'todaySlots' => $slots] = CatalogCache::flashSaleWelcomeContext();
+    if (! $current) {
         return response()->json(['current' => null, 'slots' => $slots->map(fn ($s) => [
             'id' => $s->id,
             'name' => $s->name,
@@ -58,6 +56,7 @@ Route::get('/api/flash-sale', function () {
     }
     $now = now();
     $isActive = $current->start_time <= $now && $current->end_time > $now;
+
     return response()->json([
         'current' => [
             'id' => $current->id,
@@ -70,6 +69,7 @@ Route::get('/api/flash-sale', function () {
                 $p = $v ? $v->product : null;
                 $originalPrice = $v ? (float) $v->price : 0;
                 $discountPct = $originalPrice > 0 ? round((1 - (float) $item->sale_price / $originalPrice) * 100) : 0;
+
                 return [
                     'id' => $item->id,
                     'product_variant_id' => $item->product_variant_id,
@@ -105,6 +105,9 @@ Route::get('/all-categories', [WelcomeController::class, 'allCategories'])->name
 // Trang danh sách sản phẩm theo danh mục
 Route::get('/categories/{category}', [WelcomeController::class, 'categoryProducts'])->name('category.products');
 Route::get('/search', [WelcomeController::class, 'search'])->name('search');
+
+// React SPA demo (Vite: npm run dev — proxy /api → Laravel :8000)
+Route::view('/spa', 'spa')->name('spa');
 
 // Xác thực và phân quyền - Route đăng ký và đăng nhập người dùng
 Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register');
@@ -157,15 +160,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     // Sửa lỗi gõ nhầm: /admin/procucts/... → /admin/products/...
     Route::get('/admin/procucts/{path}', function (string $path) {
-        return redirect('/admin/products/' . $path, 301);
+        return redirect('/admin/products/'.$path, 301);
     })->where('path', '.*');
     // URL cũ /admin/products/update/{id}: GET → redirect sang edit, POST → gọi update (tránh MethodNotAllowedHttpException)
     Route::get('/admin/products/update/{id}', function (int $id) {
         $product = \App\Models\Product::findOrFail($id);
+
         return redirect()->route('admin.products.edit', $product, 301);
     })->name('admin.products.update.redirect');
     Route::post('/admin/products/update/{id}', function (Illuminate\Http\Request $request, int $id) {
         $product = \App\Models\Product::findOrFail($id);
+
         return app(ProductController::class)->update($request, $product);
     })->name('admin.products.update.post');
     // Đặt tiền tố 'admin' cho tất cả các route của products
@@ -201,14 +206,15 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)
 Route::get('/images/products/{filename}', function (string $filename) {
-    $path = 'products/' . $filename;
-    if (!Storage::disk('public')->exists($path)) {
+    $path = 'products/'.$filename;
+    if (! Storage::disk('public')->exists($path)) {
         abort(404);
     }
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
     $mime = $mimeMap[$ext] ?? 'application/octet-stream';
     $file = Storage::disk('public')->get($path);
+
     return response($file, 200)
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
@@ -216,14 +222,15 @@ Route::get('/images/products/{filename}', function (string $filename) {
 
 // Serve brand logos from storage/app/public/brands
 Route::get('/images/brands/{filename}', function (string $filename) {
-    $path = 'brands/' . $filename;
-    if (!Storage::disk('public')->exists($path)) {
+    $path = 'brands/'.$filename;
+    if (! Storage::disk('public')->exists($path)) {
         abort(404);
     }
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
     $mime = $mimeMap[$ext] ?? 'application/octet-stream';
     $file = Storage::disk('public')->get($path);
+
     return response($file, 200)
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
@@ -231,14 +238,15 @@ Route::get('/images/brands/{filename}', function (string $filename) {
 
 // Serve category images from storage/app/public/categories
 Route::get('/images/categories/{filename}', function (string $filename) {
-    $path = 'categories/' . $filename;
-    if (!Storage::disk('public')->exists($path)) {
+    $path = 'categories/'.$filename;
+    if (! Storage::disk('public')->exists($path)) {
         abort(404);
     }
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
     $mime = $mimeMap[$ext] ?? 'application/octet-stream';
     $file = Storage::disk('public')->get($path);
+
     return response($file, 200)
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
@@ -246,14 +254,15 @@ Route::get('/images/categories/{filename}', function (string $filename) {
 
 // Serve user avatars from storage/app/public/avatars
 Route::get('/images/avatars/{filename}', function (string $filename) {
-    $path = 'avatars/' . $filename;
-    if (!Storage::disk('public')->exists($path)) {
+    $path = 'avatars/'.$filename;
+    if (! Storage::disk('public')->exists($path)) {
         abort(404);
     }
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
     $mime = $mimeMap[$ext] ?? 'application/octet-stream';
     $file = Storage::disk('public')->get($path);
+
     return response($file, 200)
         ->header('Content-Type', $mime)
         ->header('Cache-Control', 'public, max-age=31536000');
