@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -11,7 +12,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("
+        if (! Schema::hasTable('products') || ! Schema::hasTable('product_variants')) {
+            return;
+        }
+
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            DB::statement('
+                UPDATE products
+                SET price = (
+                    SELECT MIN(pv.price) FROM product_variants pv WHERE pv.product_id = products.id
+                ),
+                quantity = (
+                    SELECT COALESCE(SUM(pv.stock), 0) FROM product_variants pv WHERE pv.product_id = products.id
+                )
+                WHERE EXISTS (SELECT 1 FROM product_variants pv2 WHERE pv2.product_id = products.id)
+            ');
+
+            return;
+        }
+
+        DB::statement('
             UPDATE products p
             INNER JOIN (
                 SELECT product_id,
@@ -21,7 +41,7 @@ return new class extends Migration
                 GROUP BY product_id
             ) v ON v.product_id = p.id
             SET p.price = v.min_price, p.quantity = v.total_stock
-        ");
+        ');
     }
 
     public function down(): void

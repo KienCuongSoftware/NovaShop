@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('district', 100)->nullable();
             $table->string('ward', 100)->nullable();
             $table->string('address_line', 255)->nullable();
+            $table->decimal('lat', 10, 7)->nullable();
+            $table->decimal('lng', 10, 7)->nullable();
             $table->boolean('is_default')->default(false);
             $table->timestamps();
 

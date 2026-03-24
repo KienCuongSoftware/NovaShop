@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('cart_items', 'product_variant_id')) {
+        if (! Schema::hasColumn('cart_items', 'product_variant_id')) {
             Schema::table('cart_items', function (Blueprint $table) {
                 $table->foreignId('product_variant_id')->nullable()->after('product_id')->constrained()->onDelete('cascade');
             });
@@ -20,19 +20,37 @@ return new class extends Migration
             $conn = Schema::getConnection();
             $db = $conn->getDatabaseName();
             $idx = $conn->selectOne("SELECT index_name FROM information_schema.statistics WHERE table_schema = ? AND table_name = 'cart_items' AND index_name LIKE '%cart_id%product_id%' AND index_name NOT LIKE '%variant%' LIMIT 1", [$db]);
-            if ($idx && !empty($idx->index_name)) {
-                DB::statement('ALTER TABLE cart_items DROP INDEX ' . $idx->index_name);
+            if ($idx && ! empty($idx->index_name)) {
+                DB::statement('ALTER TABLE cart_items DROP INDEX '.$idx->index_name);
+            }
+            $exists = $conn->selectOne("SELECT 1 FROM information_schema.statistics WHERE table_schema = ? AND table_name = 'cart_items' AND index_name = 'cart_items_cart_product_variant_unique' LIMIT 1", [$db]);
+            if (! $exists) {
+                Schema::table('cart_items', function (Blueprint $table) {
+                    $table->unique(['cart_id', 'product_id', 'product_variant_id'], 'cart_items_cart_product_variant_unique');
+                });
+            }
+        } elseif ($driver === 'sqlite') {
+            try {
+                Schema::table('cart_items', function (Blueprint $table) {
+                    $table->dropUnique(['cart_id', 'product_id']);
+                });
+            } catch (\Throwable) {
+                // Index name may differ on SQLite; ignore.
+            }
+            $named = DB::selectOne("SELECT 1 as x FROM sqlite_master WHERE type = 'index' AND tbl_name = 'cart_items' AND name = 'cart_items_cart_product_variant_unique' LIMIT 1");
+            if (! $named) {
+                Schema::table('cart_items', function (Blueprint $table) {
+                    $table->unique(['cart_id', 'product_id', 'product_variant_id'], 'cart_items_cart_product_variant_unique');
+                });
             }
         } else {
-            Schema::table('cart_items', function (Blueprint $table) {
-                $table->dropUnique(['cart_id', 'product_id']);
-            });
-        }
-
-        $conn = Schema::getConnection();
-        $db = $conn->getDatabaseName();
-        $exists = $conn->selectOne("SELECT 1 FROM information_schema.statistics WHERE table_schema = ? AND table_name = 'cart_items' AND index_name = 'cart_items_cart_product_variant_unique' LIMIT 1", [$db]);
-        if (!$exists) {
+            try {
+                Schema::table('cart_items', function (Blueprint $table) {
+                    $table->dropUnique(['cart_id', 'product_id']);
+                });
+            } catch (\Throwable) {
+                //
+            }
             Schema::table('cart_items', function (Blueprint $table) {
                 $table->unique(['cart_id', 'product_id', 'product_variant_id'], 'cart_items_cart_product_variant_unique');
             });

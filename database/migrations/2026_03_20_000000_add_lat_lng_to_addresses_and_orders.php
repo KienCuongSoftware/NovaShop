@@ -11,28 +11,36 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('addresses', function (Blueprint $table) {
-            $table->decimal('lat', 10, 7)->nullable()->after('address_line');
-            $table->decimal('lng', 10, 7)->nullable()->after('lat');
-        });
-
-        Schema::table('orders', function (Blueprint $table) {
-            if (!Schema::hasColumn('orders', 'lat')) {
-                $table->decimal('lat', 10, 7)->nullable()->after('shipping_address_snapshot');
-            }
-            if (!Schema::hasColumn('orders', 'lng')) {
+        if (Schema::hasTable('addresses') && ! Schema::hasColumn('addresses', 'lat')) {
+            Schema::table('addresses', function (Blueprint $table) {
+                $table->decimal('lat', 10, 7)->nullable()->after('address_line');
                 $table->decimal('lng', 10, 7)->nullable()->after('lat');
-            }
-        });
+            });
+        }
+
+        if (Schema::hasTable('orders')) {
+            Schema::table('orders', function (Blueprint $table) {
+                if (! Schema::hasColumn('orders', 'lat')) {
+                    $table->decimal('lat', 10, 7)->nullable()->after('shipping_address_snapshot');
+                }
+                if (! Schema::hasColumn('orders', 'lng')) {
+                    $table->decimal('lng', 10, 7)->nullable()->after('lat');
+                }
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('addresses', function (Blueprint $table) {
-            $table->dropColumn(['lat', 'lng']);
-        });
-        Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn(['lat', 'lng']);
-        });
+        if (Schema::hasTable('addresses') && Schema::hasColumn('addresses', 'lat')) {
+            Schema::table('addresses', function (Blueprint $table) {
+                $table->dropColumn(['lat', 'lng']);
+            });
+        }
+        if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'lat')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->dropColumn(['lat', 'lng']);
+            });
+        }
     }
 };

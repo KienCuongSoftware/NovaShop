@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (\Illuminate\Support\Facades\Schema::hasTable('product_images')) {
+        if (\Illuminate\Support\Facades\Schema::hasTable('product_images')
+            && \Illuminate\Support\Facades\Schema::getConnection()->getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE product_images COMMENT = 'product_id: ảnh chung SP; product_variant_id: ảnh riêng biến thể (không trùng)'");
         }
     }
 
     public function down(): void
     {
-        if (\Illuminate\Support\Facades\Schema::hasTable('product_images')) {
+        if (\Illuminate\Support\Facades\Schema::hasTable('product_images')
+            && \Illuminate\Support\Facades\Schema::getConnection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE product_images COMMENT = ""');
         }
     }

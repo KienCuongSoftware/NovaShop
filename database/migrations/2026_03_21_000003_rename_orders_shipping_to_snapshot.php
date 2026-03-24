@@ -12,21 +12,49 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasColumn('orders', 'shipping_address') && !Schema::hasColumn('orders', 'shipping_address_snapshot')) {
-            DB::statement('ALTER TABLE orders CHANGE shipping_address shipping_address_snapshot VARCHAR(500) NULL');
+        if (! Schema::hasTable('orders')) {
+            return;
         }
-        if (Schema::hasColumn('orders', 'phone') && !Schema::hasColumn('orders', 'phone_snapshot')) {
-            DB::statement('ALTER TABLE orders CHANGE phone phone_snapshot VARCHAR(20) NULL');
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if (Schema::hasColumn('orders', 'shipping_address') && ! Schema::hasColumn('orders', 'shipping_address_snapshot')) {
+            if ($driver === 'sqlite') {
+                DB::statement('ALTER TABLE orders RENAME COLUMN shipping_address TO shipping_address_snapshot');
+            } else {
+                DB::statement('ALTER TABLE orders CHANGE shipping_address shipping_address_snapshot VARCHAR(500) NULL');
+            }
+        }
+        if (Schema::hasColumn('orders', 'phone') && ! Schema::hasColumn('orders', 'phone_snapshot')) {
+            if ($driver === 'sqlite') {
+                DB::statement('ALTER TABLE orders RENAME COLUMN phone TO phone_snapshot');
+            } else {
+                DB::statement('ALTER TABLE orders CHANGE phone phone_snapshot VARCHAR(20) NULL');
+            }
         }
     }
 
     public function down(): void
     {
-        if (Schema::hasColumn('orders', 'shipping_address_snapshot')) {
-            DB::statement('ALTER TABLE orders CHANGE shipping_address_snapshot shipping_address VARCHAR(500) NULL');
+        if (! Schema::hasTable('orders')) {
+            return;
         }
-        if (Schema::hasColumn('orders', 'phone_snapshot')) {
-            DB::statement('ALTER TABLE orders CHANGE phone_snapshot phone VARCHAR(20) NULL');
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if (Schema::hasColumn('orders', 'shipping_address_snapshot') && ! Schema::hasColumn('orders', 'shipping_address')) {
+            if ($driver === 'sqlite') {
+                DB::statement('ALTER TABLE orders RENAME COLUMN shipping_address_snapshot TO shipping_address');
+            } else {
+                DB::statement('ALTER TABLE orders CHANGE shipping_address_snapshot shipping_address VARCHAR(500) NULL');
+            }
+        }
+        if (Schema::hasColumn('orders', 'phone_snapshot') && ! Schema::hasColumn('orders', 'phone')) {
+            if ($driver === 'sqlite') {
+                DB::statement('ALTER TABLE orders RENAME COLUMN phone_snapshot TO phone');
+            } else {
+                DB::statement('ALTER TABLE orders CHANGE phone_snapshot phone VARCHAR(20) NULL');
+            }
         }
     }
 };

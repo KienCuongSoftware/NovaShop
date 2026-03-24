@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('rating'); // 1-5
             $table->string('title')->nullable();
             $table->text('content');
+            $table->string('variant_classification', 255)->nullable();
 
             $table->boolean('is_verified')->default(false); // đã mua hàng/đánh giá xác thực (mẫu)
 
@@ -31,4 +32,3 @@ return new class extends Migration
         Schema::dropIfExists('product_reviews');
     }
 };
-
