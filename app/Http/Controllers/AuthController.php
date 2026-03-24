@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\EmailVerificationOtpMail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Socialite\Facades\Socialite;
@@ -40,9 +42,11 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+        $this->sendOtp($user);
 
-        return redirect()->route('welcome')
-            ->with('success', 'Đăng ký thành công.');
+        return redirect()
+            ->route('verification.otp.notice')
+            ->with('success', 'Đăng ký thành công. Mã OTP đã được gửi đến email của bạn.');
     }
 
     public function showLoginForm()
@@ -65,6 +69,15 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+            /** @var User|null $user */
+            $user = Auth::user();
+            if ($user && ! $user->hasVerifiedEmail()) {
+                $this->sendOtp($user);
+
+                return redirect()
+                    ->route('welcome')
+                    ->with('success', 'Đăng nhập thành công. Vui lòng xác thực email để dùng đầy đủ tính năng.');
+            }
 
             return redirect()->intended(route('welcome'))
                 ->with('success', 'Đăng nhập thành công.');
@@ -86,10 +99,79 @@ class AuthController extends Controller
             ->with('success', 'Đã đăng xuất.');
     }
 
+    public function showVerifyOtpForm(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('welcome');
+        }
+
+        return view('auth.verify-otp');
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('welcome');
+        }
+
+        $data = $request->validate([
+            'otp' => ['required', 'digits:6'],
+        ], [
+            'otp.required' => 'Vui lòng nhập mã OTP.',
+            'otp.digits' => 'Mã OTP gồm đúng 6 chữ số.',
+        ]);
+
+        if (! $user->email_verification_otp || ! $user->email_verification_otp_expires_at || now()->gt($user->email_verification_otp_expires_at)) {
+            return back()->withErrors([
+                'otp' => 'Mã OTP đã hết hạn. Vui lòng gửi lại mã mới.',
+            ]);
+        }
+
+        if (! hash_equals((string) $user->email_verification_otp, (string) $data['otp'])) {
+            return back()->withErrors([
+                'otp' => 'Mã OTP không đúng.',
+            ]);
+        }
+
+        $user->forceFill([
+            'email_verified_at' => now(),
+            'email_verification_otp' => null,
+            'email_verification_otp_expires_at' => null,
+        ])->save();
+
+        return redirect()->route('welcome')->with('success', 'Xác thực email thành công.');
+    }
+
+    public function resendOtp(Request $request)
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->route('welcome');
+        }
+
+        $this->sendOtp($user);
+
+        return back()->with('success', 'Đã gửi lại mã OTP mới.');
+    }
+
     public function redirectToGoogle()
     {
         /** @var \Laravel\Socialite\Two\GoogleProvider $driver */
         $driver = Socialite::driver('google');
+
         return $driver->stateless()->redirect();
     }
 
@@ -101,30 +183,42 @@ class AuthController extends Controller
             $googleUser = $driver->stateless()->user();
         } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
             Log::warning('Google OAuth InvalidStateException', ['message' => $e->getMessage()]);
+
             return redirect()->route('login')->with('error', 'Phiên đăng nhập Google đã hết hạn. Vui lòng thử lại.');
         } catch (\Throwable $e) {
             Log::error('Google OAuth error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('login')->with('error', 'Không thể đăng nhập với Google.');
         }
 
         $user = User::where('google_id', $googleUser->getId())->first();
 
         if ($user) {
+            if (! $user->hasVerifiedEmail()) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
             Auth::login($user, true);
+
             return redirect()->intended(route('welcome'))->with('success', 'Đăng nhập thành công.');
         }
 
         $user = User::where('email', $googleUser->getEmail())->first();
 
         if ($user) {
-            $user->update(['google_id' => $googleUser->getId()]);
-            if ($googleUser->getAvatar() && !$user->avatar) {
+            $user->forceFill([
+                'google_id' => $googleUser->getId(),
+                'email_verified_at' => $user->email_verified_at ?: now(),
+                'email_verification_otp' => null,
+                'email_verification_otp_expires_at' => null,
+            ])->save();
+            if ($googleUser->getAvatar() && ! $user->avatar) {
                 $this->storeGoogleAvatar($user, $googleUser->getAvatar());
             }
             Auth::login($user, true);
+
             return redirect()->intended(route('welcome'))->with('success', 'Đăng nhập thành công.');
         }
 
@@ -132,6 +226,7 @@ class AuthController extends Controller
             'name' => $googleUser->getName() ?: $googleUser->getEmail(),
             'email' => $googleUser->getEmail(),
             'google_id' => $googleUser->getId(),
+            'email_verified_at' => now(),
             'password' => null,
         ]);
 
@@ -144,6 +239,22 @@ class AuthController extends Controller
         return redirect()->intended(route('welcome'))->with('success', 'Đăng ký và đăng nhập thành công.');
     }
 
+    protected function sendOtp(User $user): void
+    {
+        $otp = (string) random_int(100000, 999999);
+        $expiresAt = now()->addMinutes(10);
+        $user->forceFill([
+            'email_verification_otp' => $otp,
+            'email_verification_otp_expires_at' => $expiresAt,
+        ])->save();
+
+        Mail::to($user->email)->send(new EmailVerificationOtpMail(
+            name: $user->name,
+            otp: $otp,
+            expiresAt: $expiresAt->format('H:i d/m/Y'),
+        ));
+    }
+
     protected function storeGoogleAvatar(User $user, string $avatarUrl): void
     {
         try {
@@ -152,8 +263,8 @@ class AuthController extends Controller
                 return;
             }
             $ext = pathinfo(parse_url($avatarUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-            $filename = 'avatar_' . $user->id . '_' . time() . '.' . ($ext ?: 'jpg');
-            $path = 'avatars/' . $filename;
+            $filename = 'avatar_'.$user->id.'_'.time().'.'.($ext ?: 'jpg');
+            $path = 'avatars/'.$filename;
             Storage::disk('public')->put($path, $image);
             $user->update(['avatar' => $path]);
         } catch (\Throwable $e) {

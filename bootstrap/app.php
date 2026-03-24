@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'email.verified.otp' => \App\Http\Middleware\EnsureEmailOtpVerified::class,
+        ]);
+        $middleware->web(prepend: [
+            \App\Http\Middleware\RedirectLocalhostToLoopbackIp::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

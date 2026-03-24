@@ -117,9 +117,14 @@ Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google');
 Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/email/verify-otp', [AuthController::class, 'showVerifyOtpForm'])->name('verification.otp.notice');
+    Route::post('/email/verify-otp', [AuthController::class, 'verifyOtp'])->name('verification.otp.verify');
+    Route::post('/email/verify-otp/resend', [AuthController::class, 'resendOtp'])->name('verification.otp.resend');
+});
 
 // Quản lý tài khoản, giỏ hàng, đặt hàng - cho người dùng đã đăng nhập
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'email.verified.otp'])->group(function () {
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
     Route::put('/profile', [UserController::class, 'profileUpdate'])->name('profile.update');
     Route::get('/addresses', [AddressController::class, 'index'])->name('addresses.index');
@@ -156,7 +161,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Route dành cho admin (sử dụng middleware để kiểm tra quyền)
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'email.verified.otp', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     // Sửa lỗi gõ nhầm: /admin/procucts/... → /admin/products/...
     Route::get('/admin/procucts/{path}', function (string $path) {
@@ -274,7 +279,7 @@ Route::get('/product/show', function () {
 })->name('product.show.redirect');
 
 // Route cho người dùng bình thường (đã đăng nhập)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'email.verified.otp'])->group(function () {
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'show_normal'])->name('products.show');
 });
