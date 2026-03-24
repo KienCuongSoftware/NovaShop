@@ -81,6 +81,24 @@
         .navbar-top-row-left a:hover,
         .navbar-top-row-right > a:hover { opacity: 0.9; }
         .navbar-top-row span { color: #fff !important; }
+        .navbar-top-row-nav {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.35rem 1.35rem;
+        }
+        .navbar-top-row-nav a {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            opacity: 0.95;
+        }
+        .navbar-top-row-nav a:hover {
+            opacity: 1;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
         /* User menu dropdown - hiển thị khi hover */
         .user-menu-wrap {
             position: relative;
@@ -1092,17 +1110,22 @@
     <nav class="navbar navbar-main navbar-expand-lg navbar-light fixed-top">
         <div class="container">
             <div class="navbar-top-row d-none d-md-flex">
-                <div class="navbar-top-row-left">
+                <nav class="navbar-top-row-left navbar-top-row-nav" aria-label="Điều hướng nhanh">
                     @auth
-                    @if(auth()->user()->is_admin)
-                    <a href="{{ route('admin.dashboard') }}">Quản trị</a>
-                    @else
-                    <a href="{{ url('/') }}">Danh mục sản phẩm</a>
-                    @endif
-                    @else
-                    <a href="{{ url('/') }}">Danh mục sản phẩm</a>
+                        @if(auth()->user()->is_admin)
+                            <a href="{{ route('admin.dashboard') }}">Quản trị</a>
+                        @endif
                     @endauth
-                </div>
+                    <a href="{{ route('welcome') }}">Trang chủ</a>
+                    <a href="{{ route('all.categories') }}">Danh mục</a>
+                    <a href="{{ url('/#welcome-flash-section') }}">Flash Sale</a>
+                    @auth
+                        <a href="{{ route('orders.index') }}">Đơn của tôi</a>
+                    @else
+                        <a href="{{ route('login') }}">Theo dõi đơn</a>
+                    @endauth
+                    <a href="{{ url('/#site-footer') }}">Liên hệ</a>
+                </nav>
                 <div class="navbar-top-row-right">
                     @guest
                     <a href="{{ route('login') }}">Đăng nhập</a>
@@ -1120,9 +1143,6 @@
                             @if(!auth()->user()->is_admin)
                             <a href="{{ route('orders.index') }}">Đơn mua</a>
                             <a href="{{ route('addresses.index') }}">Sổ địa chỉ</a>
-                            <a href="{{ route('wishlist.index') }}">Yêu thích</a>
-                            <a href="{{ route('compare.index') }}">So sánh sản phẩm</a>
-                            <a href="{{ route('stock-alerts.index') }}">Thông báo có hàng</a>
                             @endif
                             <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Đăng xuất</a>
                         </div>
@@ -1230,7 +1250,7 @@
         </div>
     </main>
 
-    <footer class="bg-novashop py-4 mt-4">
+    <footer class="bg-novashop py-4 mt-4" id="site-footer">
         <div class="container">
             <div class="row">
                 <div class="col-md-6 text-center text-md-left">
