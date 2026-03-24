@@ -126,7 +126,7 @@
                         <td>{{ $item->quantity }}</td>
                         <td>{{ $item->sold }}</td>
                         <td class="text-nowrap">
-                            <form action="{{ route('admin.flash_sales.items.destroy', [$flash_sale, $item]) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa sản phẩm này khỏi Flash Sale?');">
+                            <form action="{{ route('admin.flash_sales.items.destroy', [$flash_sale, $item]) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Xóa sản phẩm này khỏi Flash Sale?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>

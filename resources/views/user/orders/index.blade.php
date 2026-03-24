@@ -107,7 +107,7 @@
                     <a href="{{ route('paypal.create-order', $order) }}" class="btn btn-danger btn-sm mr-2">Thanh toán</a>
                 @endif
                 @if($order->canCancel())
-                    <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng #{{ $order->id }}?');">
+                    <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Bạn có chắc muốn hủy đơn hàng #{{ $order->id }}?');">
                         @csrf
                         <button type="submit" class="btn btn-outline-secondary btn-sm">Hủy đơn</button>
                     </form>

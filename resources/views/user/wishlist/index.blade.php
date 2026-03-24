@@ -34,7 +34,7 @@
                 <h6 class="card-title"><a href="{{ route('products.show', $p) }}" class="text-dark">{{ Str::limit($p->name, 48) }}</a></h6>
                 <div class="mt-auto">
                     <div class="text-danger font-weight-bold mb-2">{{ number_format($p->effective_price, 0, ',', '.') }}₫</div>
-                    <form action="{{ route('wishlist.remove', $p) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa khỏi yêu thích?');">
+                    <form action="{{ route('wishlist.remove', $p) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Xóa khỏi yêu thích?');">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>

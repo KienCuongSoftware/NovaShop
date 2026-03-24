@@ -98,8 +98,10 @@
             if (!formToSubmit) return;
             if (typeof $ !== 'undefined' && $.fn.modal) {
                 $('#deleteValueModal').modal('show');
-            } else {
-                if (confirm('Xóa giá trị này?')) formToSubmit.submit();
+            } else if (typeof window.bsConfirm === 'function') {
+                window.bsConfirm('Xóa giá trị này?').then(function(ok) {
+                    if (ok) formToSubmit.submit();
+                });
             }
         });
     });

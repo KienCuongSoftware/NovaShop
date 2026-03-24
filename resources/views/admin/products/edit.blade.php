@@ -451,20 +451,22 @@
 
     document.querySelectorAll('.btn-delete-variant').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            if (!confirm('Xóa biến thể này?')) return;
-            var url = this.getAttribute('data-url');
-            var token = this.getAttribute('data-csrf');
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = url;
-            var csrf = document.createElement('input');
-            csrf.type = 'hidden'; csrf.name = '_token'; csrf.value = token;
-            form.appendChild(csrf);
-            var method = document.createElement('input');
-            method.type = 'hidden'; method.name = '_method'; method.value = 'DELETE';
-            form.appendChild(method);
-            document.body.appendChild(form);
-            form.submit();
+            window.bsConfirm('Xóa biến thể này?').then(function(ok) {
+                if (!ok) return;
+                var url = btn.getAttribute('data-url');
+                var token = btn.getAttribute('data-csrf');
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = url;
+                var csrf = document.createElement('input');
+                csrf.type = 'hidden'; csrf.name = '_token'; csrf.value = token;
+                form.appendChild(csrf);
+                var method = document.createElement('input');
+                method.type = 'hidden'; method.name = '_method'; method.value = 'DELETE';
+                form.appendChild(method);
+                document.body.appendChild(form);
+                form.submit();
+            });
         });
     });
 })();

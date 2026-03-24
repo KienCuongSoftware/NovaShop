@@ -115,9 +115,12 @@
 document.querySelectorAll('.btn-delete').forEach(function(btn) {
     btn.addEventListener('click', function() {
         var name = this.getAttribute('data-name');
-        if (confirm('Bạn có chắc muốn xóa thuộc tính “‘ + name + ’”? Các giá trị thuộc tính cũng sẽ bị xóa.')) {
-            document.getElementById(this.getAttribute('data-form-id')).submit();
-        }
+        window.bsConfirm('Bạn có chắc muốn xóa thuộc tính “‘ + name + '”? Các giá trị thuộc tính cũng sẽ bị xóa.')
+            .then(function(ok) {
+                if (ok) {
+                    document.getElementById(btn.getAttribute('data-form-id')).submit();
+                }
+            });
     });
 });
 </script>

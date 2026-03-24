@@ -55,7 +55,7 @@
                         <td class="text-nowrap">
                             <a href="{{ route('admin.flash-sales.show', $fs) }}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
                             <a href="{{ route('admin.flash-sales.edit', $fs) }}" class="btn btn-sm btn-outline-secondary">Sửa</a>
-                            <form action="{{ route('admin.flash-sales.destroy', $fs) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa chương trình này?');">
+                            <form action="{{ route('admin.flash-sales.destroy', $fs) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Xóa chương trình này?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>

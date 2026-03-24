@@ -38,7 +38,7 @@
                             <button type="submit" class="btn btn-outline-secondary btn-sm">Đặt mặc định</button>
                         </form>
                     @endif
-                    <form action="{{ route('addresses.destroy', $address) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa địa chỉ này?');">
+                    <form action="{{ route('addresses.destroy', $address) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Xóa địa chỉ này?');">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>

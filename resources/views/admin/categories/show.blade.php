@@ -58,7 +58,7 @@
         <hr>
         <div class="d-flex gap-2">
             <a class="btn btn-primary" href="{{ route('admin.categories.edit', $category) }}">Sửa</a>
-            <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa danh mục \'{{ addslashes($category->name) }}\'?');">
+            <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Bạn có chắc muốn xóa danh mục \'{{ addslashes($category->name) }}\'?');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger">Xóa</button>

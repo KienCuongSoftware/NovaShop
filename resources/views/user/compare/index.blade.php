@@ -7,7 +7,7 @@
     <h2>So sánh (tối đa {{ \App\Http\Controllers\CompareController::MAX_ITEMS }})</h2>
     <div>
         @if($products->isNotEmpty())
-        <form action="{{ route('compare.clear') }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa hết danh sách so sánh?');">
+        <form action="{{ route('compare.clear') }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Xóa hết danh sách so sánh?');">
             @csrf
             <button type="submit" class="btn btn-outline-danger btn-sm">Xóa hết</button>
         </form>

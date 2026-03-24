@@ -239,12 +239,69 @@
         </main>
     </div>
 
+    <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-labelledby="globalConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="globalConfirmModalLabel">Xác nhận</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="globalConfirmModalBody">Bạn có chắc muốn thực hiện thao tác này?</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="globalConfirmModalOk">Đồng ý</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script src="{{ asset('js/image-preview.js') }}"></script>
     <script>
         $(function() { setTimeout(function() { $('.alert').alert('close'); }, 3000); });
+        (function() {
+            var pendingResolve = null;
+            function cleanupResolve(value) {
+                if (pendingResolve) {
+                    pendingResolve(value);
+                    pendingResolve = null;
+                }
+            }
+            window.bsConfirm = function(message) {
+                return new Promise(function(resolve) {
+                    var modal = document.getElementById('globalConfirmModal');
+                    var body = document.getElementById('globalConfirmModalBody');
+                    var okBtn = document.getElementById('globalConfirmModalOk');
+                    if (!modal || !body || !okBtn || typeof $ === 'undefined' || !$.fn.modal) {
+                        resolve(window.confirm(message || 'Bạn có chắc muốn thực hiện thao tác này?'));
+                        return;
+                    }
+                    body.textContent = message || 'Bạn có chắc muốn thực hiện thao tác này?';
+                    pendingResolve = resolve;
+                    okBtn.onclick = function() {
+                        cleanupResolve(true);
+                        $('#globalConfirmModal').modal('hide');
+                    };
+                    $('#globalConfirmModal')
+                        .off('hidden.bs.modal.globalConfirm')
+                        .on('hidden.bs.modal.globalConfirm', function() {
+                            cleanupResolve(false);
+                        })
+                        .modal('show');
+                });
+            };
+            window.bsConfirmSubmit = function(formEl, message) {
+                if (!formEl) return false;
+                window.bsConfirm(message).then(function(ok) {
+                    if (ok) formEl.submit();
+                });
+                return false;
+            };
+        })();
     </script>
     @stack('scripts')
 </body>

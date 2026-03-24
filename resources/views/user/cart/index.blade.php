@@ -158,8 +158,10 @@ window.addEventListener('load', function() {
             if (!formToSubmit) return;
             if (typeof $ !== 'undefined' && $.fn.modal) {
                 $('#cartRemoveModal').modal('show');
-            } else {
-                if (confirm('Xóa sản phẩm này khỏi giỏ hàng?')) formToSubmit.submit();
+            } else if (typeof window.bsConfirm === 'function') {
+                window.bsConfirm('Xóa sản phẩm này khỏi giỏ hàng?').then(function(ok) {
+                    if (ok) formToSubmit.submit();
+                });
             }
         });
     });

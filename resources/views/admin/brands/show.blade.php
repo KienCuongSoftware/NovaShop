@@ -27,7 +27,7 @@
         <hr>
         <div class="d-flex gap-2">
             <a class="btn btn-primary" href="{{ route('admin.brands.edit', $brand) }}">Sửa</a>
-            <form action="{{ route('admin.brands.destroy', $brand) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa thương hiệu \'{{ addslashes($brand->name) }}\'?');">
+            <form action="{{ route('admin.brands.destroy', $brand) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Bạn có chắc muốn xóa thương hiệu \'{{ addslashes($brand->name) }}\'?');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger">Xóa</button>
