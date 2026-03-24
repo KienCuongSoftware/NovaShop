@@ -2,12 +2,14 @@ FROM php:8.2-fpm
 
 RUN apt-get update && apt-get install -y \
     libpq-dev \
+    default-mysql-client \
     zip \
     unzip \
     git \
-    curl
-
-RUN docker-php-ext-install pdo_pgsql
+    curl \
+    libzip-dev \
+ && docker-php-ext-install pdo_pgsql pdo_mysql zip \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www
 
@@ -16,7 +18,4 @@ COPY . .
 RUN curl -sS https://getcomposer.org/installer | php
 RUN php composer.phar install --no-dev --optimize-autoloader
 
-RUN php artisan config:clear
-RUN php artisan cache:clear
-
-CMD php artisan serve --host=0.0.0.0 --port=$PORT
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
