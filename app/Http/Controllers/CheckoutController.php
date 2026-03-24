@@ -2,19 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Coupon;
-use App\Models\FlashSaleItem;
-use App\Models\InventoryLog;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Services\CartPricingService;
 use App\Services\CouponService;
+use App\Services\OrderPlacementService;
 use App\Services\ShippingFeeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
@@ -24,7 +18,7 @@ class CheckoutController extends Controller
         $user = Auth::user();
         $cart = $user->cart()->with(['items.product.category', 'items.productVariant', 'coupon'])->first();
 
-        if (!$cart || $cart->items->isEmpty()) {
+        if (! $cart || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
         }
 
@@ -34,7 +28,7 @@ class CheckoutController extends Controller
         $subtotal = (int) round(CartPricingService::cartSubtotal($cart, $flashByVariant));
         $coupon = $cart->coupon;
         $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
-        if (!$couponResult['ok']) {
+        if (! $couponResult['ok']) {
             if ($cart->coupon_id) {
                 $cart->update(['coupon_id' => null]);
             }
@@ -56,6 +50,7 @@ class CheckoutController extends Controller
         $lat = $request->query('lat') !== null && $request->query('lat') !== '' ? (float) $request->query('lat') : null;
         $lng = $request->query('lng') !== null && $request->query('lng') !== '' ? (float) $request->query('lng') : null;
         $result = ShippingFeeService::calculate($lat, $lng);
+
         return response()->json([
             'fee' => $result['fee'],
             'distance_km' => $result['distance_km'],
@@ -68,7 +63,7 @@ class CheckoutController extends Controller
         $user = Auth::user();
         $cart = $user->cart()->with(['items.product.category', 'items.productVariant', 'coupon'])->first();
 
-        if (!$cart || $cart->items->isEmpty()) {
+        if (! $cart || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
         }
 
@@ -78,7 +73,7 @@ class CheckoutController extends Controller
         $savedAddress = null;
         if ($useSavedAddress) {
             $savedAddress = $user->addresses()->find($request->input('address_id'));
-            if (!$savedAddress) {
+            if (! $savedAddress) {
                 return redirect()->route('checkout.show')->with('error', 'Địa chỉ không hợp lệ.');
             }
         } else {
@@ -101,143 +96,37 @@ class CheckoutController extends Controller
         }
 
         $paymentMethod = $request->input('payment_method');
-        $paymentStatus = Order::PAYMENT_STATUS_UNPAID;
-        $initialStatus = $paymentMethod === Order::PAYMENT_METHOD_PAYPAL
-            ? Order::STATUS_UNPAID
-            : Order::STATUS_PENDING;
 
-        $orderPayload = [
-            'status' => $initialStatus,
-            'payment_method' => $paymentMethod,
-            'payment_status' => $paymentStatus,
-            'shipping_status' => Order::mapShippingStatusFromOrderStatus($initialStatus),
-            'notes' => $request->input('notes'),
-        ];
         if ($savedAddress) {
-            $orderPayload['address_id'] = $savedAddress->id;
-            $orderPayload['shipping_address_snapshot'] = $savedAddress->full_address;
-            $orderPayload['phone_snapshot'] = $savedAddress->phone;
-            $orderPayload['lat'] = $savedAddress->lat;
-            $orderPayload['lng'] = $savedAddress->lng;
+            $resolvedAddress = [
+                'address_id' => $savedAddress->id,
+                'shipping_address_snapshot' => $savedAddress->full_address,
+                'phone_snapshot' => $savedAddress->phone,
+                'lat' => $savedAddress->lat,
+                'lng' => $savedAddress->lng,
+            ];
         } else {
-            $orderPayload['shipping_address_snapshot'] = $request->input('shipping_address');
-            $orderPayload['phone_snapshot'] = $request->input('phone');
-            $orderPayload['lat'] = $request->input('lat');
-            $orderPayload['lng'] = $request->input('lng');
+            $resolvedAddress = [
+                'shipping_address_snapshot' => (string) $request->input('shipping_address'),
+                'phone_snapshot' => (string) $request->input('phone'),
+                'lat' => $request->input('lat'),
+                'lng' => $request->input('lng'),
+            ];
         }
 
-        $shipping = ShippingFeeService::calculate(
-            isset($orderPayload['lat']) ? (float) $orderPayload['lat'] : null,
-            isset($orderPayload['lng']) ? (float) $orderPayload['lng'] : null
+        $result = app(OrderPlacementService::class)->placeFromCart(
+            $user,
+            $cart,
+            $paymentMethod,
+            $resolvedAddress,
+            $request->input('notes')
         );
-        $orderPayload['shipping_fee'] = $shipping['fee'];
-        $orderPayload['shipping_distance_km'] = $shipping['distance_km'];
 
-        $order = null;
-        try {
-            DB::transaction(function () use ($user, $cart, $request, $orderPayload, &$order) {
-            $total = 0;
-            $order = $user->orders()->create(array_merge($orderPayload, [
-                'coupon_id' => null,
-                'discount_amount' => 0,
-            ]));
-
-            foreach ($cart->items as $item) {
-                $qty = $item->quantity;
-                $price = $item->productVariant
-                    ? (float) $item->productVariant->price
-                    : (float) $item->product->price;
-
-                $lockedVariant = null;
-                $lockedProduct = null;
-                if ($item->product_variant_id) {
-                    $lockedVariant = ProductVariant::query()
-                        ->where('id', $item->product_variant_id)
-                        ->lockForUpdate()
-                        ->first();
-                    if (!$lockedVariant || $lockedVariant->stock < $qty) {
-                        throw new \RuntimeException('Biến thể sản phẩm không đủ tồn kho khi đặt hàng.');
-                    }
-                } else {
-                    $lockedProduct = Product::query()
-                        ->where('id', $item->product_id)
-                        ->lockForUpdate()
-                        ->first();
-                    if (!$lockedProduct || (int) $lockedProduct->quantity < $qty) {
-                        throw new \RuntimeException('Sản phẩm không đủ tồn kho khi đặt hàng.');
-                    }
-                }
-
-                if ($item->product_variant_id) {
-                    $flashItem = FlashSaleItem::where('product_variant_id', $item->product_variant_id)
-                        ->whereHas('flashSale', fn ($q) => $q->active())
-                        ->lockForUpdate()
-                        ->first();
-                    if ($flashItem && $flashItem->quantity - $flashItem->sold >= $qty) {
-                        $price = (float) $flashItem->sale_price;
-                        $flashItem->increment('sold', $qty);
-                    }
-                }
-
-                $total += $price * $qty;
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'price' => $price,
-                    'quantity' => $qty,
-                ]);
-
-                // Trừ tồn kho và ghi log nhập/xuất kho.
-                if ($lockedVariant) {
-                    $lockedVariant->decrement('stock', $qty);
-                } elseif ($lockedProduct) {
-                    $lockedProduct->decrement('quantity', $qty);
-                }
-                InventoryLog::create([
-                    'product_variant_id' => $item->product_variant_id,
-                    'order_id' => $order->id,
-                    'type' => 'export',
-                    'quantity' => $qty,
-                    'source' => 'checkout',
-                    'note' => 'Đặt hàng thành công, trừ tồn kho.',
-                ]);
-            }
-
-            $coupon = null;
-            if ($cart->coupon_id) {
-                $coupon = Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first();
-            }
-            $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
-            if (!$couponResult['ok']) {
-                throw new \RuntimeException($couponResult['message'] ?? 'Mã giảm giá không hợp lệ.');
-            }
-            $discountAmount = (int) $couponResult['discount'];
-            $grandTotal = (int) $total - $discountAmount + (int) $orderPayload['shipping_fee'];
-            if ($grandTotal < 0) {
-                $grandTotal = 0;
-            }
-
-            $order->update([
-                'total_amount' => $grandTotal,
-                'discount_amount' => $discountAmount,
-                'coupon_id' => $coupon?->id,
-                'shipping_fee' => $orderPayload['shipping_fee'],
-                'shipping_distance_km' => $orderPayload['shipping_distance_km'],
-            ]);
-            if ($coupon && $discountAmount > 0) {
-                $coupon->increment('uses_count');
-            }
-            $cart->items()->delete();
-            $cart->update(['coupon_id' => null]);
-            });
-        } catch (\Throwable $e) {
-            return redirect()->route('cart.index')->with('error', $e->getMessage());
+        if (! $result['ok']) {
+            return redirect()->route('cart.index')->with('error', $result['error']);
         }
 
-        if (!$order) {
-            return redirect()->route('cart.index')->with('error', 'Không thể tạo đơn hàng. Vui lòng thử lại.');
-        }
+        $order = $result['order'];
 
         if ($paymentMethod === Order::PAYMENT_METHOD_COD) {
             return redirect()->route('order.success', ['order' => $order->id])

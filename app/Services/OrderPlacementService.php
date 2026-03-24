@@ -1,0 +1,178 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Cart;
+use App\Models\Coupon;
+use App\Models\FlashSaleItem;
+use App\Models\InventoryLog;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Tạo đơn từ giỏ (dùng chung web checkout và API v1).
+ */
+class OrderPlacementService
+{
+    /**
+     * @param  array{
+     *     payment_method: string,
+     *     address_id?: int|null,
+     *     full_name?: string,
+     *     phone?: string,
+     *     shipping_address?: string,
+     *     lat?: float|string|null,
+     *     lng?: float|string|null,
+     *     notes?: string|null
+     * }  $orderPayload  shipping_address_snapshot fields đã chuẩn hóa giống CheckoutController
+     * @param  array{
+     *     shipping_address_snapshot: string,
+     *     phone_snapshot: string,
+     *     lat: float|string|null,
+     *     lng: float|string|null,
+     *     address_id?: int|null
+     * }  $resolvedAddress
+     * @return array{ok: true, order: Order}|array{ok: false, error: string}
+     */
+    public function placeFromCart(User $user, Cart $cart, string $paymentMethod, array $resolvedAddress, ?string $notes = null): array
+    {
+        $paymentStatus = Order::PAYMENT_STATUS_UNPAID;
+        $initialStatus = $paymentMethod === Order::PAYMENT_METHOD_PAYPAL
+            ? Order::STATUS_UNPAID
+            : Order::STATUS_PENDING;
+
+        $orderPayload = [
+            'status' => $initialStatus,
+            'payment_method' => $paymentMethod,
+            'payment_status' => $paymentStatus,
+            'shipping_status' => Order::mapShippingStatusFromOrderStatus($initialStatus),
+            'notes' => $notes,
+            'shipping_address_snapshot' => $resolvedAddress['shipping_address_snapshot'],
+            'phone_snapshot' => $resolvedAddress['phone_snapshot'],
+            'lat' => $resolvedAddress['lat'] ?? null,
+            'lng' => $resolvedAddress['lng'] ?? null,
+        ];
+        if (! empty($resolvedAddress['address_id'])) {
+            $orderPayload['address_id'] = $resolvedAddress['address_id'];
+        }
+
+        $shipping = ShippingFeeService::calculate(
+            isset($orderPayload['lat']) ? (float) $orderPayload['lat'] : null,
+            isset($orderPayload['lng']) ? (float) $orderPayload['lng'] : null
+        );
+        $orderPayload['shipping_fee'] = $shipping['fee'];
+        $orderPayload['shipping_distance_km'] = $shipping['distance_km'];
+
+        $order = null;
+
+        try {
+            DB::transaction(function () use ($user, $cart, $orderPayload, &$order) {
+                $total = 0;
+                $order = $user->orders()->create(array_merge($orderPayload, [
+                    'coupon_id' => null,
+                    'discount_amount' => 0,
+                ]));
+
+                foreach ($cart->items as $item) {
+                    $qty = $item->quantity;
+                    $price = $item->productVariant
+                        ? (float) $item->productVariant->price
+                        : (float) $item->product->price;
+
+                    $lockedVariant = null;
+                    $lockedProduct = null;
+                    if ($item->product_variant_id) {
+                        $lockedVariant = ProductVariant::query()
+                            ->where('id', $item->product_variant_id)
+                            ->lockForUpdate()
+                            ->first();
+                        if (! $lockedVariant || $lockedVariant->stock < $qty) {
+                            throw new \RuntimeException('Biến thể sản phẩm không đủ tồn kho khi đặt hàng.');
+                        }
+                    } else {
+                        $lockedProduct = Product::query()
+                            ->where('id', $item->product_id)
+                            ->lockForUpdate()
+                            ->first();
+                        if (! $lockedProduct || (int) $lockedProduct->quantity < $qty) {
+                            throw new \RuntimeException('Sản phẩm không đủ tồn kho khi đặt hàng.');
+                        }
+                    }
+
+                    if ($item->product_variant_id) {
+                        $flashItem = FlashSaleItem::where('product_variant_id', $item->product_variant_id)
+                            ->whereHas('flashSale', fn ($q) => $q->active())
+                            ->lockForUpdate()
+                            ->first();
+                        if ($flashItem && $flashItem->quantity - $flashItem->sold >= $qty) {
+                            $price = (float) $flashItem->sale_price;
+                            $flashItem->increment('sold', $qty);
+                        }
+                    }
+
+                    $total += $price * $qty;
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $item->product_id,
+                        'product_variant_id' => $item->product_variant_id,
+                        'price' => $price,
+                        'quantity' => $qty,
+                    ]);
+
+                    if ($lockedVariant) {
+                        $lockedVariant->decrement('stock', $qty);
+                    } elseif ($lockedProduct) {
+                        $lockedProduct->decrement('quantity', $qty);
+                    }
+                    InventoryLog::create([
+                        'product_variant_id' => $item->product_variant_id,
+                        'order_id' => $order->id,
+                        'type' => 'export',
+                        'quantity' => $qty,
+                        'source' => 'checkout',
+                        'note' => 'Đặt hàng thành công, trừ tồn kho.',
+                    ]);
+                }
+
+                $coupon = null;
+                if ($cart->coupon_id) {
+                    $coupon = Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first();
+                }
+                $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+                if (! $couponResult['ok']) {
+                    throw new \RuntimeException($couponResult['message'] ?? 'Mã giảm giá không hợp lệ.');
+                }
+                $discountAmount = (int) $couponResult['discount'];
+                $grandTotal = (int) $total - $discountAmount + (int) $orderPayload['shipping_fee'];
+                if ($grandTotal < 0) {
+                    $grandTotal = 0;
+                }
+
+                $order->update([
+                    'total_amount' => $grandTotal,
+                    'discount_amount' => $discountAmount,
+                    'coupon_id' => $coupon?->id,
+                    'shipping_fee' => $orderPayload['shipping_fee'],
+                    'shipping_distance_km' => $orderPayload['shipping_distance_km'],
+                ]);
+                if ($coupon && $discountAmount > 0) {
+                    $coupon->increment('uses_count');
+                }
+                $cart->items()->delete();
+                $cart->update(['coupon_id' => null]);
+            });
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+
+        if (! $order) {
+            return ['ok' => false, 'error' => 'Không thể tạo đơn hàng. Vui lòng thử lại.'];
+        }
+
+        return ['ok' => true, 'order' => $order->fresh()];
+    }
+}
