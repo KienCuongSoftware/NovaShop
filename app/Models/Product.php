@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +12,8 @@ use Illuminate\Support\Str;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<\Database\Factories\ProductFactory> */
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'category_id',
@@ -49,6 +51,7 @@ class Product extends Model
     {
         if ($value === null) {
             $this->attributes['name'] = null;
+
             return;
         }
         $value = trim($value);
@@ -70,17 +73,17 @@ class Product extends Model
                     if ($product->exists) {
                         $q->where('id', '!=', $product->id);
                     }
-                    if (!$q->exists()) {
+                    if (! $q->exists()) {
                         break;
                     }
-                    $slug = $base . '-' . (++$n);
+                    $slug = $base.'-'.(++$n);
                 }
                 $product->slug = $slug;
             }
         });
 
         static::saved(function (Product $product) {
-            if (!$product->wasChanged('quantity')) {
+            if (! $product->wasChanged('quantity')) {
                 return;
             }
             if ($product->variants()->exists()) {
@@ -146,10 +149,10 @@ class Product extends Model
         foreach ($this->variants as $v) {
             foreach ($v->attributeValues as $av) {
                 $name = $av->attribute->name;
-                if (!isset($options[$name])) {
+                if (! isset($options[$name])) {
                     $options[$name] = [];
                 }
-                if (!in_array($av->value, $options[$name], true)) {
+                if (! in_array($av->value, $options[$name], true)) {
                     $options[$name][] = $av->value;
                 }
             }
@@ -157,6 +160,7 @@ class Product extends Model
         foreach ($options as $k => $v) {
             sort($options[$k]);
         }
+
         return $options;
     }
 
@@ -183,6 +187,7 @@ class Product extends Model
                 return $variant;
             }
         }
+
         return null;
     }
 
@@ -191,6 +196,7 @@ class Product extends Model
         if ($this->hasVariants()) {
             return (int) $this->variants()->sum('stock');
         }
+
         return (int) $this->quantity;
     }
 
@@ -200,6 +206,7 @@ class Product extends Model
         if ($this->hasVariants()) {
             return (float) ($this->variants()->min('price') ?? 0);
         }
+
         return (float) $this->price;
     }
 

@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Category;
+use App\Models\FlashSale;
+use App\Models\FlashSaleItem;
+use App\Services\CatalogCache;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
@@ -22,6 +26,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Category::saved(fn () => CatalogCache::forgetCategoryTree());
+        Category::deleted(fn () => CatalogCache::forgetCategoryTree());
+
+        FlashSale::saved(fn () => CatalogCache::forgetFlashWelcome());
+        FlashSaleItem::saved(fn () => CatalogCache::forgetFlashWelcome());
+        FlashSaleItem::deleted(fn () => CatalogCache::forgetFlashWelcome());
+
         Paginator::useBootstrapFour();
 
         View::composer('layouts.user', function ($view) {
