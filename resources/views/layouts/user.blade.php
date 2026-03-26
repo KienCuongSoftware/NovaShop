@@ -251,9 +251,7 @@
             display: none;
         }
 
-        /* (Removed) Inline category suggestions under search input */
-
-        /* Removed: search suggestions dropdown (keep only search history dropdown). */
+        /* Search dropdown: history + typeahead suggestions */
         .search-history-dropdown.show {
             display: block;
         }
@@ -311,6 +309,43 @@
             color: #6c757d;
             font-size: 0.85rem;
             border-top: 1px solid #dee2e6;
+        }
+        .search-history-dropdown .suggestion-item-row {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            text-align: left;
+            padding: 0.55rem 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .search-history-dropdown .suggestion-item-row:hover,
+        .search-history-dropdown .suggestion-item-row.is-active {
+            background: #fff5f5;
+        }
+        .search-history-dropdown .suggestion-item-main {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+        .search-history-dropdown .suggestion-item-name {
+            font-size: 0.94rem;
+            color: #1f2937;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 360px;
+        }
+        .search-history-dropdown .suggestion-item-price {
+            font-size: 0.82rem;
+            color: #dc3545;
+            font-weight: 700;
+            margin-left: 0.5rem;
+            flex-shrink: 0;
         }
 
         .navbar-search-wrap {
@@ -1175,9 +1210,15 @@
                         </form>
 
                         <div class="search-history-dropdown" id="search-history-dropdown" role="listbox">
-                            <div class="dropdown-title">Lịch sử tìm kiếm</div>
-                            <div id="search-history-list"></div>
-                            <button type="button" class="dropdown-item dropdown-item-clear" id="search-history-clear">Xóa lịch sử</button>
+                            <div id="search-history-section">
+                                <div class="dropdown-title">Lịch sử tìm kiếm</div>
+                                <div id="search-history-list"></div>
+                                <button type="button" class="dropdown-item dropdown-item-clear" id="search-history-clear">Xóa lịch sử</button>
+                            </div>
+                            <div id="search-suggest-section" style="display:none;">
+                                <div class="dropdown-title">Gợi ý sản phẩm</div>
+                                <div id="search-suggest-list"></div>
+                            </div>
                         </div>
                     </div>
                     @auth
@@ -1334,9 +1375,15 @@
             var input = document.getElementById('search-input');
             var form = document.getElementById('search-form');
             var dropdown = document.getElementById('search-history-dropdown');
-            var listEl = document.getElementById('search-history-list');
+            var historySection = document.getElementById('search-history-section');
+            var suggestSection = document.getElementById('search-suggest-section');
+            var historyListEl = document.getElementById('search-history-list');
+            var suggestListEl = document.getElementById('search-suggest-list');
             var clearBtn = document.getElementById('search-history-clear');
             var hideTimeout = null;
+            var debounceTimer = null;
+            var activeSuggestIndex = -1;
+            var currentSuggestions = [];
 
             function getHistory() {
                 try {
@@ -1362,11 +1409,25 @@
                 setHistory(arr);
                 renderHistory();
             }
+            function formatPrice(v) {
+                var n = Number(v || 0);
+                return n.toLocaleString('vi-VN') + '₫';
+            }
+            function openDropdown() { dropdown.classList.add('show'); }
+            function closeDropdown() { dropdown.classList.remove('show'); }
+            function showHistorySection() {
+                suggestSection.style.display = 'none';
+                historySection.style.display = '';
+            }
+            function showSuggestSection() {
+                historySection.style.display = 'none';
+                suggestSection.style.display = '';
+            }
             function renderHistory() {
                 var arr = getHistory();
-                listEl.innerHTML = '';
+                historyListEl.innerHTML = '';
                 if (arr.length === 0) {
-                    listEl.innerHTML = '<div class="dropdown-item" style="color:#999;cursor:default;">Chưa có lịch sử</div>';
+                    historyListEl.innerHTML = '<div class="dropdown-item" style="color:#999;cursor:default;">Chưa có lịch sử</div>';
                     return;
                 }
                 arr.forEach(function(text) {
@@ -1386,9 +1447,8 @@
                     row.addEventListener('mousedown', function(e) {
                         if (e.target === spanDelete || spanDelete.contains(e.target)) return;
                         e.preventDefault();
-                        e.stopPropagation();
                         input.value = text;
-                        dropdown.classList.remove('show');
+                        closeDropdown();
                         window.location.href = form.action + '?q=' + encodeURIComponent(text);
                     });
                     spanDelete.addEventListener('mousedown', function(e) {
@@ -1396,28 +1456,117 @@
                         e.stopPropagation();
                         removeFromHistory(text);
                     });
-                    listEl.appendChild(row);
+                    historyListEl.appendChild(row);
                 });
             }
-            function showDropdown() {
-                clearTimeout(hideTimeout);
-                renderHistory();
-                if (getHistory().length > 0) {
-                    dropdown.classList.add('show');
-                } else {
-                    dropdown.classList.remove('show');
+            function renderSuggestions(rows) {
+                currentSuggestions = rows || [];
+                activeSuggestIndex = -1;
+                suggestListEl.innerHTML = '';
+                if (!currentSuggestions.length) {
+                    suggestListEl.innerHTML = '<div class="dropdown-item" style="color:#999;cursor:default;">Không có gợi ý phù hợp</div>';
+                    return;
                 }
-
+                currentSuggestions.forEach(function(item, index) {
+                    var row = document.createElement('button');
+                    row.type = 'button';
+                    row.className = 'suggestion-item-row';
+                    row.setAttribute('data-index', String(index));
+                    row.setAttribute('role', 'option');
+                    row.innerHTML =
+                        '<span class="suggestion-item-main">' +
+                            '<span class="suggestion-item-name"></span>' +
+                        '</span>' +
+                        '<span class="suggestion-item-price"></span>';
+                    row.querySelector('.suggestion-item-name').textContent = item.name || '';
+                    row.querySelector('.suggestion-item-price').textContent = formatPrice(item.price || 0);
+                    row.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        if (item.url) {
+                            window.location.href = item.url;
+                            return;
+                        }
+                        if (item.slug) {
+                            window.location.href = '/products/' + encodeURIComponent(item.slug);
+                        }
+                    });
+                    suggestListEl.appendChild(row);
+                });
+            }
+            function updateActiveSuggestion() {
+                var rows = suggestListEl.querySelectorAll('.suggestion-item-row');
+                rows.forEach(function(row, idx) {
+                    if (idx === activeSuggestIndex) row.classList.add('is-active');
+                    else row.classList.remove('is-active');
+                });
+            }
+            function performSuggest() {
+                var q = (input.value || '').trim();
+                if (!q) {
+                    showHistorySection();
+                    renderHistory();
+                    if (getHistory().length > 0) openDropdown(); else closeDropdown();
+                    return;
+                }
+                fetch("{{ route('api.v1.search.suggestions') }}?q=" + encodeURIComponent(q) + "&limit=8", {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(function(res) { return res.ok ? res.json() : { data: [] }; })
+                .then(function(payload) {
+                    showSuggestSection();
+                    renderSuggestions((payload && payload.data) || []);
+                    openDropdown();
+                })
+                .catch(function() {
+                    showHistorySection();
+                    renderHistory();
+                    if (getHistory().length > 0) openDropdown(); else closeDropdown();
+                });
+            }
+            function debounceSuggest() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(performSuggest, 220);
+            }
+            function showDropdownByInput() {
+                clearTimeout(hideTimeout);
+                var q = (input.value || '').trim();
+                if (q) {
+                    debounceSuggest();
+                } else {
+                    showHistorySection();
+                    renderHistory();
+                    if (getHistory().length > 0) openDropdown();
+                }
             }
             function hideDropdown() {
                 hideTimeout = setTimeout(function() {
-                    dropdown.classList.remove('show');
+                    closeDropdown();
                 }, 200);
             }
 
             if (input) {
-                input.addEventListener('focus', showDropdown);
+                input.addEventListener('focus', showDropdownByInput);
                 input.addEventListener('blur', hideDropdown);
+                input.addEventListener('input', showDropdownByInput);
+                input.addEventListener('keydown', function(e) {
+                    if (!dropdown.classList.contains('show') || suggestSection.style.display === 'none') return;
+                    if (!currentSuggestions.length) return;
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        activeSuggestIndex = (activeSuggestIndex + 1) % currentSuggestions.length;
+                        updateActiveSuggestion();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        activeSuggestIndex = activeSuggestIndex <= 0 ? currentSuggestions.length - 1 : activeSuggestIndex - 1;
+                        updateActiveSuggestion();
+                    } else if (e.key === 'Enter' && activeSuggestIndex >= 0 && currentSuggestions[activeSuggestIndex]) {
+                        e.preventDefault();
+                        var item = currentSuggestions[activeSuggestIndex];
+                        if (item.url) window.location.href = item.url;
+                    } else if (e.key === 'Escape') {
+                        closeDropdown();
+                    }
+                });
             }
             if (form) {
                 form.addEventListener('submit', function() {
@@ -1439,7 +1588,6 @@
             if (input && input.value.trim()) {
                 addToHistory(input.value.trim());
             }
-
         })();
     </script>
     @livewireScripts
