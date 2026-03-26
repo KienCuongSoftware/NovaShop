@@ -35,15 +35,20 @@
             display: table-cell;
             vertical-align: middle;
         }
+        /* Monogram thay vì <img>: Gmail không tải localhost; nhiều client chặn SVG trong img */
         .brand-logo {
             width: 34px;
             height: 34px;
             border-radius: 8px;
             background: #fff;
-            padding: 4px;
             display: inline-block;
             margin-right: 8px;
             vertical-align: middle;
+            text-align: center;
+            line-height: 34px;
+            font-weight: 800;
+            font-size: 15px;
+            color: #dc3545;
         }
         .brand {
             margin: 0;
@@ -154,13 +159,12 @@
 <body>
     @php
         $verifyUrl = route('verification.otp.notice');
-        $logoUrl = rtrim(config('app.url'), '/') . '/favicon.svg';
     @endphp
     <div class="container" role="article" aria-label="NovaShop OTP Email">
         <div class="header">
             <div class="brand-row">
                 <div class="brand-cell">
-                    <img src="{{ $logoUrl }}" alt="NovaShop" class="brand-logo">
+                    <span class="brand-logo" role="img" aria-label="NovaShop">N</span>
                     <h1 class="brand">NovaShop</h1>
                 </div>
             </div>
