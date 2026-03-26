@@ -6,11 +6,17 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\CatalogCache;
+use App\Services\ProductSearchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class WelcomeController extends Controller
 {
+    public function __construct(
+        protected ProductSearchService $productSearchService
+    ) {}
+
     /** Gợi ý sản phẩm tương tự dựa trên hành vi xem chi tiết (cùng danh mục với sản phẩm đã xem). */
     protected function getSuggestedProducts(): \Illuminate\Support\Collection
     {
@@ -162,13 +168,42 @@ class WelcomeController extends Controller
                 $pattern = '%'.$esc.'%';
                 $query->where('name', 'like', $pattern);
             });
+
+        // Ưu tiên Elasticsearch để lấy danh sách ID theo relevance; lỗi/không bật sẽ fallback DB LIKE như cũ.
+        $esIds = $this->productSearchService->searchProductIds($q, $categoryId);
+        if (is_array($esIds)) {
+            if (empty($esIds)) {
+                $productsQuery->whereRaw('1 = 0');
+            } else {
+                $productsQuery->whereIn('id', $esIds);
+            }
+        }
+
         $productsQuery = $this->applyPriceFilter($productsQuery, $request);
 
         $resultCategoryIds = (clone $productsQuery)->distinct()->pluck('category_id')->filter()->values()->all();
         $categories = $this->buildSearchSidebarCategories($resultCategoryIds);
 
         $products = $productsQuery->with('category');
-        $products = $this->applySort($products, $request)->paginate(12)->withQueryString();
+        $products = $this->applySort($products, $request);
+
+        // Nếu đang sort mặc định "popular" và có kết quả ES thì giữ thứ tự relevance từ ES.
+        if (is_array($esIds) && ! empty($esIds) && $this->getSortParam($request) === 'popular') {
+            $driver = DB::connection()->getDriverName();
+            if ($driver === 'pgsql') {
+                $caseSql = 'CASE id';
+                foreach ($esIds as $position => $id) {
+                    $caseSql .= ' WHEN '.(int) $id.' THEN '.(int) $position;
+                }
+                $caseSql .= ' ELSE '.count($esIds).' END';
+                $products->orderByRaw($caseSql);
+            } else {
+                $idsCsv = implode(',', array_map('intval', $esIds));
+                $products->orderByRaw("FIELD(id, {$idsCsv})");
+            }
+        }
+
+        $products = $products->paginate(12)->withQueryString();
 
         // Update session để gợi ý theo hành vi tìm kiếm
         // (lấy các sản phẩm thuộc trang kết quả đầu tiên)
