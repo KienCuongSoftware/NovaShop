@@ -51,4 +51,11 @@ return [
         'mode' => env('PAYPAL_MODE', 'sandbox'),
     ],
 
+    'elasticsearch' => [
+        'enabled' => env('ELASTICSEARCH_ENABLED', false),
+        'host' => env('ELASTICSEARCH_HOST'),
+        'index' => env('ELASTICSEARCH_PRODUCTS_INDEX', 'novashop_products'),
+        'timeout' => env('ELASTICSEARCH_TIMEOUT', 2),
+    ],
+
 ];
