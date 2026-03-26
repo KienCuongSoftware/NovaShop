@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Category;
 use App\Models\FlashSale;
 use App\Models\FlashSaleItem;
+use App\Models\Product;
+use App\Observers\ProductObserver;
 use App\Services\CatalogCache;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Product::observe(ProductObserver::class);
+
         Category::saved(fn () => CatalogCache::forgetCategoryTree());
         Category::deleted(fn () => CatalogCache::forgetCategoryTree());
 
@@ -45,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
 
                 return;
             }
+            /** @var \App\Models\User $u */
             $u = Auth::user();
             $view->with([
                 'navWishlistCount' => $u->wishlistItems()->count(),
