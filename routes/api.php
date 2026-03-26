@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\CartController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CheckoutController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Middleware\AddWeakEtagPublicApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('api.v1.categories.index');
         Route::get('/products', [ProductController::class, 'index'])->name('api.v1.products.index');
         Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('api.v1.products.show');
+        Route::get('/search/suggestions', [SearchController::class, 'suggestions'])
+            ->middleware('throttle:60,1')
+            ->name('api.v1.search.suggestions');
     });
 
     Route::middleware('auth:sanctum')->group(function () {
