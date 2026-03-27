@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\SearchQueryTrend;
 use App\Services\CatalogCache;
 use App\Services\ProductSearchService;
 use Illuminate\Http\Request;
@@ -28,7 +29,8 @@ class WelcomeController extends Controller
 
         $chosenIds = collect($excludeIds)->filter()->values();
 
-        $baseQuery = Product::with('category')->when(! $categoryIds || empty($categoryIds), function ($q) {
+        $baseQuery = $this->attachApprovedReviewStats(Product::with('category'))
+            ->when(! $categoryIds || empty($categoryIds), function ($q) {
             // Nếu chưa có lịch sử danh mục thì lấy random toàn site.
         }, function ($q) use ($categoryIds) {
             $q->whereIn('category_id', $categoryIds);
@@ -44,7 +46,7 @@ class WelcomeController extends Controller
         // Nếu chưa đủ 4 món để render ít nhất 1 hàng -> bù thêm từ pool random toàn site.
         if ($products->count() < $step) {
             $toNeed = $step - $products->count();
-            $more = Product::with('category')
+            $more = $this->attachApprovedReviewStats(Product::with('category'))
                 ->when(! $categoryIds || empty($categoryIds), function ($q) {
                     // Không làm gì thêm
                 }, function ($q) use ($categoryIds) {
@@ -65,7 +67,7 @@ class WelcomeController extends Controller
 
         if ($products->count() < $desiredCount) {
             $needed = $desiredCount - $products->count();
-            $more = Product::with('category')
+            $more = $this->attachApprovedReviewStats(Product::with('category'))
                 // Fallback: bỏ filter category khi không đủ để bù tiếp.
                 ->when(! empty($excludeIds), fn ($q) => $q->whereNotIn('id', $excludeIds))
                 ->whereNotIn('id', $products->pluck('id')->all())
@@ -157,16 +159,39 @@ class WelcomeController extends Controller
         $q = trim((string) $request->input('q', ''));
         $categoryId = $request->filled('category_id') ? (int) $request->input('category_id') : null;
 
-        $productsQuery = Product::query()
+        // Trending queries: lưu số lần tìm kiếm của keyword.
+        if ($q !== '') {
+            $key = mb_strtolower($q);
+            $row = SearchQueryTrend::query()->where('keyword', $key)->first();
+            if ($row) {
+                $row->increment('count');
+                $row->update(['last_seen_at' => now()]);
+            } else {
+                SearchQueryTrend::query()->create([
+                    'keyword' => $key,
+                    'count' => 1,
+                    'last_seen_at' => now(),
+                ]);
+            }
+        }
+
+        $productsQuery = $this->attachApprovedReviewStats(Product::query())
             ->when($categoryId, function ($query) use ($categoryId) {
                 $category = Category::with('children')->find($categoryId);
                 $ids = $category ? $category->getDescendantIds() : [$categoryId];
                 $query->whereIn('category_id', $ids);
             })
             ->when($q !== '', function ($query) use ($q) {
-                $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-                $pattern = '%'.$esc.'%';
-                $query->where('name', 'like', $pattern);
+                $synonyms = $this->productSearchService->getSynonyms($q);
+                $terms = array_values(array_unique(array_merge([$q], $synonyms)));
+
+                $query->where(function ($q2) use ($terms) {
+                    foreach ($terms as $term) {
+                        $esc = str_replace(['%', '_'], ['\\%', '\\_'], (string) $term);
+                        $pattern = '%'.$esc.'%';
+                        $q2->orWhere('name', 'like', $pattern);
+                    }
+                });
             });
 
         // Ưu tiên Elasticsearch để lấy danh sách ID theo relevance; lỗi/không bật sẽ fallback DB LIKE như cũ.
@@ -180,6 +205,15 @@ class WelcomeController extends Controller
         }
 
         $productsQuery = $this->applyPriceFilter($productsQuery, $request);
+
+        // Rating facet: lọc sản phẩm rating >= (1..5)
+        $ratingMinRaw = $request->query('rating');
+        $ratingMin = in_array((int) $ratingMinRaw, [1, 2, 3, 4, 5], true) ? (int) $ratingMinRaw : null;
+        if ($ratingMin !== null) {
+            $productsQuery->whereHas('reviews', fn ($rq) => $rq
+                ->where('is_approved', true)
+                ->where('rating', '>=', $ratingMin));
+        }
 
         $resultCategoryIds = (clone $productsQuery)->distinct()->pluck('category_id')->filter()->values()->all();
         $categories = $this->buildSearchSidebarCategories($resultCategoryIds);
@@ -308,7 +342,7 @@ class WelcomeController extends Controller
     /** Xây query sản phẩm với filter danh mục, brand, giá và sort. */
     protected function buildProductQuery(?int $categoryId, Request $request)
     {
-        $query = Product::with(['category', 'brand'])
+        $query = $this->attachApprovedReviewStats(Product::with(['category', 'brand']))
             ->when($categoryId !== null, function ($q) use ($categoryId) {
                 $category = Category::with('children')->find($categoryId);
                 $ids = $category ? $category->getDescendantIds() : [$categoryId];
@@ -326,6 +360,16 @@ class WelcomeController extends Controller
                     $q->where('brand_id', $brandId);
                 }
             });
+
+        // Rating facet: lọc sản phẩm có rating >= giá trị (1..5).
+        $ratingMinRaw = $request->query('rating');
+        $ratingMin = in_array((int) $ratingMinRaw, [1, 2, 3, 4, 5], true) ? (int) $ratingMinRaw : null;
+        if ($ratingMin !== null) {
+            $query->whereHas('reviews', fn ($rq) => $rq
+                ->where('is_approved', true)
+                ->where('rating', '>=', $ratingMin));
+        }
+
         $query = $this->applyPriceFilter($query, $request);
 
         return $this->applySort($query, $request);
@@ -358,5 +402,17 @@ class WelcomeController extends Controller
             'price_desc' => $query->orderByDesc('price'),
             default => $query->inRandomOrder(),
         };
+    }
+
+    /** Gắn thống kê rating đã duyệt để hiển thị trên product card. */
+    protected function attachApprovedReviewStats($query)
+    {
+        return $query
+            ->withCount([
+                'reviews as approved_reviews_count' => fn ($rq) => $rq->where('is_approved', true),
+            ])
+            ->withAvg([
+                'reviews as approved_reviews_avg_rating' => fn ($rq) => $rq->where('is_approved', true),
+            ], 'rating');
     }
 }

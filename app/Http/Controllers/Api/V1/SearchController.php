@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\SearchQueryTrend;
 use App\Services\ProductSearchService;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,23 @@ class SearchController extends Controller
         $limit = max(1, min(15, (int) $request->query('limit', 8)));
 
         if ($q === '') {
-            return response()->json(['data' => []]);
+            $trends = SearchQueryTrend::query()
+                ->orderByDesc('count')
+                ->orderByDesc('last_seen_at')
+                ->limit($limit)
+                ->get();
+
+            $data = $trends->map(function ($t) {
+                $keyword = (string) $t->keyword;
+
+                return [
+                    'name' => $keyword,
+                    'price' => 0,
+                    'url' => route('search', ['q' => $keyword]),
+                ];
+            })->values()->all();
+
+            return response()->json(['data' => $data]);
         }
 
         $esRows = $searchService->suggest($q, $limit);
