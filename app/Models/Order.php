@@ -15,6 +15,7 @@ class Order extends Model
         'user_id', 'coupon_id', 'discount_amount', 'address_id', 'status', 'total_amount', 'shipping_fee', 'shipping_distance_km',
         'shipping_address_snapshot', 'phone_snapshot', 'lat', 'lng', 'notes',
         'payment_method', 'payment_status', 'shipping_status',
+        'stock_reserved_expires_at', 'stock_reserved_released_at',
     ];
 
     /** Bản chụp địa chỉ/SĐT lúc đặt hàng; accessor để view vẫn dùng $order->shipping_address / $order->phone. */
@@ -33,6 +34,8 @@ class Order extends Model
         'discount_amount' => 'integer',
         'shipping_fee' => 'integer',
         'shipping_distance_km' => 'decimal:2',
+        'stock_reserved_expires_at' => 'datetime',
+        'stock_reserved_released_at' => 'datetime',
     ];
 
     /** Chờ thanh toán (đơn đã tạo, chưa thanh toán PayPal). */

@@ -11,6 +11,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Jobs\ReleaseExpiredStockReservationJob;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -45,6 +46,11 @@ class OrderPlacementService
             ? Order::STATUS_UNPAID
             : Order::STATUS_PENDING;
 
+        $ttlMinutes = (int) env('STOCK_RESERVATION_TTL_MINUTES', 60);
+        $reservationExpiresAt = $paymentMethod === Order::PAYMENT_METHOD_PAYPAL
+            ? now()->addMinutes($ttlMinutes)
+            : null;
+
         $orderPayload = [
             'status' => $initialStatus,
             'payment_method' => $paymentMethod,
@@ -55,6 +61,8 @@ class OrderPlacementService
             'phone_snapshot' => $resolvedAddress['phone_snapshot'],
             'lat' => $resolvedAddress['lat'] ?? null,
             'lng' => $resolvedAddress['lng'] ?? null,
+            'stock_reserved_expires_at' => $reservationExpiresAt,
+            'stock_reserved_released_at' => null,
         ];
         if (! empty($resolvedAddress['address_id'])) {
             $orderPayload['address_id'] = $resolvedAddress['address_id'];
@@ -142,7 +150,7 @@ class OrderPlacementService
                 if ($cart->coupon_id) {
                     $coupon = Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first();
                 }
-                $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+                $couponResult = app(CouponService::class)->validateAndComputeDiscount($user, $cart, $coupon);
                 if (! $couponResult['ok']) {
                     throw new \RuntimeException($couponResult['message'] ?? 'Mã giảm giá không hợp lệ.');
                 }
@@ -171,6 +179,12 @@ class OrderPlacementService
 
         if (! $order) {
             return ['ok' => false, 'error' => 'Không thể tạo đơn hàng. Vui lòng thử lại.'];
+        }
+
+        // Với PayPal: giữ tồn kho trong TTL, sau TTL nếu chưa thanh toán thành công thì hoàn tồn lại.
+        if ($paymentMethod === Order::PAYMENT_METHOD_PAYPAL && $reservationExpiresAt) {
+            ReleaseExpiredStockReservationJob::dispatch($order->id)
+                ->delay($reservationExpiresAt);
         }
 
         return ['ok' => true, 'order' => $order->fresh()];
