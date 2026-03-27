@@ -1533,9 +1533,10 @@
                 if (q) {
                     debounceSuggest();
                 } else {
+                    // Khi chưa nhập gì: chỉ hiển thị lịch sử (không hiện gợi ý sản phẩm).
                     showHistorySection();
                     renderHistory();
-                    if (getHistory().length > 0) openDropdown();
+                    if (getHistory().length > 0) openDropdown(); else closeDropdown();
                 }
             }
             function hideDropdown() {
