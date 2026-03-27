@@ -2,12 +2,35 @@
 
 namespace App\Services;
 
+use App\Models\SearchSynonym;
 use App\Models\Product;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class ProductSearchService
 {
+    /**
+     * Lấy synonyms theo keyword (DB-backed).
+     * Ví dụ: keyword="iphone" => ["iphone 11", "apple iphone", ...]
+     */
+    public function getSynonyms(string $keyword): array
+    {
+        $keyword = trim($keyword);
+        if ($keyword === '') {
+            return [];
+        }
+
+        // Normalize to lower for matching (database rows should ideally be stored lower-case).
+        $key = mb_strtolower($keyword);
+
+        return SearchSynonym::query()
+            ->where('keyword', $key)
+            ->pluck('synonym')
+            ->filter(fn ($s) => is_string($s) && trim($s) !== '')
+            ->values()
+            ->all();
+    }
+
     public function isEnabled(): bool
     {
         return (bool) config('services.elasticsearch.enabled')
@@ -25,20 +48,30 @@ class ProductSearchService
             return null;
         }
 
+        $synonyms = $this->getSynonyms($keyword);
+        $terms = array_values(array_unique(array_merge([$keyword], $synonyms)));
+
         $host = rtrim((string) config('services.elasticsearch.host'), '/');
         $index = (string) config('services.elasticsearch.index');
         $url = "{$host}/{$index}/_search";
 
-        $must = [[
-            'multi_match' => [
-                'query' => $keyword,
-                'fields' => ['name^3', 'description', 'category_name', 'brand_name'],
-                'fuzziness' => 'AUTO',
-            ],
-        ]];
+        $should = array_map(function (string $term) {
+            return [
+                'multi_match' => [
+                    'query' => $term,
+                    'fields' => ['name^3', 'description', 'category_name', 'brand_name'],
+                    'fuzziness' => 'AUTO',
+                ],
+            ];
+        }, $terms);
+
+        $boolQuery = [
+            'should' => $should,
+            'minimum_should_match' => 1,
+        ];
 
         if ($categoryId !== null) {
-            $must[] = ['term' => ['category_id' => $categoryId]];
+            $boolQuery['must'] = [['term' => ['category_id' => $categoryId]]];
         }
 
         try {
@@ -47,7 +80,7 @@ class ProductSearchService
                 ->post($url, [
                     'size' => $limit,
                     '_source' => false,
-                    'query' => ['bool' => ['must' => $must]],
+                    'query' => ['bool' => $boolQuery],
                 ]);
 
             if (! $response->successful()) {
@@ -191,44 +224,61 @@ class ProductSearchService
             return null;
         }
 
+        $synonyms = $this->getSynonyms($keyword);
+        $terms = array_values(array_unique(array_merge([$keyword], $synonyms)));
+        $terms = array_slice($terms, 0, 4); // tránh gọi quá nhiều query tới ES
+
         $host = rtrim((string) config('services.elasticsearch.host'), '/');
         $index = (string) config('services.elasticsearch.index');
         $url = "{$host}/{$index}/_search";
 
         try {
-            $response = Http::timeout((int) config('services.elasticsearch.timeout', 2))
-                ->acceptJson()
-                ->post($url, [
-                    'size' => $limit,
-                    '_source' => ['name', 'price'],
-                    'query' => [
-                        'bool' => [
-                            'must' => [[
-                                'match_phrase_prefix' => [
-                                    'name' => [
-                                        'query' => $keyword,
+            $byId = [];
+            foreach ($terms as $term) {
+                $response = Http::timeout((int) config('services.elasticsearch.timeout', 2))
+                    ->acceptJson()
+                    ->post($url, [
+                        'size' => $limit,
+                        '_source' => ['name', 'price'],
+                        'query' => [
+                            'bool' => [
+                                'must' => [[
+                                    'match_phrase_prefix' => [
+                                        'name' => [
+                                            'query' => $term,
+                                        ],
                                     ],
-                                ],
-                            ]],
+                                ]],
+                            ],
                         ],
-                    ],
-                ]);
+                    ]);
 
-            if (! $response->successful()) {
-                return null;
+                if (! $response->successful()) {
+                    continue;
+                }
+
+                $hits = $response->json('hits.hits', []);
+                foreach ($hits as $hit) {
+                    $id = (int) data_get($hit, '_id');
+                    if ($id <= 0) {
+                        continue;
+                    }
+                    $name = (string) data_get($hit, '_source.name', '');
+                    if ($name === '') {
+                        continue;
+                    }
+
+                    if (! isset($byId[$id])) {
+                        $byId[$id] = [
+                            'id' => $id,
+                            'name' => $name,
+                            'price' => (float) data_get($hit, '_source.price', 0),
+                        ];
+                    }
+                }
             }
 
-            $hits = $response->json('hits.hits', []);
-
-            return collect($hits)->map(function ($hit) {
-                return [
-                    'id' => (int) data_get($hit, '_id'),
-                    'name' => (string) data_get($hit, '_source.name', ''),
-                    'price' => (float) data_get($hit, '_source.price', 0),
-                ];
-            })->filter(fn ($row) => $row['id'] > 0 && $row['name'] !== '')
-                ->values()
-                ->all();
+            return array_values($byId);
         } catch (\Throwable $e) {
             Log::warning('Elasticsearch suggest exception', ['message' => $e->getMessage()]);
 
