@@ -111,6 +111,8 @@ class ProductReviewSeeder extends Seeder
                     'content' => $contentSamples[random_int(0, count($contentSamples) - 1)],
                     'variant_classification' => $variantClassification,
                     'is_verified' => $isVerified,
+                    'is_approved' => $isVerified,
+                    'approved_at' => $isVerified ? $createdAt : null,
                     'created_at' => $createdAt,
                     'updated_at' => $createdAt,
                 ];

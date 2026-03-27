@@ -15,11 +15,16 @@ class ProductReview extends Model
         'content',
         'variant_classification',
         'is_verified',
+        'is_approved',
+        'approved_at',
+        'rejected_at',
+        'rejection_reason',
     ];
 
     protected $casts = [
         'rating' => 'integer',
         'is_verified' => 'boolean',
+        'is_approved' => 'boolean',
     ];
 
     public function product(): BelongsTo
@@ -30,6 +35,11 @@ class ProductReview extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ProductReviewImage::class)->orderBy('sort');
     }
 }
 
