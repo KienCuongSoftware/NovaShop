@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminInventoryLogController;
 use App\Http\Controllers\AdminOrderController;
 use App\Http\Controllers\AdminProfileController;
+use App\Http\Controllers\Admin\AdminSearchSynonymController;
 use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandController;
@@ -142,9 +143,11 @@ Route::middleware(['auth', 'email.verified.otp'])->group(function () {
     Route::delete('/cart/coupon', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::post('/wishlist/share', [WishlistController::class, 'share'])->name('wishlist.share');
     Route::delete('/wishlist/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
     Route::get('/compare', [CompareController::class, 'index'])->name('compare.index');
     Route::post('/compare/add', [CompareController::class, 'add'])->name('compare.add');
+    Route::post('/compare/share', [CompareController::class, 'share'])->name('compare.share');
     Route::delete('/compare/{product}', [CompareController::class, 'remove'])->name('compare.remove');
     Route::post('/compare/clear', [CompareController::class, 'clear'])->name('compare.clear');
     Route::post('/stock-notifications', [StockNotificationController::class, 'store'])->name('stock-notifications.store');
@@ -196,6 +199,7 @@ Route::middleware(['auth', 'email.verified.otp', 'admin'])->group(function () {
     Route::post('/admin/attributes/{attribute}/values', [AttributeController::class, 'storeValue'])->name('admin.attributes.values.store');
     Route::delete('/admin/attributes/{attribute}/values/{attributeValue}', [AttributeController::class, 'destroyValue'])->name('admin.attributes.values.destroy');
     Route::resource('/admin/coupons', AdminCouponController::class, ['as' => 'admin', 'parameters' => ['coupons' => 'coupon']]);
+    Route::resource('/admin/search-synonyms', AdminSearchSynonymController::class, ['as' => 'admin', 'parameters' => ['search-synonyms' => 'search_synonym']]);
     Route::resource('/admin/flash-sales', FlashSaleController::class, ['as' => 'admin']);
     Route::post('/admin/flash-sales/{flash_sale}/items', [FlashSaleController::class, 'storeItem'])->name('admin.flash_sales.items.store');
     Route::put('/admin/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'updateItem'])->name('admin.flash_sales.items.update');
@@ -205,6 +209,15 @@ Route::middleware(['auth', 'email.verified.otp', 'admin'])->group(function () {
     Route::get('/admin/orders/{order}', [AdminOrderController::class, 'show'])->name('admin.orders.show');
     Route::put('/admin/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('admin.orders.update-status');
     Route::get('/admin/inventory-logs', [AdminInventoryLogController::class, 'index'])->name('admin.inventory-logs.index');
+
+    // Duyệt đánh giá sản phẩm (review moderation + ảnh)
+    Route::get('/admin/product-reviews', [\App\Http\Controllers\Admin\AdminProductReviewController::class, 'index'])
+        ->name('admin.product-reviews.index');
+    Route::post('/admin/product-reviews/{review}/approve', [\App\Http\Controllers\Admin\AdminProductReviewController::class, 'approve'])
+        ->name('admin.product-reviews.approve');
+    Route::post('/admin/product-reviews/{review}/reject', [\App\Http\Controllers\Admin\AdminProductReviewController::class, 'reject'])
+        ->name('admin.product-reviews.reject');
+
     Route::get('/admin/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
     Route::put('/admin/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
 });
@@ -273,13 +286,38 @@ Route::get('/images/avatars/{filename}', function (string $filename) {
         ->header('Cache-Control', 'public, max-age=31536000');
 })->where('filename', '[a-zA-Z0-9._-]+')->name('storage.avatars.image');
 
+// Serve review images from storage/app/public/review_images
+Route::get('/images/reviews/{filename}', function (string $filename) {
+    $path = 'review_images/'.$filename;
+    if (! Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $mimeMap = ['webp' => 'image/webp', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+    $mime = $mimeMap[$ext] ?? 'application/octet-stream';
+    $file = Storage::disk('public')->get($path);
+
+    return response($file, 200)
+        ->header('Content-Type', $mime)
+        ->header('Cache-Control', 'public, max-age=31536000');
+})->where('filename', '[a-zA-Z0-9._-]+')->name('storage.reviews.image');
+
 // Chuyển hướng URL cũ/sai /product/show sang trang chủ (route đúng là /products/{slug})
 Route::get('/product/show', function () {
     return redirect()->route('welcome', [], 301);
 })->name('product.show.redirect');
 
+// Public share links for wishlist/compare (read-only)
+Route::get('/share/wishlist/{token}', [\App\Http\Controllers\ListSharePublicController::class, 'showWishlist'])
+    ->name('share.wishlist.show');
+Route::get('/share/compare/{token}', [\App\Http\Controllers\ListSharePublicController::class, 'showCompare'])
+    ->name('share.compare.show');
+
 // Route cho người dùng bình thường (đã đăng nhập)
 Route::middleware(['auth', 'email.verified.otp'])->group(function () {
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'show_normal'])->name('products.show');
+
+    Route::post('/products/{product}/reviews', [\App\Http\Controllers\ProductReviewController::class, 'store'])
+        ->name('products.reviews.store');
 });
