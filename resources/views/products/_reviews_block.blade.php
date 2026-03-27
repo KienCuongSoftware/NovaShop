@@ -86,6 +86,146 @@
         </div>
     </div>
 
+    @if(Auth::check())
+        <div class="mt-3" style="background:#fff; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06); padding: 1rem;">
+            <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                <div class="font-weight-bold" style="font-size: 1.05rem;">Viết đánh giá sản phẩm</div>
+                @if(isset($myReview) && $myReview && !($myReview->is_approved ?? false))
+                    <span class="badge badge-warning" style="padding:.45rem .6rem;">Đang chờ duyệt</span>
+                @endif
+            </div>
+
+            @if($errors->any())
+                <div class="alert alert-danger py-2 mt-2 mb-2">
+                    <div class="small font-weight-bold mb-1">Có lỗi:</div>
+                    <ul class="mb-0 pl-3">
+                        @foreach($errors->all() as $err)
+                            <li class="small">{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form method="POST"
+                  action="{{ route('products.reviews.store', $product) }}"
+                  enctype="multipart/form-data"
+                  class="mt-2"
+            >
+                @csrf
+
+                <div class="form-row">
+                    <div class="form-group col-md-3">
+                        <label class="font-weight-bold mb-1">Số sao</label>
+                        <select name="rating" class="form-control @error('rating') is-invalid @enderror" required>
+                            @for($i=5;$i>=1;$i--)
+                                @php $cur = old('rating', isset($myReview) && $myReview ? $myReview->rating : 5); @endphp
+                                <option value="{{ $i }}" {{ (int)$cur === $i ? 'selected' : '' }}>{{ $i }} sao</option>
+                            @endfor
+                        </select>
+                    </div>
+
+                    <div class="form-group col-md-9">
+                        <label class="font-weight-bold mb-1">Tiêu đề (tuỳ chọn)</label>
+                        <input
+                            type="text"
+                            name="title"
+                            class="form-control @error('title') is-invalid @enderror"
+                            maxlength="255"
+                            value="{{ old('title', isset($myReview) && $myReview ? $myReview->title : '') }}"
+                            placeholder="VD: Rất hài lòng"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="font-weight-bold mb-1">Nội dung</label>
+                    <textarea
+                        name="content"
+                        class="form-control @error('content') is-invalid @enderror"
+                        rows="4"
+                        required
+                        maxlength="2000"
+                        placeholder="Chia sẻ trải nghiệm của bạn..."
+                    >{{ old('content', isset($myReview) && $myReview ? $myReview->content : '') }}</textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label class="font-weight-bold mb-1">Phân loại hàng (tuỳ chọn)</label>
+                        <input
+                            type="text"
+                            name="variant_classification"
+                            class="form-control @error('variant_classification') is-invalid @enderror"
+                            maxlength="255"
+                            value="{{ old('variant_classification', isset($myReview) && $myReview ? $myReview->variant_classification : '') }}"
+                            placeholder="VD: Màu Đen, Size M"
+                        >
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label class="font-weight-bold mb-1">Ảnh (tối đa 5)</label>
+                        <input
+                            type="file"
+                            name="images[]"
+                            class="form-control @error('images.*') is-invalid @enderror"
+                            accept="image/*"
+                            multiple
+                        >
+                        <div class="small text-muted mt-1">Upload lại sẽ thay ảnh cũ.</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-danger font-weight-bold">
+                    Gửi đánh giá
+                </button>
+            </form>
+        </div>
+
+        @if(isset($myReview) && $myReview && !($myReview->is_approved ?? false))
+            <div class="mt-3" style="background:#fff; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06); padding: 1rem;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                    <div class="font-weight-bold">Đánh giá của bạn</div>
+                    <span class="badge badge-warning" style="padding:.45rem .6rem;">Chờ duyệt</span>
+                </div>
+
+                @if(!empty($myReview->rejected_at))
+                    <div class="alert alert-danger py-2 mt-2 mb-2">
+                        Đánh giá của bạn đã bị từ chối{{ !empty($myReview->rejection_reason) ? ': '.$myReview->rejection_reason : '.' }}
+                    </div>
+                @endif
+
+                <div class="review-stars d-flex mt-2" style="gap:2px;">
+                    @for($i=1;$i<=5;$i++)
+                        <span class="star {{ $i <= (int)$myReview->rating ? 'text-warning' : 'text-muted' }}">
+                            {!! $i <= (int)$myReview->rating ? '&#9733;' : '&#9734;' !!}
+                        </span>
+                    @endfor
+                </div>
+                @if(!empty($myReview->title))
+                    <div class="font-weight-bold mt-1">{{ $myReview->title }}</div>
+                @endif
+                <div class="text-secondary mt-1" style="white-space: pre-line;">{{ $myReview->content }}</div>
+
+                @if(isset($myReview->images) && $myReview->images->count() > 0)
+                    <div class="mt-2 d-flex flex-wrap gap-2">
+                        @foreach($myReview->images as $img)
+                            @php $filename = basename($img->path); @endphp
+                            <a href="{{ asset('/images/reviews/'.$filename) }}" target="_blank" rel="noopener">
+                                <img
+                                    src="{{ asset('/images/reviews/'.$filename) }}"
+                                    alt="Ảnh đánh giá"
+                                    class="rounded"
+                                    style="width: 68px; height: 68px; object-fit: cover; border:1px solid rgba(0,0,0,0.08);"
+                                    loading="lazy"
+                                >
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        @endif
+    @endif
+
     <div class="mt-4 reviews-list-wrap">
         @if(isset($reviews) && $reviews->count() > 0)
             @foreach($reviews as $rv)
@@ -123,6 +263,22 @@
                             <div class="text-secondary mt-1" style="white-space: pre-line;">
                                 {{ $rv->content }}
                             </div>
+                            @if(isset($rv->images) && $rv->images->count() > 0)
+                                <div class="mt-2 d-flex flex-wrap gap-2">
+                                    @foreach($rv->images as $img)
+                                        @php $filename = basename($img->path); @endphp
+                                        <a href="{{ asset('/images/reviews/'.$filename) }}" target="_blank" rel="noopener">
+                                            <img
+                                                src="{{ asset('/images/reviews/'.$filename) }}"
+                                                alt="Ảnh đánh giá"
+                                                class="rounded"
+                                                style="width: 68px; height: 68px; object-fit: cover; border:1px solid rgba(0,0,0,0.08);"
+                                                loading="lazy"
+                                            >
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

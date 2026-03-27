@@ -252,9 +252,11 @@ class ProductController extends Controller
             }
         }
 
-        // Reviews: trung bình, phân bố sao, danh sách đánh giá.
+        // Reviews: chỉ lấy các review đã được duyệt (is_approved=1).
         // Lưu ý: tách/clone builder để query phân bố không dính sang query lấy danh sách (MySQL only_full_group_by).
-        $baseReviewsQuery = \App\Models\ProductReview::query()->where('product_id', $product->id);
+        $baseReviewsQuery = \App\Models\ProductReview::query()
+            ->where('product_id', $product->id)
+            ->where('is_approved', true);
 
         // Lọc theo số sao (1..5)
         $ratingFilterRaw = $request->query('rating');
@@ -275,7 +277,7 @@ class ProductController extends Controller
         }
 
         $reviews = $reviewsQuery
-            ->with('user')
+            ->with(['user', 'images'])
             ->orderByDesc('created_at')
             ->paginate(10);
 
@@ -285,7 +287,25 @@ class ProductController extends Controller
 
         // Trả về riêng phần review khi frontend gọi AJAX (không reload trang).
         if ($request->boolean('reviews_partial')) {
-            return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews'));
+            $myReview = null;
+            if (Auth::check()) {
+                $myReview = \App\Models\ProductReview::query()
+                    ->where('product_id', $product->id)
+                    ->where('user_id', Auth::id())
+                    ->with('images')
+                    ->first();
+            }
+
+            return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews', 'myReview'));
+        }
+
+        $myReview = null;
+        if (Auth::check()) {
+            $myReview = \App\Models\ProductReview::query()
+                ->where('product_id', $product->id)
+                ->where('user_id', Auth::id())
+                ->with('images')
+                ->first();
         }
 
         $rawIds = DB::table('order_items as oi')
@@ -335,6 +355,7 @@ class ProductController extends Controller
             'avgRating',
             'reviewDistribution',
             'reviews',
+            'myReview',
             'boughtTogetherProducts',
             'inWishlist',
             'onCompare',
