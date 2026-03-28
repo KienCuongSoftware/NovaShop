@@ -24,6 +24,8 @@ class NovaShopFeaturesSampleSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(SearchSynonymSeeder::class);
+
         $users = User::query()->where('is_admin', false)->orderBy('id')->get();
         if ($users->isEmpty()) {
             $this->command->warn('Không có user thường.');
