@@ -58,6 +58,14 @@
                     <label class="custom-control-label" for="is_admin">Là quản trị viên</label>
                 </div>
             </div>
+            <div class="form-group">
+                <div class="custom-control custom-checkbox">
+                    <input type="hidden" name="is_vip" value="0">
+                    <input type="checkbox" class="custom-control-input" name="is_vip" id="is_vip" value="1" {{ old('is_vip', $user->is_vip ?? false) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="is_vip">Khách VIP</label>
+                </div>
+                <small class="form-text text-muted">Dùng cho coupon segment VIP.</small>
+            </div>
             <hr>
             <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-primary">Cập nhật</button>

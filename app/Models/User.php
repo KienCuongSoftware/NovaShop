@@ -26,6 +26,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'password',
         'google_id',
         'is_admin',
+        'is_vip',
         'email_verification_otp',
         'email_verification_otp_expires_at',
     ];
@@ -52,6 +53,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'is_vip' => 'boolean',
             'email_verification_otp_expires_at' => 'datetime',
         ];
     }

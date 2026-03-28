@@ -38,6 +38,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => ['required', 'confirmed', Password::defaults()],
             'is_admin' => 'nullable|boolean',
+            'is_vip' => 'nullable|boolean',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên.',
@@ -55,6 +56,7 @@ class UserController extends Controller
             'email' => $request->input('email'),
             'password' => Hash::make($request->input('password')),
             'is_admin' => (bool) $request->boolean('is_admin'),
+            'is_vip' => (bool) $request->boolean('is_vip'),
         ];
         if ($request->hasFile('avatar')) {
             $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
@@ -83,6 +85,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'is_admin' => 'nullable|boolean',
+            'is_vip' => 'nullable|boolean',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
             'name.required' => 'Vui lòng nhập tên.',
@@ -98,6 +101,7 @@ class UserController extends Controller
             'name' => $request->input('name'),
             'email' => $request->input('email'),
             'is_admin' => (bool) $request->boolean('is_admin'),
+            'is_vip' => (bool) $request->boolean('is_vip'),
         ];
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->input('password'));
