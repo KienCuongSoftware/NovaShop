@@ -14,6 +14,9 @@ class EnsureEmailOtpVerified
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        if ($user && ($user->is_admin ?? false)) {
+            return $next($request);
+        }
         if (! $user || $user->email_verified_at) {
             return $next($request);
         }

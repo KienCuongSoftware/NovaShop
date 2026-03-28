@@ -71,6 +71,17 @@ class AuthController extends Controller
             $request->session()->regenerate();
             /** @var User|null $user */
             $user = Auth::user();
+            if ($user && ($user->is_admin ?? false) && ! $user->hasVerifiedEmail()) {
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                    'email_verification_otp' => null,
+                    'email_verification_otp_expires_at' => null,
+                ])->save();
+
+                return redirect()->intended(route('admin.dashboard'))
+                    ->with('success', 'Đăng nhập admin thành công.');
+            }
+
             if ($user && ! $user->hasVerifiedEmail()) {
                 $this->sendOtp($user);
 
