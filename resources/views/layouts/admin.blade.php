@@ -179,8 +179,14 @@
                 <a class="nav-link {{ request()->routeIs('admin.coupons.*') ? 'active' : '' }}" href="{{ route('admin.coupons.index') }}">
                     Mã giảm giá
                 </a>
+                <a class="nav-link {{ request()->routeIs('admin.search-synonyms.*') ? 'active' : '' }}" href="{{ route('admin.search-synonyms.index') }}">
+                    Search synonyms
+                </a>
                 <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
                     Đơn hàng
+                </a>
+                <a class="nav-link {{ request()->routeIs('admin.product-reviews.*') ? 'active' : '' }}" href="{{ route('admin.product-reviews.index') }}">
+                    Duyệt đánh giá
                 </a>
                 <a class="nav-link {{ request()->routeIs('admin.inventory-logs.*') ? 'active' : '' }}" href="{{ route('admin.inventory-logs.index') }}">
                     Nhập/xuất kho
