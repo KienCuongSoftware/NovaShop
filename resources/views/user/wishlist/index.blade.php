@@ -5,8 +5,21 @@
 @section('content')
 <div class="page-header mb-4">
     <h2>Yêu thích</h2>
-    <a href="{{ route('welcome') }}" class="btn btn-outline-secondary">← Tiếp tục mua sắm</a>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <a href="{{ route('welcome') }}" class="btn btn-outline-secondary">← Tiếp tục mua sắm</a>
+        <form action="{{ route('wishlist.share') }}" method="POST" class="d-inline">
+            @csrf
+            <button type="submit" class="btn btn-outline-danger">Chia sẻ wishlist</button>
+        </form>
+    </div>
 </div>
+
+@if(session('share_link'))
+    <div class="alert alert-info">
+        <div class="font-weight-bold mb-1">Link chia sẻ:</div>
+        <a href="{{ session('share_link') }}" target="_blank" rel="noopener">{{ session('share_link') }}</a>
+    </div>
+@endif
 
 @if($items->isEmpty())
 @include('partials.empty-state', [

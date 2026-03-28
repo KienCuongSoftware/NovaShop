@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ListShare;
 use App\Models\User;
 use App\Models\WishlistItem;
+use App\Models\ListShareItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,5 +45,40 @@ class WishlistController extends Controller
         WishlistItem::where('user_id', Auth::id())->where('product_id', $product->id)->delete();
 
         return back()->with('success', 'Đã xóa khỏi yêu thích.');
+    }
+
+    /**
+     * Tạo link share (read-only) cho wishlist hiện tại.
+     */
+    public function share()
+    {
+        $user = Auth::user();
+
+        // Snapshot current wishlist items.
+        $wishlistItems = WishlistItem::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get(['product_id']);
+
+        $token = bin2hex(random_bytes(16));
+
+        $share = ListShare::query()->create([
+            'user_id' => $user->id,
+            'type' => 'wishlist',
+            'token' => $token,
+        ]);
+
+        $sort = 0;
+        foreach ($wishlistItems as $row) {
+            ListShareItem::query()->create([
+                'list_share_id' => $share->id,
+                'product_id' => (int) $row->product_id,
+                'sort_order' => $sort++,
+            ]);
+        }
+
+        $link = route('share.wishlist.show', ['token' => $token]);
+
+        return back()->with('share_link', $link);
     }
 }

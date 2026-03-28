@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompareItem;
+use App\Models\ListShare;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\ListShareItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -80,5 +82,38 @@ class CompareController extends Controller
         CompareItem::where('user_id', Auth::id())->delete();
 
         return redirect()->route('compare.index')->with('success', 'Đã xóa danh sách so sánh.');
+    }
+
+    /**
+     * Tạo link share (read-only) cho danh sách so sánh hiện tại.
+     */
+    public function share()
+    {
+        $user = Auth::user();
+
+        $compareItems = CompareItem::query()
+            ->where('user_id', $user->id)
+            ->orderBy('sort_order')
+            ->get(['product_id', 'sort_order']);
+
+        $token = bin2hex(random_bytes(16));
+
+        $share = ListShare::query()->create([
+            'user_id' => $user->id,
+            'type' => 'compare',
+            'token' => $token,
+        ]);
+
+        foreach ($compareItems as $row) {
+            ListShareItem::query()->create([
+                'list_share_id' => $share->id,
+                'product_id' => (int) $row->product_id,
+                'sort_order' => (int) $row->sort_order,
+            ]);
+        }
+
+        $link = route('share.compare.show', ['token' => $token]);
+
+        return back()->with('share_link', $link);
     }
 }

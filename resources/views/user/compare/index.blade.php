@@ -6,6 +6,10 @@
 <div class="page-header mb-4">
     <h2>So sánh (tối đa {{ \App\Http\Controllers\CompareController::MAX_ITEMS }})</h2>
     <div>
+        <form action="{{ route('compare.share') }}" method="POST" class="d-inline-block mr-2 mb-2">
+            @csrf
+            <button type="submit" class="btn btn-outline-danger btn-sm">Chia sẻ so sánh</button>
+        </form>
         @if($products->isNotEmpty())
         <form action="{{ route('compare.clear') }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Xóa hết danh sách so sánh?');">
             @csrf
@@ -15,6 +19,13 @@
         <a href="{{ route('welcome') }}" class="btn btn-outline-secondary btn-sm">← Mua sắm</a>
     </div>
 </div>
+
+@if(session('share_link'))
+    <div class="alert alert-info">
+        <div class="font-weight-bold mb-1">Link chia sẻ:</div>
+        <a href="{{ session('share_link') }}" target="_blank" rel="noopener">{{ session('share_link') }}</a>
+    </div>
+@endif
 
 @if($products->isEmpty())
 @include('partials.empty-state', [
