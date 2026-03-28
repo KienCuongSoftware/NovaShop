@@ -435,6 +435,31 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                 <button type="submit" class="btn btn-block products-sidebar-price-btn">ÁP DỤNG</button>
             </form>
         </div>
+
+        {{-- Rating facet: lọc sản phẩm theo rating >= 1..5 --}}
+        @php
+            $ratingMinRaw = request()->query('rating');
+            $ratingMin = in_array((int) $ratingMinRaw, [1, 2, 3, 4, 5], true) ? (int) $ratingMinRaw : null;
+            $ratingBaseParams = array_merge($priceParams, ['sort' => $currentSort]);
+        @endphp
+        <div class="products-sidebar-rating mt-3">
+            <h3 class="products-sidebar-price-title mb-2">Đánh giá</h3>
+            <div class="d-flex flex-wrap" style="gap:0.5rem;">
+                <a href="{{ $sortBaseUrl }}{{ $sortSep }}{{ http_build_query(array_filter($ratingBaseParams)) }}"
+                   class="btn btn-sm {{ $ratingMin === null ? 'btn-outline-danger' : 'btn-light text-muted' }}"
+                   style="border-width:2px;">
+                    Tất cả
+                </a>
+                @foreach([5,4,3,2,1] as $r)
+                    @php $params = array_merge($ratingBaseParams, ['rating' => $r]); @endphp
+                    <a href="{{ $sortBaseUrl }}{{ $sortSep }}{{ http_build_query($params) }}"
+                       class="btn btn-sm {{ $ratingMin === $r ? 'btn-outline-danger' : 'btn-light text-muted' }}"
+                       style="border-width:2px;">
+                        {{ $r }} sao+
+                    </a>
+                @endforeach
+            </div>
+        </div>
     </aside>
     @endif
 
@@ -524,6 +549,22 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                         <div class="product-card-content">
                             <h5 class="card-title product-card-title">{{ $product->name }}</h5>
                             <p class="card-text small product-card-desc">{{ Str::limit($product->description, 80) }}</p>
+                            @php
+                                $ratingAvg = round((float) ($product->approved_reviews_avg_rating ?? 0), 1);
+                                $ratingCount = (int) ($product->approved_reviews_count ?? 0);
+                            @endphp
+                            <div class="small d-flex align-items-center mb-1" style="gap:6px; min-height: 20px;">
+                                @if($ratingCount > 0)
+                                    <span class="text-warning" aria-hidden="true">
+                                        @for($i = 1; $i <= 5; $i++)
+                                            {!! $i <= (int) floor($ratingAvg) ? '&#9733;' : '&#9734;' !!}
+                                        @endfor
+                                    </span>
+                                    <span class="text-muted">{{ number_format($ratingAvg, 1, ',', '.') }} ({{ $ratingCount }})</span>
+                                @else
+                                    <span class="text-muted">Chưa có đánh giá</span>
+                                @endif
+                            </div>
                         </div>
                         <div class="card-text mb-1 d-flex align-items-center">
                             @php
@@ -661,6 +702,22 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
                     <div class="product-card-content">
                         <h5 class="card-title product-card-title">{{ $product->name }}</h5>
                         <p class="card-text small product-card-desc">{{ Str::limit($product->description, 80) }}</p>
+                        @php
+                            $ratingAvg = round((float) ($product->approved_reviews_avg_rating ?? 0), 1);
+                            $ratingCount = (int) ($product->approved_reviews_count ?? 0);
+                        @endphp
+                        <div class="small d-flex align-items-center mb-1" style="gap:6px; min-height: 20px;">
+                            @if($ratingCount > 0)
+                                <span class="text-warning" aria-hidden="true">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        {!! $i <= (int) floor($ratingAvg) ? '&#9733;' : '&#9734;' !!}
+                                    @endfor
+                                </span>
+                                <span class="text-muted">{{ number_format($ratingAvg, 1, ',', '.') }} ({{ $ratingCount }})</span>
+                            @else
+                                <span class="text-muted">Chưa có đánh giá</span>
+                            @endif
+                        </div>
                     </div>
                     <div class="card-text mb-1 d-flex align-items-center">
                         @php
