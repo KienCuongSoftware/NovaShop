@@ -5,13 +5,15 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Coupon;
+use App\Models\Order;
+use App\Models\User;
 
 class CouponService
 {
     /**
      * @return array{ok: bool, discount: int, message: ?string}
      */
-    public function validateAndComputeDiscount(Cart $cart, ?Coupon $coupon): array
+    public function validateAndComputeDiscount(User $user, Cart $cart, ?Coupon $coupon): array
     {
         if (!$coupon) {
             return ['ok' => true, 'discount' => 0, 'message' => null];
@@ -19,6 +21,30 @@ class CouponService
 
         if (!$coupon->isCurrentlyValid()) {
             return ['ok' => false, 'discount' => 0, 'message' => 'Mã giảm giá không còn hiệu lực.'];
+        }
+
+        // User segment rules
+        $segment = (string) ($coupon->user_segment ?? Coupon::SEGMENT_ALL);
+        if ($segment === Coupon::SEGMENT_VIP && ! (bool) ($user->is_vip ?? false)) {
+            return ['ok' => false, 'discount' => 0, 'message' => 'Mã giảm giá chỉ áp dụng cho khách VIP.'];
+        }
+
+        if ((bool) ($coupon->first_order_only ?? false)) {
+            $hasAnyOrder = Order::query()->where('user_id', $user->id)->exists();
+            if ($hasAnyOrder) {
+                return ['ok' => false, 'discount' => 0, 'message' => 'Mã giảm giá chỉ áp dụng cho đơn hàng đầu tiên.'];
+            }
+        }
+
+        if (! empty($coupon->min_completed_orders)) {
+            $min = (int) $coupon->min_completed_orders;
+            $completed = Order::query()
+                ->where('user_id', $user->id)
+                ->where('status', Order::STATUS_COMPLETED)
+                ->count();
+            if ($completed < $min) {
+                return ['ok' => false, 'discount' => 0, 'message' => "Mã giảm giá yêu cầu tối thiểu {$min} đơn hoàn thành."];
+            }
         }
 
         $cart->loadMissing(['items.product.category', 'items.productVariant']);

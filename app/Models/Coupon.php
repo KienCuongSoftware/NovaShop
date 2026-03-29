@@ -11,9 +11,13 @@ class Coupon extends Model
 
     public const TYPE_FIXED = 'fixed';
 
+    public const SEGMENT_ALL = 'all';
+    public const SEGMENT_VIP = 'vip';
+
     protected $fillable = [
         'code', 'name', 'discount_type', 'discount_value', 'min_order_amount',
         'category_id', 'starts_at', 'ends_at', 'max_uses', 'uses_count', 'is_active',
+        'user_segment', 'first_order_only', 'min_completed_orders',
     ];
 
     protected $casts = [
@@ -24,6 +28,8 @@ class Coupon extends Model
         'max_uses' => 'integer',
         'uses_count' => 'integer',
         'is_active' => 'boolean',
+        'first_order_only' => 'boolean',
+        'min_completed_orders' => 'integer',
     ];
 
     public function category(): BelongsTo

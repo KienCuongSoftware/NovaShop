@@ -47,6 +47,32 @@
                     @endforeach
                 </select>
             </div>
+            <div class="card mb-3" style="background:#fafbfc;">
+                <div class="card-body py-3">
+                    <div class="font-weight-bold mb-2">Điều kiện người dùng</div>
+                    <div class="row">
+                        <div class="col-md-4 form-group mb-2">
+                            <label>Segment</label>
+                            <select name="user_segment" class="form-control">
+                                <option value="all" {{ old('user_segment', $coupon->user_segment ?? 'all') === 'all' ? 'selected' : '' }}>Tất cả</option>
+                                <option value="vip" {{ old('user_segment', $coupon->user_segment ?? 'all') === 'vip' ? 'selected' : '' }}>VIP</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-group mb-2">
+                            <label>Đơn hoàn thành tối thiểu</label>
+                            <input type="number" name="min_completed_orders" class="form-control" min="0" value="{{ old('min_completed_orders', $coupon->min_completed_orders) }}" placeholder="VD: 5">
+                            <small class="text-muted">Để trống = không yêu cầu</small>
+                        </div>
+                        <div class="col-md-4 form-group mb-2 d-flex align-items-end">
+                            <div class="custom-control custom-checkbox">
+                                <input type="hidden" name="first_order_only" value="0">
+                                <input type="checkbox" name="first_order_only" value="1" class="custom-control-input" id="first_order_only" {{ old('first_order_only', $coupon->first_order_only) ? 'checked' : '' }}>
+                                <label class="custom-control-label" for="first_order_only">Chỉ đơn đầu tiên</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="row">
                 <div class="col-md-6 form-group">
                     <label>Bắt đầu</label>

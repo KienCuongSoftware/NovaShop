@@ -144,7 +144,7 @@ class CartController extends Controller
         $cart->coupon()->associate($coupon);
         $cart->save();
 
-        $result = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+        $result = app(CouponService::class)->validateAndComputeDiscount($request->user(), $cart, $coupon);
         if (! $result['ok']) {
             $cart->update(['coupon_id' => null]);
 
@@ -187,7 +187,7 @@ class CartController extends Controller
         $couponDiscount = 0;
         $couponError = null;
         if ($cart->coupon_id && $cart->coupon) {
-            $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $cart->coupon);
+            $couponResult = app(CouponService::class)->validateAndComputeDiscount($request->user(), $cart, $cart->coupon);
             if ($couponResult['ok']) {
                 $couponDiscount = $couponResult['discount'];
             } else {

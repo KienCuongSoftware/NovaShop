@@ -27,7 +27,7 @@ class CheckoutController extends Controller
         $flashByVariant = $activeFlashSale?->items->keyBy('product_variant_id');
         $subtotal = (int) round(CartPricingService::cartSubtotal($cart, $flashByVariant));
         $coupon = $cart->coupon;
-        $couponResult = app(CouponService::class)->validateAndComputeDiscount($cart, $coupon);
+        $couponResult = app(CouponService::class)->validateAndComputeDiscount($user, $cart, $coupon);
         if (! $couponResult['ok']) {
             if ($cart->coupon_id) {
                 $cart->update(['coupon_id' => null]);
