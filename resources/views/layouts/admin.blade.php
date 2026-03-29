@@ -7,6 +7,7 @@
 <link rel="icon" href="{{ url('/favicon.svg') }}" type="image/svg+xml">
     <link rel="icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    @stack('styles')
     <style>
         body { overflow-x: hidden; }
         .admin-wrapper { display: flex; min-height: 100vh; }
