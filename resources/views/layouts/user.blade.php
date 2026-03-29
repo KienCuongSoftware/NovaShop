@@ -1152,6 +1152,7 @@
                         @endif
                     @endauth
                     <a href="{{ route('welcome') }}">Trang chủ</a>
+                    <a href="{{ route('ai-chat.index') }}">Trợ lý AI</a>
                     <a href="{{ route('all.categories') }}">Danh mục</a>
                     <a href="{{ url('/#welcome-flash-section') }}">Flash Sale</a>
                     @auth
@@ -1303,6 +1304,8 @@
             </div>
         </div>
     </footer>
+
+    @include('partials.ai-chat-widget')
 
     <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-labelledby="globalConfirmModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
