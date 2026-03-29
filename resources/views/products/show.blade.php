@@ -509,6 +509,7 @@
                         'reviewDistribution' => $reviewDistribution,
                         'reviews' => $reviews,
                         'myReview' => $myReview ?? null,
+                        'canReviewProduct' => $canReviewProduct ?? false,
                     ])
                 </div>
             </div>

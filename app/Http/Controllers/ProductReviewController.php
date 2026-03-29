@@ -17,6 +17,12 @@ class ProductReviewController extends Controller
     {
         $user = Auth::user();
 
+        if (! Order::userHasDeliveredPurchase((int) $user->id, (int) $product->id)) {
+            return redirect()
+                ->route('products.show', $product)
+                ->with('error', 'Chỉ khách đã mua và nhận hàng thành công mới được đánh giá sản phẩm này.');
+        }
+
         $validated = $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'title' => 'nullable|string|max:255',
@@ -31,12 +37,8 @@ class ProductReviewController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
-        // 3B: Tự approve nếu user đã mua (có đơn completed chứa product này).
-        $isVerified = Order::query()
-            ->where('user_id', $user->id)
-            ->where('status', Order::STATUS_COMPLETED)
-            ->whereHas('items', fn ($q) => $q->where('product_id', $product->id))
-            ->exists();
+        // Tự duyệt khi đã mua + đơn hoàn thành + đã giao (cùng điều kiện với được phép gửi đánh giá).
+        $isVerified = Order::userHasDeliveredPurchase((int) $user->id, (int) $product->id);
 
         $isApproved = $isVerified;
         $now = now();

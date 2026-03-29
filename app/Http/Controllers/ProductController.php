@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use App\Models\Category;
 use App\Models\Brand;
 use App\Models\CompareItem;
+use App\Models\Order;
 use App\Models\StockNotificationSubscription;
 use App\Models\WishlistItem;
 use Illuminate\Http\Request;
@@ -295,8 +296,10 @@ class ProductController extends Controller
                     ->with('images')
                     ->first();
             }
+            $canReviewProduct = Auth::check()
+                && Order::userHasDeliveredPurchase((int) Auth::id(), (int) $product->id);
 
-            return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews', 'myReview'));
+            return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews', 'myReview', 'canReviewProduct'));
         }
 
         $myReview = null;
@@ -307,6 +310,9 @@ class ProductController extends Controller
                 ->with('images')
                 ->first();
         }
+
+        $canReviewProduct = Auth::check()
+            && Order::userHasDeliveredPurchase((int) Auth::id(), (int) $product->id);
 
         $rawIds = DB::table('order_items as oi')
             ->join('order_items as oi2', function ($join) {
@@ -356,6 +362,7 @@ class ProductController extends Controller
             'reviewDistribution',
             'reviews',
             'myReview',
+            'canReviewProduct',
             'boughtTogetherProducts',
             'inWishlist',
             'onCompare',

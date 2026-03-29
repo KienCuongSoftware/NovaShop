@@ -201,4 +201,31 @@ class Order extends Model
             self::STATUS_AWAITING_DELIVERY,
         ], true);
     }
+
+    /**
+     * Đơn đã hoàn thành và coi như đã giao xong → khách được phép đánh giá sản phẩm trong đơn.
+     */
+    public function allowsProductReviews(): bool
+    {
+        if ($this->status !== self::STATUS_COMPLETED) {
+            return false;
+        }
+
+        return $this->shipping_status === self::SHIPPING_STATUS_DELIVERED
+            || $this->shipping_status === null;
+    }
+
+    /** User đã mua product (có trong đơn completed + đã giao) → được gửi/ sửa đánh giá. */
+    public static function userHasDeliveredPurchase(int $userId, int $productId): bool
+    {
+        return static::query()
+            ->where('user_id', $userId)
+            ->where('status', self::STATUS_COMPLETED)
+            ->where(function ($q) {
+                $q->where('shipping_status', self::SHIPPING_STATUS_DELIVERED)
+                    ->orWhereNull('shipping_status');
+            })
+            ->whereHas('items', fn ($iq) => $iq->where('product_id', $productId))
+            ->exists();
+    }
 }
