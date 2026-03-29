@@ -58,4 +58,14 @@ return [
         'timeout' => env('ELASTICSEARCH_TIMEOUT', 2),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'max_tokens' => env('OPENAI_MAX_TOKENS', 1024),
+        'temperature' => env('OPENAI_TEMPERATURE', 0.7),
+        'product_tools' => filter_var(env('OPENAI_PRODUCT_TOOLS', true), FILTER_VALIDATE_BOOLEAN),
+        'chat_product_limit' => (int) env('OPENAI_CHAT_PRODUCT_LIMIT', 8),
+        'chat_history_max_rows' => (int) env('OPENAI_CHAT_HISTORY_MAX_ROWS', 200),
+    ],
+
 ];

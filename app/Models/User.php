@@ -92,4 +92,9 @@ class User extends Authenticatable implements MustVerifyEmailContract
     {
         return $this->hasMany(StockNotificationSubscription::class);
     }
+
+    public function aiChatMessages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AiChatMessage::class)->orderBy('id');
+    }
 }

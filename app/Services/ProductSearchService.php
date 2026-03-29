@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\SearchSynonym;
 use App\Models\Product;
+use App\Models\SearchSynonym;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -284,6 +285,82 @@ class ProductSearchService
 
             return null;
         }
+    }
+
+    /**
+     * Tìm sản phẩm active cho trợ lý AI (DB + Elasticsearch giống trang /search).
+     *
+     * @return array<int, array{id: int, name: string, slug: string, url: string, search_url: string, price: float, price_formatted: string, category: ?string, in_stock: bool}>
+     */
+    public function searchProductsForChat(string $keyword, int $limit = 8): array
+    {
+        $keyword = trim($keyword);
+        if ($keyword === '') {
+            return [];
+        }
+
+        $limit = max(1, min(12, $limit));
+
+        $query = Product::query()
+            ->where('is_active', true)
+            ->with(['category', 'brand', 'variants']);
+
+        $synonyms = $this->getSynonyms($keyword);
+        $terms = array_values(array_unique(array_merge([$keyword], $synonyms)));
+
+        $query->where(function ($q2) use ($terms) {
+            foreach ($terms as $term) {
+                $esc = str_replace(['%', '_'], ['\\%', '\\_'], (string) $term);
+                $pattern = '%'.$esc.'%';
+                $q2->orWhere(function ($q3) use ($pattern) {
+                    $q3->where('name', 'like', $pattern)
+                        ->orWhere('description', 'like', $pattern);
+                });
+            }
+        });
+
+        $esIds = $this->searchProductIds($keyword, null, max($limit * 6, 60));
+        if (is_array($esIds)) {
+            if ($esIds === []) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereIn('id', $esIds);
+            }
+        }
+
+        if (is_array($esIds) && $esIds !== []) {
+            $driver = DB::connection()->getDriverName();
+            $orderedIds = array_slice($esIds, 0, 200);
+            if ($driver === 'pgsql') {
+                $caseSql = 'CASE id';
+                foreach ($orderedIds as $position => $id) {
+                    $caseSql .= ' WHEN '.(int) $id.' THEN '.(int) $position;
+                }
+                $caseSql .= ' ELSE '.count($orderedIds).' END';
+                $query->orderByRaw($caseSql);
+            } elseif ($driver === 'mysql') {
+                $idsCsv = implode(',', array_map('intval', $orderedIds));
+                $query->orderByRaw("FIELD(id, {$idsCsv})");
+            } else {
+                $query->orderByDesc('id');
+            }
+        } else {
+            $query->orderByDesc('id');
+        }
+
+        return $query->limit($limit)->get()->map(function (Product $p) {
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'url' => route('products.show', $p),
+                'search_url' => route('search', ['q' => $p->name]),
+                'price' => round((float) $p->effective_price, 0),
+                'price_formatted' => number_format((float) $p->effective_price, 0, ',', '.').'₫',
+                'category' => $p->category->name ?? null,
+                'in_stock' => $p->effective_stock > 0,
+            ];
+        })->values()->all();
     }
 }
 

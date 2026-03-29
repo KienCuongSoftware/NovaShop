@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminInventoryLogController;
@@ -106,6 +107,17 @@ Route::get('/all-categories', [WelcomeController::class, 'allCategories'])->name
 // Trang danh sách sản phẩm theo danh mục
 Route::get('/categories/{category}', [WelcomeController::class, 'categoryProducts'])->name('category.products');
 Route::get('/search', [WelcomeController::class, 'search'])->name('search');
+
+// Trợ lý AI (OpenAI — khóa API chỉ dùng phía server)
+Route::get('/ai-chat', [AiChatController::class, 'index'])->name('ai-chat.index');
+Route::middleware(['throttle:20,1'])->group(function () {
+    Route::post('/ai-chat/send', [AiChatController::class, 'send'])->name('ai-chat.send');
+    Route::post('/ai-chat/clear', [AiChatController::class, 'clear'])->name('ai-chat.clear');
+});
+
+Route::middleware(['auth', 'throttle:60,1'])->group(function () {
+    Route::get('/ai-chat/history', [AiChatController::class, 'history'])->name('ai-chat.history');
+});
 
 // React SPA demo (Vite: npm run dev — proxy /api → Laravel :8000)
 Route::view('/spa', 'spa')->name('spa');
