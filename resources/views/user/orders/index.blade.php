@@ -7,25 +7,14 @@
     <h2>Đơn mua</h2>
 </div>
 
-{{-- Tabs trạng thái đơn --}}
-<ul class="nav nav-tabs orders-tabs mb-2">
+{{-- Chỉ tab trạng thái đơn (không tab vận chuyển — thông tin giao vẫn hiển thị trên từng thẻ đơn) --}}
+<ul class="nav nav-tabs orders-tabs mb-4">
     <li class="nav-item">
-        <a class="nav-link {{ ($status ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('orders.index', ['status' => 'all', 'shipping_status' => $shippingStatus ?? 'all']) }}">Tất cả</a>
+        <a class="nav-link {{ ($status ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('orders.index', array_filter(['status' => 'all', 'q' => request('q')])) }}">Tất cả</a>
     </li>
     @foreach(\App\Models\Order::tabStatusKeys() as $key)
     <li class="nav-item">
-        <a class="nav-link {{ ($status ?? '') === $key ? 'active' : '' }}" href="{{ route('orders.index', ['status' => $key, 'shipping_status' => $shippingStatus ?? 'all']) }}">{{ \App\Models\Order::statusLabel($key) }}</a>
-    </li>
-    @endforeach
-</ul>
-{{-- Tabs vận chuyển --}}
-<ul class="nav nav-tabs orders-tabs mb-4" style="border-bottom: 1px solid #dee2e6;">
-    <li class="nav-item">
-        <a class="nav-link {{ ($shippingStatus ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('orders.index', ['status' => $status ?? 'all', 'shipping_status' => 'all']) }}" style="font-size: 0.9rem;">Vận chuyển: Tất cả</a>
-    </li>
-    @foreach(\App\Models\Order::tabShippingStatusKeys() as $key)
-    <li class="nav-item">
-        <a class="nav-link {{ ($shippingStatus ?? '') === $key ? 'active' : '' }}" href="{{ route('orders.index', ['status' => $status ?? 'all', 'shipping_status' => $key]) }}" style="font-size: 0.9rem;">{{ \App\Models\Order::shippingStatusLabel($key) }}</a>
+        <a class="nav-link {{ ($status ?? '') === $key ? 'active' : '' }}" href="{{ route('orders.index', array_filter(['status' => $key, 'q' => request('q')])) }}">{{ \App\Models\Order::statusLabel($key) }}</a>
     </li>
     @endforeach
 </ul>
@@ -35,7 +24,6 @@
     <div class="card-body py-3">
         <form action="{{ route('orders.index') }}" method="GET" class="d-flex">
             <input type="hidden" name="status" value="{{ $status ?? 'all' }}">
-            <input type="hidden" name="shipping_status" value="{{ $shippingStatus ?? 'all' }}">
             <input type="text" name="q" class="form-control rounded" placeholder="Bạn có thể tìm kiếm theo ID đơn hàng hoặc tên sản phẩm" value="{{ request('q') }}">
             <button type="submit" class="btn btn-danger rounded ml-2">Tìm kiếm</button>
         </form>
@@ -53,11 +41,14 @@
 @else
 @foreach($orders as $order)
 <div class="card mb-3 order-card">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap" style="gap: 0.5rem;">
         <span class="font-weight-bold">Đơn hàng #{{ $order->id }}</span>
-        <span class="badge badge-{{ $order->status === 'completed' ? 'success' : (in_array($order->status, ['cancelled', 'return_refund'], true) ? 'secondary' : 'warning') }}">
-            {{ \App\Models\Order::statusLabel($order->status) }}
-        </span>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 0.5rem;">
+            <a href="{{ route('orders.show', $order) }}" class="btn btn-sm btn-outline-danger">Xem chi tiết</a>
+            <span class="badge badge-{{ $order->status === 'completed' ? 'success' : (in_array($order->status, ['cancelled', 'return_refund'], true) ? 'secondary' : 'warning') }}">
+                {{ \App\Models\Order::statusLabel($order->status) }}
+            </span>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">

@@ -17,7 +17,6 @@ class OrderController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $status = $request->query('status', 'all');
-        $shippingStatus = $request->query('shipping_status', 'all');
         $q = trim((string) $request->query('q', ''));
 
         $query = $user->orders()->with(['items.product'])->latest();
@@ -28,10 +27,6 @@ class OrderController extends Controller
             } elseif (in_array($status, Order::tabStatusKeys(), true)) {
                 $query->where('status', $status);
             }
-        }
-
-        if ($shippingStatus !== 'all' && in_array($shippingStatus, Order::tabShippingStatusKeys(), true)) {
-            $query->where('shipping_status', $shippingStatus);
         }
 
         if ($q !== '') {
@@ -45,7 +40,18 @@ class OrderController extends Controller
 
         $orders = $query->paginate(10)->withQueryString();
 
-        return view('user.orders.index', compact('orders', 'status', 'shippingStatus'));
+        return view('user.orders.index', compact('orders', 'status'));
+    }
+
+    public function show(Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $order->load(['items.product', 'items.productVariant']);
+
+        return view('user.orders.show', compact('order'));
     }
 
     public function success(Order $order)
