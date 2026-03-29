@@ -9,24 +9,27 @@
 
 <ul class="nav nav-tabs mb-2">
     <li class="nav-item">
-        <a class="nav-link {{ ($status ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('admin.orders.index', ['status' => 'all', 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? '']) }}">Tất cả</a>
+        <a class="nav-link {{ ($status ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('admin.orders.index', array_filter(['status' => 'all', 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? ''])) }}">Tất cả</a>
     </li>
     @foreach(\App\Models\Order::tabStatusKeys() as $key)
     <li class="nav-item">
-        <a class="nav-link {{ ($status ?? '') === $key ? 'active' : '' }}" href="{{ route('admin.orders.index', ['status' => $key, 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? '']) }}">{{ \App\Models\Order::statusLabel($key) }}</a>
+        <a class="nav-link {{ ($status ?? '') === $key ? 'active' : '' }}" href="{{ route('admin.orders.index', array_filter(['status' => $key, 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? ''])) }}">{{ \App\Models\Order::statusLabel($key) }}</a>
     </li>
     @endforeach
 </ul>
-<ul class="nav nav-tabs mb-3" style="border-bottom: 1px solid #dee2e6;">
-    <li class="nav-item">
-        <a class="nav-link {{ ($shippingStatus ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('admin.orders.index', ['status' => $status ?? 'all', 'shipping_status' => 'all', 'q' => $q ?? '']) }}" style="font-size: 0.9rem;">Vận chuyển: Tất cả</a>
-    </li>
-    @foreach(\App\Models\Order::tabShippingStatusKeys() as $key)
-    <li class="nav-item">
-        <a class="nav-link {{ ($shippingStatus ?? '') === $key ? 'active' : '' }}" href="{{ route('admin.orders.index', ['status' => $status ?? 'all', 'shipping_status' => $key, 'q' => $q ?? '']) }}" style="font-size: 0.9rem;">{{ \App\Models\Order::shippingStatusLabel($key) }}</a>
-    </li>
-    @endforeach
-</ul>
+<form method="GET" action="{{ route('admin.orders.index') }}" class="d-flex flex-wrap align-items-center mb-3" style="gap: 0.5rem;">
+    <input type="hidden" name="status" value="{{ $status ?? 'all' }}">
+    @if(trim((string) ($q ?? '')) !== '')
+        <input type="hidden" name="q" value="{{ $q }}">
+    @endif
+    <label for="admin-order-shipping-filter" class="mb-0 small font-weight-bold text-secondary">Lọc nâng cao</label>
+    <select name="shipping_status" id="admin-order-shipping-filter" class="form-control form-control-sm" style="max-width: 260px;" onchange="this.form.submit()">
+        <option value="all" {{ ($shippingStatus ?? 'all') === 'all' ? 'selected' : '' }}>Vận chuyển — tất cả</option>
+        @foreach(\App\Models\Order::tabShippingStatusKeys() as $key)
+            <option value="{{ $key }}" {{ ($shippingStatus ?? '') === $key ? 'selected' : '' }}>{{ \App\Models\Order::shippingStatusLabel($key) }}</option>
+        @endforeach
+    </select>
+</form>
 
 <div class="card mb-3">
     <div class="card-body py-3">
