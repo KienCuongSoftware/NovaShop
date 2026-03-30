@@ -33,6 +33,12 @@
                 @error('email')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
             </div>
             <div class="form-group">
+                <label for="birthday"><strong>Ngày sinh:</strong></label>
+                <input type="date" name="birthday" id="birthday" class="form-control" value="{{ old('birthday') }}">
+                <small class="form-text text-muted">Tuỳ chọn — cho coupon sinh nhật.</small>
+                @error('birthday')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+            </div>
+            <div class="form-group">
                 <label for="password"><strong>Mật khẩu:</strong></label>
                 <input type="password" name="password" id="password" class="form-control" placeholder="Nhập mật khẩu" required>
                 @error('password')<div class="text-danger small mt-1">{{ $message }}</div>@enderror

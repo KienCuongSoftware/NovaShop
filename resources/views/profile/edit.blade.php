@@ -42,6 +42,12 @@
                 @error('email')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
             </div>
             <div class="form-group">
+                <label for="birthday"><strong>Ngày sinh:</strong></label>
+                <input type="date" name="birthday" id="birthday" class="form-control" value="{{ old('birthday', $user->birthday?->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}">
+                <small class="form-text text-muted">Tuỳ chọn. Cần thiết nếu bạn dùng ưu đãi sinh nhật.</small>
+                @error('birthday')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+            </div>
+            <div class="form-group">
                 <label for="password"><strong>Mật khẩu mới:</strong></label>
                 <input type="password" name="password" id="password" class="form-control" placeholder="Để trống nếu không đổi">
                 <small class="form-text text-muted">Chỉ nhập khi muốn thay đổi mật khẩu.</small>

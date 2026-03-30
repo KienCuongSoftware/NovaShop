@@ -37,6 +37,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => ['required', 'confirmed', Password::defaults()],
+            'birthday' => 'nullable|date',
             'is_admin' => 'nullable|boolean',
             'is_vip' => 'nullable|boolean',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
@@ -84,6 +85,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
+            'birthday' => 'nullable|date',
             'is_admin' => 'nullable|boolean',
             'is_vip' => 'nullable|boolean',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
@@ -100,6 +102,7 @@ class UserController extends Controller
         $data = [
             'name' => $request->input('name'),
             'email' => $request->input('email'),
+            'birthday' => $request->filled('birthday') ? $request->input('birthday') : null,
             'is_admin' => (bool) $request->boolean('is_admin'),
             'is_vip' => (bool) $request->boolean('is_vip'),
         ];
@@ -139,6 +142,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
+            'birthday' => 'nullable|date|before_or_equal:today',
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
@@ -146,6 +150,7 @@ class UserController extends Controller
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không hợp lệ.',
             'email.unique' => 'Email này đã được sử dụng.',
+            'birthday.before_or_equal' => 'Ngày sinh không được là ngày trong tương lai.',
             'password.confirmed' => 'Mật khẩu xác nhận không khớp.',
             'avatar.image' => 'File phải là hình ảnh.',
             'avatar.max' => 'Kích thước ảnh không được quá 2MB.',
@@ -154,6 +159,7 @@ class UserController extends Controller
         $data = [
             'name' => $request->input('name'),
             'email' => $request->input('email'),
+            'birthday' => $request->filled('birthday') ? $request->input('birthday') : null,
         ];
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->input('password'));
