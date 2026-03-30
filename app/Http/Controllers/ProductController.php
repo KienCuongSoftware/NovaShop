@@ -12,6 +12,7 @@ use App\Models\CompareItem;
 use App\Models\Order;
 use App\Models\StockNotificationSubscription;
 use App\Models\WishlistItem;
+use App\Services\ShippingFeeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -352,6 +353,37 @@ class ProductController extends Controller
             $stockSubscribedSimple = $subs->contains(fn ($s) => $s->product_variant_id === null);
         }
 
+        $previewKmForEstimate = (float) config('delivery.preview_assumed_km', 15);
+        $previewShippingFee = null;
+        $previewDistanceKm = null;
+        $previewShippingHint = null;
+        if (Auth::check()) {
+            $addr = Auth::user()->addresses()->orderByDesc('is_default')->orderBy('id')->first();
+            if ($addr && $addr->hasCoordinates()) {
+                $calc = ShippingFeeService::calculate((float) $addr->lat, (float) $addr->lng);
+                $previewShippingFee = $calc['fee'];
+                $previewDistanceKm = $calc['distance_km'];
+                $previewKmForEstimate = (float) $previewDistanceKm;
+            }
+        }
+        if ($previewShippingFee === null) {
+            $calc = ShippingFeeService::calculate(null, null);
+            $previewShippingFee = $calc['fee'];
+            if ($previewDistanceKm === null) {
+                $previewShippingHint = Auth::check()
+                    ? 'Thêm tọa độ địa chỉ trên bản đồ để xem phí ship & ngày giao chính xác hơn.'
+                    : 'Đăng nhập và lưu địa chỉ giao hàng để ước tính chính xác hơn.';
+            }
+        }
+        [$previewDateFrom, $previewDateTo] = Order::estimatedDeliveryDateRangeFromDistanceKm($previewKmForEstimate, now());
+        $productShippingPreview = [
+            'fee' => (int) $previewShippingFee,
+            'distance_km' => $previewDistanceKm,
+            'date_from' => $previewDateFrom,
+            'date_to' => $previewDateTo,
+            'hint' => $previewShippingHint,
+        ];
+
         return view('products.show', compact(
             'product',
             'activeFlashSale',
@@ -367,7 +399,8 @@ class ProductController extends Controller
             'inWishlist',
             'onCompare',
             'stockSubscribedVariantIds',
-            'stockSubscribedSimple'
+            'stockSubscribedSimple',
+            'productShippingPreview'
         ));
     }
 
