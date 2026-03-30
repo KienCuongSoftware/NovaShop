@@ -172,6 +172,7 @@ Route::middleware(['auth', 'email.verified.otp'])->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/orders/{order}/request-return', [OrderController::class, 'requestReturn'])->name('orders.request-return');
     Route::get('/paypal/create-order/{order}', [PayPalController::class, 'createOrder'])->name('paypal.create-order');
     Route::get('/paypal/success/{order}', [PayPalController::class, 'success'])->name('paypal.success');
 });

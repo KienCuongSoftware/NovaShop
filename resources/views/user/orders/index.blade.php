@@ -89,18 +89,27 @@
             <small class="text-muted">
                 Địa chỉ: {{ $order->shipping_address }} | SĐT: {{ $order->phone }}
                 <br>Ngày đặt: {{ $order->created_at->format('d/m/Y H:i') }} | Vận chuyển: {{ \App\Models\Order::shippingStatusLabel((string) ($order->shipping_status ?? \App\Models\Order::SHIPPING_STATUS_PENDING)) }}
+                @if(!in_array($order->status, ['cancelled', 'return_refund'], true) && $order->estimatedDeliveryDateRange())
+                    <br><span class="text-info font-weight-bold">Dự kiến nhận:</span> {{ $order->estimatedDeliveryDateLabel() }}
+                @endif
             </small>
             <span class="font-weight-bold">Tổng: <span class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}₫</span></span>
         </div>
-        @if($order->canShowPayButton() || $order->canCancel())
-            <div class="mt-2">
+        @if($order->canShowPayButton() || $order->canCancel() || $order->canRequestReturn())
+            <div class="mt-2 d-flex flex-wrap align-items-center" style="gap: 0.5rem;">
                 @if($order->canShowPayButton())
-                    <a href="{{ route('paypal.create-order', $order) }}" class="btn btn-danger btn-sm mr-2">Thanh toán</a>
+                    <a href="{{ route('paypal.create-order', $order) }}" class="btn btn-danger btn-sm">Thanh toán</a>
                 @endif
                 @if($order->canCancel())
                     <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Bạn có chắc muốn hủy đơn hàng #{{ $order->id }}?');">
                         @csrf
                         <button type="submit" class="btn btn-outline-secondary btn-sm">Hủy đơn</button>
+                    </form>
+                @endif
+                @if($order->canRequestReturn())
+                    <form action="{{ route('orders.request-return', $order) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Gửi yêu cầu trả hàng / hoàn tiền cho đơn #{{ $order->id }}?');">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Trả hàng / Hoàn tiền</button>
                     </form>
                 @endif
             </div>

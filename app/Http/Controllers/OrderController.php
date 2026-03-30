@@ -102,6 +102,55 @@ class OrderController extends Controller
                 'payment_status' => $order->payment_method === Order::PAYMENT_METHOD_PAYPAL ? Order::PAYMENT_STATUS_FAILED : $order->payment_status,
             ]);
         });
-        return redirect()->route('orders.index')->with('success', 'Đã hủy đơn hàng #' . $order->id);
+        return redirect()
+            ->route('orders.show', $order)
+            ->with('success', 'Đã hủy đơn hàng #'.$order->id.'. Chúng tôi đã gửi email xác nhận.');
+    }
+
+    public function requestReturn(Order $order)
+    {
+        if ($order->user_id !== Auth::id()) {
+            abort(403);
+        }
+        if (! $order->canRequestReturn()) {
+            return redirect()
+                ->route('orders.show', $order)
+                ->with('error', 'Đơn hàng không thể yêu cầu trả hàng / hoàn tiền ở trạng thái hiện tại.');
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->loadMissing('items');
+            foreach ($order->items as $item) {
+                if ($item->product_variant_id) {
+                    $variant = ProductVariant::query()->where('id', $item->product_variant_id)->lockForUpdate()->first();
+                    if ($variant) {
+                        $variant->increment('stock', $item->quantity);
+                    }
+                } else {
+                    $product = Product::query()->where('id', $item->product_id)->lockForUpdate()->first();
+                    if ($product) {
+                        $product->increment('quantity', $item->quantity);
+                    }
+                }
+
+                InventoryLog::create([
+                    'product_variant_id' => $item->product_variant_id,
+                    'order_id' => $order->id,
+                    'type' => 'import',
+                    'quantity' => $item->quantity,
+                    'source' => 'order_return_refund',
+                    'note' => 'Khách yêu cầu trả hàng/hoàn tiền, nhập lại kho.',
+                ]);
+            }
+
+            $order->update([
+                'status' => Order::STATUS_RETURN_REFUND,
+                'shipping_status' => Order::mapShippingStatusFromOrderStatus(Order::STATUS_RETURN_REFUND),
+            ]);
+        });
+
+        return redirect()
+            ->route('orders.show', $order)
+            ->with('success', 'Đã ghi nhận yêu cầu trả hàng / hoàn tiền. Chúng tôi sẽ xử lý và đã gửi email thông báo.');
     }
 }

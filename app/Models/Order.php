@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -215,6 +216,12 @@ class Order extends Model
             || $this->shipping_status === null;
     }
 
+    /** Đơn đã giao xong → khách có thể gửi yêu cầu trả hàng / hoàn tiền (một lần). */
+    public function canRequestReturn(): bool
+    {
+        return $this->allowsProductReviews();
+    }
+
     /** User đã mua product (có trong đơn completed + đã giao) → được gửi/ sửa đánh giá. */
     public static function userHasDeliveredPurchase(int $userId, int $productId): bool
     {
@@ -227,5 +234,90 @@ class Order extends Model
             })
             ->whereHas('items', fn ($iq) => $iq->where('product_id', $productId))
             ->exists();
+    }
+
+    /**
+     * Số ngày (min, max) từ mốc gốc đến dự kiến nhận, theo km (cùng công thức đơn hàng).
+     *
+     * @return array{0: int, 1: int}
+     */
+    public static function deliveryOffsetDaysForKm(float $km): array
+    {
+        $km = max(0.0, $km);
+        $pMin = max(0, (int) config('delivery.processing_days_min', 1));
+        $pMax = max($pMin, (int) config('delivery.processing_days_max', 2));
+        $kmPerDay = max(1.0, (float) config('delivery.km_per_day', 45));
+        $maxTransit = max(1, (int) config('delivery.max_transit_days', 8));
+        $buffer = max(0, (int) config('delivery.buffer_days', 1));
+
+        $transit = max(1, (int) ceil($km / $kmPerDay));
+        $transit = min($transit, $maxTransit);
+
+        $minTotal = $pMin + $transit;
+        $maxTotal = $pMax + $transit + $buffer;
+
+        return [$minTotal, $maxTotal];
+    }
+
+    /** @return array{0: \Carbon\Carbon, 1: \Carbon\Carbon} */
+    public static function estimatedDeliveryDateRangeFromDistanceKm(float $km, $baseDate = null): array
+    {
+        $base = ($baseDate ?? now())->copy()->startOfDay();
+        [$minDays, $maxDays] = static::deliveryOffsetDaysForKm($km);
+
+        return [
+            $base->copy()->addDays($minDays),
+            $base->copy()->addDays($maxDays),
+        ];
+    }
+
+    /**
+     * Khoảng ngày (tối thiểu, tối đa) từ ngày đặt đến dự kiến nhận, dựa trên khoảng cách giao hàng (km).
+     *
+     * @return array{0: int, 1: int} số ngày lịch (không phải chỉ ngày làm việc)
+     */
+    public function estimatedDeliveryOffsetDays(): array
+    {
+        $km = max(0.0, (float) ($this->shipping_distance_km ?? 0));
+
+        return static::deliveryOffsetDaysForKm($km);
+    }
+
+    /** @return array{0: \Carbon\Carbon, 1: \Carbon\Carbon}|null */
+    public function estimatedDeliveryDateRange(): ?array
+    {
+        if (! $this->created_at) {
+            return null;
+        }
+        [$minDays, $maxDays] = $this->estimatedDeliveryOffsetDays();
+        $base = $this->created_at->copy()->startOfDay();
+
+        return [
+            $base->copy()->addDays($minDays),
+            $base->copy()->addDays($maxDays),
+        ];
+    }
+
+    public function estimatedDeliveryDateLabel(): string
+    {
+        $range = $this->estimatedDeliveryDateRange();
+        if ($range === null) {
+            return '—';
+        }
+        /** @var Carbon $from */
+        /** @var Carbon $to */
+        [$from, $to] = $range;
+        $km = $this->shipping_distance_km;
+
+        if ($km !== null) {
+            return sprintf(
+                '%s — %s (ước tính theo ~%s km)',
+                $from->format('d/m/Y'),
+                $to->format('d/m/Y'),
+                number_format((float) $km, 1, ',', '.')
+            );
+        }
+
+        return $from->format('d/m/Y').' — '.$to->format('d/m/Y');
     }
 }
