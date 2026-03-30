@@ -17,7 +17,7 @@ class Coupon extends Model
     protected $fillable = [
         'code', 'name', 'discount_type', 'discount_value', 'min_order_amount',
         'category_id', 'starts_at', 'ends_at', 'max_uses', 'uses_count', 'is_active',
-        'user_segment', 'first_order_only', 'min_completed_orders',
+        'user_segment', 'first_order_only', 'birthday_only', 'birthday_window_days', 'min_completed_orders',
     ];
 
     protected $casts = [
@@ -29,6 +29,8 @@ class Coupon extends Model
         'uses_count' => 'integer',
         'is_active' => 'boolean',
         'first_order_only' => 'boolean',
+        'birthday_only' => 'boolean',
+        'birthday_window_days' => 'integer',
         'min_completed_orders' => 'integer',
     ];
 

@@ -32,7 +32,17 @@ class CouponService
         if ((bool) ($coupon->first_order_only ?? false)) {
             $hasAnyOrder = Order::query()->where('user_id', $user->id)->exists();
             if ($hasAnyOrder) {
-                return ['ok' => false, 'discount' => 0, 'message' => 'Mã giảm giá chỉ áp dụng cho đơn hàng đầu tiên.'];
+                return ['ok' => false, 'discount' => 0, 'message' => 'Mã này chỉ dành cho khách mua lần đầu (chưa có đơn hàng).'];
+            }
+        }
+
+        if ((bool) ($coupon->birthday_only ?? false)) {
+            if (! $user->birthday) {
+                return ['ok' => false, 'discount' => 0, 'message' => 'Mã sinh nhật yêu cầu tài khoản có ngày sinh; vui lòng liên hệ hỗ trợ hoặc cập nhật hồ sơ.'];
+            }
+            $window = (int) ($coupon->birthday_window_days ?? 7);
+            if (! $user->isWithinBirthdayCouponWindow($window)) {
+                return ['ok' => false, 'discount' => 0, 'message' => 'Mã này chỉ dùng trong khoảng thời gian quanh ngày sinh nhật của bạn.'];
             }
         }
 

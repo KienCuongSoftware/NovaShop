@@ -69,6 +69,8 @@ class AdminCouponController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'user_segment' => 'nullable|in:all,vip',
             'first_order_only' => 'nullable|boolean',
+            'birthday_only' => 'nullable|boolean',
+            'birthday_window_days' => 'nullable|integer|min:0|max:60',
             'min_completed_orders' => 'nullable|integer|min:0',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
@@ -84,6 +86,12 @@ class AdminCouponController extends Controller
             ]);
         }
 
+        $birthdayOnly = $request->boolean('birthday_only');
+        $birthdayWindow = max(0, min(60, (int) $request->input('birthday_window_days', 7)));
+        $preservedBirthdayWindow = $ignoreCouponId
+            ? (int) (Coupon::query()->find($ignoreCouponId)?->birthday_window_days ?? 7)
+            : 7;
+
         return [
             'code' => strtoupper(trim($request->input('code'))),
             'name' => $request->input('name'),
@@ -93,6 +101,8 @@ class AdminCouponController extends Controller
             'category_id' => $request->filled('category_id') ? (int) $request->input('category_id') : null,
             'user_segment' => $request->filled('user_segment') ? (string) $request->input('user_segment') : Coupon::SEGMENT_ALL,
             'first_order_only' => $request->boolean('first_order_only'),
+            'birthday_only' => $birthdayOnly,
+            'birthday_window_days' => $birthdayOnly ? $birthdayWindow : $preservedBirthdayWindow,
             'min_completed_orders' => $request->filled('min_completed_orders') ? (int) $request->input('min_completed_orders') : null,
             'starts_at' => $request->input('starts_at') ?: null,
             'ends_at' => $request->input('ends_at') ?: null,
