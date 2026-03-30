@@ -62,33 +62,41 @@
                     </table>
                 </div>
             </div>
-            <div class="card-footer">
+            <div class="card-footer admin-order-summary bg-light">
                 @php $lineSubtotal = (float) $order->subtotal; @endphp
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="text-muted">Tạm tính</span>
-                    <span>{{ number_format($lineSubtotal, 0, ',', '.') }}₫</span>
+                <div class="admin-order-summary__row">
+                    <span class="admin-order-summary__label">Tạm tính</span>
+                    <span class="admin-order-summary__value">{{ number_format($lineSubtotal, 0, ',', '.') }}₫</span>
                 </div>
                 @if((int) ($order->discount_amount ?? 0) > 0)
-                <div class="d-flex justify-content-between align-items-center mb-1 text-success">
-                    <span>Giảm giá @if($order->coupon) ({{ $order->coupon->code }}) @endif</span>
-                    <span>−{{ number_format($order->discount_amount, 0, ',', '.') }}₫</span>
+                <div class="admin-order-summary__row text-success">
+                    <span class="admin-order-summary__label">Giảm giá @if($order->coupon) ({{ $order->coupon->code }}) @endif</span>
+                    <span class="admin-order-summary__value">−{{ number_format($order->discount_amount, 0, ',', '.') }}₫</span>
                 </div>
                 @endif
                 @if((int) ($order->shipping_fee ?? 0) > 0)
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="text-muted">Phí ship</span>
-                    <span>{{ number_format($order->shipping_fee, 0, ',', '.') }}₫</span>
+                <div class="admin-order-summary__row">
+                    <span class="admin-order-summary__label">
+                        Phí ship
+                        @if($order->shipping_distance_km !== null)
+                            <span class="text-muted font-weight-normal">({{ number_format($order->shipping_distance_km, 1, ',', '.') }} km)</span>
+                        @endif
+                    </span>
+                    <span class="admin-order-summary__value">{{ number_format($order->shipping_fee, 0, ',', '.') }}₫</span>
                 </div>
-                @if($order->shipping_distance_km !== null)
-                <div class="d-flex justify-content-between align-items-center mb-1 small text-muted">
-                    <span>Khoảng cách</span>
-                    <span>{{ number_format($order->shipping_distance_km, 1) }} km</span>
+                @elseif($order->shipping_distance_km !== null)
+                <div class="admin-order-summary__row">
+                    <span class="admin-order-summary__label">Khoảng cách</span>
+                    <span class="admin-order-summary__value">{{ number_format($order->shipping_distance_km, 1, ',', '.') }} km</span>
                 </div>
                 @endif
-                @endif
-                <div class="d-flex justify-content-between align-items-center pt-1">
-                    <span class="text-muted">Ngày đặt: {{ $order->created_at->format('d/m/Y H:i') }}</span>
-                    <span class="font-weight-bold">Tổng: <span class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}₫</span></span>
+                <div class="admin-order-summary__row admin-order-summary__row--meta">
+                    <span class="admin-order-summary__label">Ngày đặt</span>
+                    <span class="admin-order-summary__value">{{ $order->created_at->format('d/m/Y H:i') }}</span>
+                </div>
+                <div class="admin-order-summary__row admin-order-summary__row--total">
+                    <span class="admin-order-summary__label">Tổng thanh toán</span>
+                    <span class="admin-order-summary__value text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}₫</span>
                 </div>
             </div>
         </div>
@@ -140,3 +148,54 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+.admin-order-summary {
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+.admin-order-summary__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.admin-order-summary__row:last-child {
+    border-bottom: 0;
+}
+.admin-order-summary__label {
+    color: #6c757d;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+}
+.admin-order-summary__value {
+    font-weight: 600;
+    text-align: right;
+    white-space: nowrap;
+}
+.admin-order-summary__row--meta .admin-order-summary__label,
+.admin-order-summary__row--meta .admin-order-summary__value {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+.admin-order-summary__row--total {
+    margin-top: 0.25rem;
+    padding-top: 0.65rem;
+    border-top: 2px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 0;
+}
+.admin-order-summary__row--total .admin-order-summary__label {
+    color: #212529;
+    font-size: 1rem;
+    font-weight: 700;
+}
+.admin-order-summary__row--total .admin-order-summary__value {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+</style>
+@endpush
