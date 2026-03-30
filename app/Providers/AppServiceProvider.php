@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Models\Category;
 use App\Models\FlashSale;
 use App\Models\FlashSaleItem;
+use App\Models\Order;
 use App\Models\Product;
+use App\Observers\OrderObserver;
 use App\Observers\ProductObserver;
 use App\Services\CatalogCache;
 use Illuminate\Pagination\Paginator;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Product::observe(ProductObserver::class);
+        Order::observe(OrderObserver::class);
 
         Category::saved(fn () => CatalogCache::forgetCategoryTree());
         Category::deleted(fn () => CatalogCache::forgetCategoryTree());
