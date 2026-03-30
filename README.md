@@ -1,6 +1,6 @@
 # NovaShop
 
-A **Laravel 12** e-commerce demo: hierarchical categories, products with variants & attributes, brands, flash sales, reviews, address book (Leaflet / OpenStreetMap), **distance-based shipping**, **cart coupons**, **wishlist**, **product compare** (up to 4 items), **“frequently bought together”** from order history, **back-in-stock email + in-app notifications**, cart & checkout, orders (**COD / PayPal**), and an **admin** panel.
+A **Laravel 12** e-commerce demo: hierarchical categories, products with variants & attributes, brands, flash sales, **review moderation** (approved reviews on the storefront), address book (Leaflet / OpenStreetMap), **distance-based shipping** + **delivery date range** hints (`config/delivery.php`), **cart coupons** (including **VIP**, **first-time buyer**, and **birthday window** rules), **wishlist** & **compare** (up to 4 items; optional share links), **“frequently bought together”** from order history, **back-in-stock email** + in-app **stock alert inbox**, **Elasticsearch-backed search** (optional), **DB search synonyms** (admin), **AI product assistant** (`/ai-chat`, OpenAI), cart & checkout, orders (**COD / PayPal**), **customer cancel / return requests**, **email OTP** verification after registration, and an **admin** dashboard (KPIs, revenue chart, top SKUs, cancel rate).
 
 **Repository:** [https://github.com/KienCuongSoftware/NovaShop](https://github.com/KienCuongSoftware/NovaShop)
 
@@ -36,14 +36,18 @@ A **Laravel 12** e-commerce demo: hierarchical categories, products with variant
    | Google login | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` |
    | PayPal | `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE` |
    | Shipping warehouse (Haversine) | `SHIPPING_WAREHOUSE_LAT`, `SHIPPING_WAREHOUSE_LNG` |
-   | **Email (e.g. back-in-stock)** | `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_ENCRYPTION`, `MAIL_USERNAME`, `MAIL_PASSWORD` — use an **app password** for Gmail; **never commit secrets** |
+   | Delivery estimate (UI / emails) | `DELIVERY_PROCESSING_MIN`, `DELIVERY_PROCESSING_MAX`, `DELIVERY_KM_PER_DAY`, `DELIVERY_MAX_TRANSIT_DAYS`, `DELIVERY_BUFFER_DAYS`, `DELIVERY_PREVIEW_ASSUMED_KM` (see `config/delivery.php`) |
+   | AI chat (`/ai-chat`) | `OPENAI_API_KEY`, `OPENAI_MODEL` (optional tool / history tunables in `.env.example`) |
+   | Elasticsearch (optional search) | `ELASTICSEARCH_ENABLED`, `ELASTICSEARCH_HOST`, `ELASTICSEARCH_PRODUCTS_INDEX`, … |
+   | PayPal stock hold | `STOCK_RESERVATION_TTL_MINUTES` |
+   | **Email (OTP, back-in-stock, …)** | `MAIL_*` — use an **app password** for Gmail; **`QUEUE_CONNECTION=database`** + `php artisan queue:work` (or `composer run dev`) if you rely on **queued** mail such as back-in-stock |
 
 4. **Migrations**
    ```bash
    php artisan migrate
    ```
 
-5. **Storage link** (product images, brands, categories, avatars)
+5. **Storage link** (product / brand / category / avatar / review images)
    ```bash
    php artisan storage:link
    ```
@@ -82,52 +86,56 @@ composer run dev
 
 ### Storefront (guest & authenticated)
 
-- **Home** — Products, sort/pagination, filters, search; **flash sale** by time slot; suggestions / recent behaviour where implemented.
+- **Home** — Products, sort/pagination, filters, search (DB + optional Elasticsearch; **synonyms** from admin); **flash sale** by time slot; category-based suggestions from recent views where implemented.
 - **Categories** — Tree (`/all-categories`); category pages with slug URLs, brand filter, search.
-- **Product detail** — Gallery, variants, flash pricing, stock, **reviews** (pagination, star filter, AJAX partial); **add to cart**; **wishlist** / **compare** / **notify when back in stock**; **“Frequently bought together”** from `order_items` co-occurrence.
-- **Auth** — Register, login, logout; **Google OAuth** (Socialite).
-- **Profile** — Edit profile; avatar upload.
+- **Product detail** — Gallery, variants, flash pricing, stock, **shipping / delivery estimate** snippet, **reviews** (only **approved** reviews; pagination, star filter, AJAX partial); submit review only if the user has a **completed, delivered** purchase of that product; **add to cart**; **wishlist** / **compare** / **notify when back in stock**; **“Frequently bought together”** from `order_items` co-occurrence.
+- **Auth** — Register, login, logout; **Google OAuth** (Socialite); **email verification via OTP** (`email.verified.otp` middleware on shopping routes).
+- **Profile** — Name, email, **date of birth** (optional; used for birthday coupons), avatar, password.
+- **AI assistant** — `/ai-chat` (logged-in history; throttled public `send`); requires `OPENAI_API_KEY`.
 - **Address book** — CRUD; map picker (Leaflet + Nominatim); default address; lat/lng for shipping.
 - **Wishlist** — Per-user list (`/wishlist`).
 - **Compare** — Up to **4** products, attribute comparison table (`/compare`).
 - **Cart** — Add/update/remove; variant-aware; **apply / remove coupon**; totals respect active flash sale prices where applicable.
 - **Checkout** — Saved or new address + map; **shipping fee by distance**; shows subtotal, discount, shipping, total; **COD** or **PayPal**.
-- **Orders** — History, filters, cancel where allowed; PayPal retry for unpaid/failed.
+- **Orders** — History, detail; **cancel** or **request return / refund** where allowed (restock / status rules); PayPal retry for unpaid/failed; **order status change** emails use synchronous `Mail::send` (no queue worker required).
 - **Stock alerts inbox** — `/notifications/stock`: rows after a back-in-stock email was sent (demo rows possible via seeder).
 
-**Header (logged in):** quick links (heart / compare / bell / cart) with badges; account dropdown (profile, orders, addresses, logout) — wishlist/compare/alerts are **not** duplicated in the dropdown.
+**Header (logged in):** quick links (heart / compare / bell / cart) with badges; account dropdown (profile, orders, addresses, logout). **Liên hệ** links to the on-page footer (`/#site-footer`).
 
 ### Admin (`auth` + `admin` middleware)
 
-- **Dashboard** — Stats, charts, recent orders.
-- **Products** — CRUD, variants, attributes, images, flash sale linkage.
+- **Dashboard** — Product/order/user/category counts, **30-day revenue** line chart, **top SKUs** (completed orders), **cancel rates** (30-day and all-time), recent orders.
+- **Products** — CRUD, variants, attributes (**Livewire** component for attribute values on the edit form), images, flash sale linkage.
 - **Categories** — Hierarchical `parent_id`, images on roots.
 - **Brands** — CRUD, logos.
 - **Attributes** — Attribute + values for variants.
 - **Flash sales** — Time slots and line items.
-- **Coupons / vouchers** — CRUD: percent or fixed amount, **minimum order**, optional **category scope** (descendants), validity window, max uses.
+- **Coupons / vouchers** — CRUD: percent or fixed amount, **minimum order**, optional **category scope** (descendants), validity window, max uses; **user segment** (all vs **VIP** via `users.is_vip`), **first order only** (no prior orders), **optional minimum completed orders**, **birthday window** (± days; requires `users.birthday`).
 - **Orders** — List, filters, detail (**subtotal, discount, shipping**, distance), status updates.
 - **Inventory logs** — Stock movements.
-- **Users** — CRUD / search.
+- **Users** — CRUD / search; **admin flag**, **VIP flag**, **birthday** (for birthday coupons).
+- **Search synonyms** — Map keywords to extra query terms (`ProductSearchService` + admin CRUD).
+- **Product reviews** — Queue of pending reviews: approve / reject (with optional email on reject).
 - **Admin profile** — Name, email, password, avatar.
 
 ### Business rules (summary)
 
-- **Coupons:** Validated on cart and again at **place order**; discount stored on `orders` (`coupon_id`, `discount_amount`); usage counter incremented when applicable.
-- **Shipping:** `ShippingFeeService` + `config/shipping.php` — Haversine from warehouse to checkout coordinates; fee tiers by km; defaults when coords missing.
-- **Stock alerts:** On variant (or simple product) stock going **0 → &gt;0**, subscribers get **email** (`ProductBackInStockMail`) and can see history under **notifications/stock**.
+- **Coupons:** Validated on cart and again at **place order** (`CouponService`: segment VIP, first order, birthday window, min completed orders, category subtotal, min order amount); discount stored on `orders` (`coupon_id`, `discount_amount`); usage counter incremented when applicable.
+- **Shipping:** `ShippingFeeService` + `config/shipping.php` — Haversine from warehouse to checkout coordinates; fee tiers by km; defaults when coords missing. **Delivery preview** on product / order views uses `config/delivery.php` and km saved on the order when available.
+- **Stock alerts:** On variant (or simple product) stock going **0 → &gt;0**, subscribers get **queued** email (`ProductBackInStockMail` implements `ShouldQueue`) and can see history under **notifications/stock** — run a **queue worker** in production (or `composer run dev` locally).
+- **Order emails:** **`OrderStatusChangedMail`** is **not** queued; sent with `Mail::send` in the order observer so status updates still notify without `queue:work`.
 - **Products with variants:** Aggregate price/stock from variants; inventory logs on checkout/cancel flows.
 
 ## Project structure (high level)
 
 | Area | Paths |
 |------|--------|
-| HTTP | `WelcomeController`, `ProductController`, `CategoryController`, `BrandController`, `AttributeController`, `AuthController`, `UserController`, `AddressController`, `CartController`, `CheckoutController`, `OrderController`, `PayPalController`, `FlashSaleController`, `WishlistController`, `CompareController`, `StockNotificationController`, `StockAlertInboxController`, `AdminController`, `Admin\AdminCouponController`, `AdminOrderController`, `AdminInventoryLogController`, `AdminProfileController`, … |
-| Models | `Category`, `Product`, `ProductVariant`, `ProductImage`, `ProductReview`, `Brand`, `Attribute`, `AttributeValue`, `User`, `Address`, `Cart`, `CartItem`, `Coupon`, `WishlistItem`, `CompareItem`, `StockNotificationSubscription`, `Order`, `OrderItem`, `Payment`, `FlashSale`, `FlashSaleItem`, `InventoryLog`, … |
-| Services | `ShippingFeeService`, `CartPricingService`, `CouponService`, `StockNotificationService`, **`CatalogCache`**, **`OrderPlacementService`** (đặt hàng từ giỏ — web + API) |
-| Mail | `app/Mail/ProductBackInStockMail.php`, `resources/views/emails/` |
-| Config | `config/shipping.php` |
-| Views | `resources/views/layouts/` (admin, user), `welcome.blade.php`, `products/`, `user/` (cart, checkout, orders, addresses, **wishlist**, **compare**, **stock-alerts**), `admin/` (including **coupons**), `partials/`, `emails/` |
+| HTTP | `WelcomeController`, `ProductController`, `ProductReviewController`, `CategoryController`, `BrandController`, `AttributeController`, `AuthController`, `AiChatController`, `UserController`, `AddressController`, `CartController`, `CheckoutController`, `OrderController`, `PayPalController`, `FlashSaleController`, `WishlistController`, `CompareController`, `ListSharePublicController`, `StockNotificationController`, `StockAlertInboxController`, `AdminController`, `Admin\AdminCouponController`, `Admin\AdminSearchSynonymController`, `Admin\AdminProductReviewController`, `AdminOrderController`, `AdminInventoryLogController`, `AdminProfileController`, … |
+| Models | `Category`, `Product`, `ProductVariant`, `ProductImage`, `ProductReview`, `SearchSynonym`, `Brand`, `Attribute`, `AttributeValue`, `User`, `Address`, `Cart`, `CartItem`, `Coupon`, `WishlistItem`, `CompareItem`, `StockNotificationSubscription`, `Order`, `OrderItem`, `Payment`, `FlashSale`, `FlashSaleItem`, `InventoryLog`, `AiChatMessage`, … |
+| Services | `ShippingFeeService`, `CartPricingService`, `CouponService`, `StockNotificationService`, **`ProductSearchService`**, **`CatalogCache`**, **`OrderPlacementService`** (web + API checkout) |
+| Mail | `ProductBackInStockMail`, `OrderStatusChangedMail`, `EmailVerificationOtpMail`, `ProductReviewRejectedMail`; views under `resources/views/emails/` |
+| Config | `config/shipping.php`, `config/delivery.php`, `config/services.php` (Elasticsearch, OpenAI, …) |
+| Views | `resources/views/layouts/` (admin, user), `welcome.blade.php`, `products/`, `profile/`, `ai-chat/`, `user/` (cart, checkout, orders, addresses, **wishlist**, **compare**, **stock-alerts**), `admin/` (coupons, **search_synonyms**, …), `livewire/`, `partials/`, `emails/` |
 | Routes | `routes/web.php` — auth, cart, coupons, wishlist, compare, stock notifications, checkout, PayPal, flash-sale JSON (`/api/flash-sale`), image routes, admin group; **`routes/api.php`** — REST v1 (see below) |
 
 ## REST API (v1) + Sanctum
@@ -145,6 +153,7 @@ php artisan migrate
 | GET | `/api/v1/categories` | Cây danh mục (đồng bộ cache với storefront). |
 | GET | `/api/v1/products` | Phân trang: `per_page`, `sort`, `category` (slug), `q`, `price_min`, `price_max`. Có `has_variants`. |
 | GET | `/api/v1/products/{slug}` | Chi tiết + variants. |
+| GET | `/api/v1/search/suggestions` | Gợi ý tìm kiếm (throttle). |
 
 ### Auth & tài khoản
 
@@ -178,14 +187,15 @@ Logic đặt hàng dùng chung **`OrderPlacementService`** với `CheckoutContro
 
 ## Redis & cache ứng dụng
 
-- **`CatalogCache`** dùng `Cache` facade → đặt **`CACHE_STORE=redis`** (và cấu hình `REDIS_*`) để dùng Redis trong production.
+- Mặc định `.env.example` dùng **`CACHE_STORE=database`** / **`SESSION_DRIVER=database`** — không cần Redis để chạy local.
+- **`CatalogCache`** dùng `Cache` facade → đặt **`CACHE_STORE=redis`** (và `REDIS_*`) nếu muốn Redis trong production.
 - Có thể thêm **`SESSION_DRIVER=redis`** khi đã chạy Redis ổn định.
 - API public: middleware **`AddWeakEtagPublicApi`** (ETag yếu + max-age ngắn).
 
 ## Caching & queues (incremental)
 
 - **HTTP cache:** `CatalogCache` stores the **root category tree** (~10 min TTL) and **flash-sale “welcome” context** (~45s TTL). Keys are invalidated when `Category`, `FlashSale`, or `FlashSaleItem` changes (`AppServiceProvider`).
-- **Mail:** `ProductBackInStockMail` implements **`ShouldQueue`** — use `QUEUE_CONNECTION=database` (or Redis) and run `php artisan queue:work` so back-in-stock email is sent asynchronously.
+- **Mail:** `ProductBackInStockMail` implements **`ShouldQueue`** — with `QUEUE_CONNECTION=database` (or Redis), run **`php artisan queue:work`** (included in **`composer run dev`**) so back-in-stock (and any other queued jobs) actually send. **Order status** mail is **synchronous** (see business rules).
 
 ## Image URLs
 
@@ -195,6 +205,7 @@ Assets under `storage/app/public/` are exposed via named routes, e.g.:
 - Brands — `/images/brands/{filename}`
 - Categories — `/images/categories/{filename}`
 - Avatars — `/images/avatars/{filename}`
+- Review photos — `/images/reviews/{filename}`
 
 Requires `php artisan storage:link`.
 
@@ -206,7 +217,7 @@ php artisan test
 
 Included: **API v1** (catalog, auth, cart, checkout, addresses), **SPA React** (`/spa`), **ETag** on public catalog endpoints, **`OrderPlacementService`**, tests trong `tests/Feature/Api/V1/*` + SQLite-friendly migrations. Chạy `php artisan migrate` để áp migration **`ensure_orders_coupon_columns`** nếu DB cũ thiếu `coupon_id` trên `orders`.
 
-**Good next steps:** PayPal/IPN API tests, wishlist/compare JSON, cursor pagination, Inertia nếu muốn SSR + Vue/React trong Laravel.
+**Good next steps:** PayPal/IPN API tests, wishlist/compare JSON endpoints, more coupon / segment integration tests, Inertia nếu muốn SSR + Vue/React trong Laravel.
 
 ## Roadmap / future improvements
 
@@ -215,7 +226,7 @@ Included: **API v1** (catalog, auth, cart, checkout, addresses), **SPA React** (
 | **API / SPA** | REST v1 đủ catalog + giỏ + checkout; SPA mẫu React. | App mobile / storefront React lớn, OAuth device flow. |
 | **Blade vs React** | Blade là shop chính; `/spa` là demo. | Mở rộng SPA hoặc Inertia. |
 | **Caching & queues** | Catalog cache, ETag public API, mail queue. | Redis production, monitor `failed_jobs`, chunk jobs. |
-| **Tests** | Auth, cart, checkout COD, ETag, factories. | Webhooks PayPal, coupon edge cases. |
+| **Tests** | Auth, cart, checkout COD, ETag, factories. | Webhooks PayPal, Elasticsearch/synonym coverage, coupon segments. |
 
 This project remains a **learning / demo** monolith; hardening infra for scale is optional follow-on work.
 
