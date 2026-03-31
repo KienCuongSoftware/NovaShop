@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\SearchQueryTrend;
 use App\Services\CatalogCache;
 use App\Services\ProductSearchService;
+use App\Services\RecommendationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,11 +16,12 @@ use Illuminate\Support\Facades\DB;
 class WelcomeController extends Controller
 {
     public function __construct(
-        protected ProductSearchService $productSearchService
+        protected ProductSearchService $productSearchService,
+        protected RecommendationService $recommendationService
     ) {}
 
     /** Gợi ý sản phẩm tương tự dựa trên hành vi xem chi tiết (cùng danh mục với sản phẩm đã xem). */
-    protected function getSuggestedProducts(): \Illuminate\Support\Collection
+    protected function getSuggestedProductsV1(): \Illuminate\Support\Collection
     {
         $excludeIds = session('recent_product_ids', []);
         $categoryIds = session('recent_category_ids', []);
@@ -82,6 +84,40 @@ class WelcomeController extends Controller
     }
 
     /**
+     * A/B test recommendation engine.
+     *
+     * @return array{products: \Illuminate\Support\Collection, variant: string}
+     */
+    protected function getSuggestedProducts(Request $request): array
+    {
+        $forced = trim((string) $request->query('rec_ab', ''));
+        if (in_array($forced, [RecommendationService::VARIANT_V1, RecommendationService::VARIANT_V2], true)) {
+            session(['rec_ab_variant' => $forced]);
+        }
+
+        $variant = (string) session('rec_ab_variant', '');
+        if ($variant === '') {
+            $seed = (string) (Auth::id() ?? session()->getId());
+            $variant = (crc32($seed) % 2 === 0) ? RecommendationService::VARIANT_V2 : RecommendationService::VARIANT_V1;
+            session(['rec_ab_variant' => $variant]);
+        }
+
+        if ($variant === RecommendationService::VARIANT_V2) {
+            $products = $this->recommendationService->suggestV2(
+                Auth::user(),
+                session('recent_product_ids', []),
+                session('recent_category_ids', []),
+                20
+            );
+            if ($products->isNotEmpty()) {
+                return ['products' => $products, 'variant' => $variant];
+            }
+        }
+
+        return ['products' => $this->getSuggestedProductsV1(), 'variant' => RecommendationService::VARIANT_V1];
+    }
+
+    /**
      * Trang chủ: hiển thị tất cả sản phẩm (không lọc danh mục).
      */
     public function index(Request $request)
@@ -92,7 +128,9 @@ class WelcomeController extends Controller
 
         $categories = CatalogCache::rootCategoryTree();
         $products = $this->buildProductQuery(null, $request)->paginate(12)->withQueryString();
-        $suggestedProducts = $this->getSuggestedProducts();
+        $rec = $this->getSuggestedProducts($request);
+        $suggestedProducts = $rec['products'];
+        $recVariant = $rec['variant'];
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
@@ -101,7 +139,7 @@ class WelcomeController extends Controller
         $showSidebarAndFilter = false;
         ['activeFlashSale' => $activeFlashSale, 'todaySlots' => $todaySlots] = CatalogCache::flashSaleWelcomeContext();
 
-        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
+        return view('welcome', compact('products', 'categories', 'suggestedProducts', 'recVariant', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
     /**
@@ -137,7 +175,9 @@ class WelcomeController extends Controller
             ->get();
 
         $products = $this->buildProductQuery($category->id, $request)->paginate(12)->withQueryString();
-        $suggestedProducts = $this->getSuggestedProducts();
+        $rec = $this->getSuggestedProducts($request);
+        $suggestedProducts = $rec['products'];
+        $recVariant = $rec['variant'];
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
@@ -147,7 +187,7 @@ class WelcomeController extends Controller
         $showSidebarAndFilter = true;
         ['activeFlashSale' => $activeFlashSale, 'todaySlots' => $todaySlots] = CatalogCache::flashSaleWelcomeContext();
 
-        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandSlug', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
+        return view('welcome', compact('products', 'categories', 'category', 'sidebarCategories', 'sidebarParent', 'categoryBrands', 'brandSlug', 'suggestedProducts', 'recVariant', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
     public function search(Request $request)
@@ -253,7 +293,9 @@ class WelcomeController extends Controller
         $recentCatIds = array_values(array_filter(array_unique(array_merge($foundCategoryIds, $recentCatIds))));
         session(['recent_category_ids' => array_slice($recentCatIds, 0, 5)]);
 
-        $suggestedProducts = $this->getSuggestedProducts();
+        $rec = $this->getSuggestedProducts($request);
+        $suggestedProducts = $rec['products'];
+        $recVariant = $rec['variant'];
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
@@ -262,7 +304,7 @@ class WelcomeController extends Controller
         $showSidebarAndFilter = true;
         ['activeFlashSale' => $activeFlashSale, 'todaySlots' => $todaySlots] = CatalogCache::flashSaleWelcomeContext();
 
-        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
+        return view('welcome', compact('products', 'categories', 'q', 'categoryId', 'suggestedProducts', 'recVariant', 'currentSort', 'priceMin', 'priceMax', 'activeCategoryIds', 'showSidebarAndFilter', 'activeFlashSale', 'todaySlots'));
     }
 
     /** Sidebar tìm kiếm: chỉ danh mục cha–con trực tiếp của sản phẩm tìm được. */
