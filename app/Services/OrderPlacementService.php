@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\FlashSaleItem;
 use App\Models\InventoryLog;
@@ -79,13 +80,35 @@ class OrderPlacementService
 
         try {
             DB::transaction(function () use ($user, $cart, $orderPayload, &$order) {
+                $lockedCart = Cart::query()
+                    ->whereKey($cart->id)
+                    ->where('user_id', $user->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedCart) {
+                    throw new \RuntimeException('Không tìm thấy giỏ hàng hợp lệ.');
+                }
+
+                $lockedItems = CartItem::query()
+                    ->where('cart_id', $lockedCart->id)
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($lockedItems->isEmpty()) {
+                    throw new \RuntimeException('Giỏ hàng đã được xử lý hoặc đang trống.');
+                }
+
+                $lockedItems->load(['product.category', 'productVariant.product.category']);
+                $lockedCart->setRelation('items', $lockedItems);
+
                 $total = 0;
                 $order = $user->orders()->create(array_merge($orderPayload, [
                     'coupon_id' => null,
                     'discount_amount' => 0,
                 ]));
 
-                foreach ($cart->items as $item) {
+                foreach ($lockedCart->items as $item) {
                     $qty = $item->quantity;
                     $price = $item->productVariant
                         ? (float) $item->productVariant->price
@@ -147,10 +170,10 @@ class OrderPlacementService
                 }
 
                 $coupon = null;
-                if ($cart->coupon_id) {
-                    $coupon = Coupon::query()->whereKey($cart->coupon_id)->lockForUpdate()->first();
+                if ($lockedCart->coupon_id) {
+                    $coupon = Coupon::query()->whereKey($lockedCart->coupon_id)->lockForUpdate()->first();
                 }
-                $couponResult = app(CouponService::class)->validateAndComputeDiscount($user, $cart, $coupon);
+                $couponResult = app(CouponService::class)->validateAndComputeDiscount($user, $lockedCart, $coupon);
                 if (! $couponResult['ok']) {
                     throw new \RuntimeException($couponResult['message'] ?? 'Mã giảm giá không hợp lệ.');
                 }
@@ -170,8 +193,8 @@ class OrderPlacementService
                 if ($coupon && $discountAmount > 0) {
                     $coupon->increment('uses_count');
                 }
-                $cart->items()->delete();
-                $cart->update(['coupon_id' => null]);
+                $lockedCart->items()->delete();
+                $lockedCart->update(['coupon_id' => null]);
             });
         } catch (\Throwable $e) {
             return ['ok' => false, 'error' => $e->getMessage()];
