@@ -117,4 +117,77 @@ class CartCheckoutApiTest extends TestCase
             'address_id' => $address->id,
         ]);
     }
+
+    public function test_checkout_api_rejects_second_attempt_with_same_cart(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $product = Product::factory()->create([
+            'quantity' => 10,
+            'price' => 100000,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ])->assertCreated();
+
+        $payload = [
+            'payment_method' => 'cod',
+            'full_name' => 'Nguyen Test',
+            'phone' => '0900000000',
+            'shipping_address' => '123 Test Street',
+            'lat' => 10.762622,
+            'lng' => 106.660172,
+        ];
+
+        $first = $this->postJson('/api/v1/checkout', $payload);
+        $second = $this->postJson('/api/v1/checkout', $payload);
+
+        $first->assertCreated()->assertJsonStructure(['order', 'next']);
+        $second->assertStatus(422)->assertJsonPath('message', 'Giỏ hàng trống.');
+
+        $this->assertSame(1, Order::query()->where('user_id', $user->id)->count());
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'quantity' => 8,
+        ]);
+    }
+
+    public function test_checkout_api_returns_stock_error_when_inventory_drops_before_checkout(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $product = Product::factory()->create([
+            'quantity' => 2,
+            'price' => 100000,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ])->assertCreated();
+
+        // Simulate another request consuming stock before this checkout starts.
+        $product->update(['quantity' => 1]);
+
+        $response = $this->postJson('/api/v1/checkout', [
+            'payment_method' => 'cod',
+            'full_name' => 'Stock Race',
+            'phone' => '0900000000',
+            'shipping_address' => '123 Test Street',
+            'lat' => 10.762622,
+            'lng' => 106.660172,
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('không đủ tồn kho', mb_strtolower((string) $response->json('message')));
+        $this->assertSame(0, Order::query()->where('user_id', $user->id)->count());
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'quantity' => 1,
+        ]);
+    }
 }
