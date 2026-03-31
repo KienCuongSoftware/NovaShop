@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\RecommendationEventLogger;
 use App\Services\OrderPlacementService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -90,6 +91,49 @@ class OrderPlacementServiceTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'quantity' => 1,
+        ]);
+    }
+
+    public function test_place_from_cart_logs_purchase_event_for_recommendation_variant(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $product = Product::factory()->create([
+            'quantity' => 5,
+            'price' => 50000,
+        ]);
+
+        $cart = Cart::query()->create([
+            'user_id' => $user->id,
+            'coupon_id' => null,
+        ]);
+        CartItem::query()->create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'product_variant_id' => null,
+            'quantity' => 1,
+        ]);
+
+        session([
+            'rec_ab_variant' => 'v2',
+            'rec_cart_variants' => [$product->id => 'v2'],
+        ]);
+
+        $service = app(OrderPlacementService::class);
+        $resolvedAddress = [
+            'shipping_address_snapshot' => '123 Test Street',
+            'phone_snapshot' => '0900000000',
+            'lat' => 10.762622,
+            'lng' => 106.660172,
+        ];
+
+        $result = $service->placeFromCart($user, $cart, Order::PAYMENT_METHOD_COD, $resolvedAddress, null);
+
+        $this->assertTrue($result['ok']);
+        $this->assertDatabaseHas('recommendation_events', [
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'event_type' => RecommendationEventLogger::EVENT_PURCHASE,
+            'variant' => 'v2',
         ]);
     }
 }
