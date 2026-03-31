@@ -214,15 +214,20 @@ PROMPT;
     private function pruneAiChatMessages(int $userId): void
     {
         $max = max(40, (int) config('services.openai.chat_history_max_rows', 200));
-        $toRemove = AiChatMessage::query()
+        $keepIds = AiChatMessage::query()
             ->where('user_id', $userId)
             ->orderByDesc('id')
-            ->skip($max)
+            ->limit($max)
             ->pluck('id');
 
-        if ($toRemove->isNotEmpty()) {
-            AiChatMessage::query()->whereIn('id', $toRemove)->delete();
+        if ($keepIds->isEmpty()) {
+            return;
         }
+
+        AiChatMessage::query()
+            ->where('user_id', $userId)
+            ->whereNotIn('id', $keepIds)
+            ->delete();
     }
 
     /**
