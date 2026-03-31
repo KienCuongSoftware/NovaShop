@@ -9,6 +9,7 @@ use App\Models\FlashSaleItem;
 use App\Models\Product;
 use App\Services\CartPricingService;
 use App\Services\CouponService;
+use App\Services\RecommendationEventLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -89,6 +90,8 @@ class CartController extends Controller
             'quantity' => 'nullable|integer|min:1',
         ]);
         $productId = (int) $request->input('product_id');
+        $recSource = trim((string) $request->input('rec_src', $request->query('rec_src', '')));
+        $recVariant = trim((string) $request->input('rec_variant', $request->query('rec_variant', '')));
         $variantId = $request->filled('product_variant_id') ? (int) $request->input('product_variant_id') : null;
         $quantity = max(1, (int) ($request->input('quantity') ?? 1));
 
@@ -143,6 +146,19 @@ class CartController extends Controller
                 'product_variant_id' => $variantId,
                 'quantity' => $quantity,
             ]);
+        }
+
+        if ($recSource === 'suggested') {
+            $variant = $recVariant !== '' ? $recVariant : (string) session('rec_ab_variant', 'v1');
+            app(RecommendationEventLogger::class)->logAddToCart(
+                $user,
+                $productId,
+                $variant,
+                ['surface' => 'welcome_suggested']
+            );
+            $recCartVariants = session('rec_cart_variants', []);
+            $recCartVariants[$productId] = $variant;
+            session(['rec_cart_variants' => $recCartVariants]);
         }
 
         return back()->with('success', 'Đã thêm vào giỏ hàng.');

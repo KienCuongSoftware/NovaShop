@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\SearchQueryTrend;
 use App\Services\CatalogCache;
+use App\Services\RecommendationEventLogger;
 use App\Services\ProductSearchService;
 use App\Services\RecommendationService;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ class WelcomeController extends Controller
 {
     public function __construct(
         protected ProductSearchService $productSearchService,
-        protected RecommendationService $recommendationService
+        protected RecommendationService $recommendationService,
+        protected RecommendationEventLogger $recommendationEventLogger
     ) {}
 
     /** Gợi ý sản phẩm tương tự dựa trên hành vi xem chi tiết (cùng danh mục với sản phẩm đã xem). */
@@ -117,6 +119,19 @@ class WelcomeController extends Controller
         return ['products' => $this->getSuggestedProductsV1(), 'variant' => RecommendationService::VARIANT_V1];
     }
 
+    protected function logRecommendationImpressions(\Illuminate\Support\Collection $suggestedProducts, string $recVariant): void
+    {
+        if ($suggestedProducts->isEmpty()) {
+            return;
+        }
+        $this->recommendationEventLogger->logImpressions(
+            Auth::user(),
+            $recVariant,
+            $suggestedProducts->pluck('id')->map(fn ($v) => (int) $v)->all(),
+            ['surface' => 'welcome_suggested']
+        );
+    }
+
     /**
      * Trang chủ: hiển thị tất cả sản phẩm (không lọc danh mục).
      */
@@ -131,6 +146,7 @@ class WelcomeController extends Controller
         $rec = $this->getSuggestedProducts($request);
         $suggestedProducts = $rec['products'];
         $recVariant = $rec['variant'];
+        $this->logRecommendationImpressions($suggestedProducts, $recVariant);
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
@@ -178,6 +194,7 @@ class WelcomeController extends Controller
         $rec = $this->getSuggestedProducts($request);
         $suggestedProducts = $rec['products'];
         $recVariant = $rec['variant'];
+        $this->logRecommendationImpressions($suggestedProducts, $recVariant);
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;
@@ -296,6 +313,7 @@ class WelcomeController extends Controller
         $rec = $this->getSuggestedProducts($request);
         $suggestedProducts = $rec['products'];
         $recVariant = $rec['variant'];
+        $this->logRecommendationImpressions($suggestedProducts, $recVariant);
         $currentSort = $this->getSortParam($request);
         $priceMin = $request->filled('price_min') ? (float) $request->input('price_min') : null;
         $priceMax = $request->filled('price_max') ? (float) $request->input('price_max') : null;

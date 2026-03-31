@@ -12,6 +12,7 @@ use App\Models\CompareItem;
 use App\Models\Order;
 use App\Models\StockNotificationSubscription;
 use App\Models\WishlistItem;
+use App\Services\RecommendationEventLogger;
 use App\Services\ShippingFeeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -231,6 +232,16 @@ class ProductController extends Controller
     public function show_normal(Product $product, Request $request)
     {
         $product->load(['category.parent.parent', 'brand', 'variants.attributeValues.attribute', 'variants.images']);
+        $recSource = trim((string) $request->query('rec_src', ''));
+        $recVariant = trim((string) $request->query('rec_variant', ''));
+        if ($recSource === 'suggested') {
+            app(RecommendationEventLogger::class)->logClick(
+                Auth::user(),
+                (int) $product->id,
+                $recVariant !== '' ? $recVariant : (string) session('rec_ab_variant', 'v1'),
+                ['surface' => 'welcome_suggested']
+            );
+        }
         $recentIds = session('recent_product_ids', []);
         $recentIds = array_filter(array_unique(array_merge([$product->id], $recentIds)));
         session(['recent_product_ids' => array_slice($recentIds, 0, 15)]);

@@ -204,6 +204,24 @@ class OrderPlacementService
             return ['ok' => false, 'error' => 'Không thể tạo đơn hàng. Vui lòng thử lại.'];
         }
 
+        try {
+            $defaultRecVariant = (string) session('rec_ab_variant', RecommendationService::VARIANT_V1);
+            $recCartVariants = (array) session('rec_cart_variants', []);
+        } catch (\Throwable) {
+            $defaultRecVariant = RecommendationService::VARIANT_V1;
+            $recCartVariants = [];
+        }
+        app(RecommendationEventLogger::class)->logPurchaseForOrder($order, $defaultRecVariant, $recCartVariants);
+        if (! empty($recCartVariants)) {
+            $purchasedProductIds = $order->items()->pluck('product_id')->map(fn ($v) => (int) $v)->all();
+            $remaining = array_diff_key($recCartVariants, array_flip($purchasedProductIds));
+            try {
+                session(['rec_cart_variants' => $remaining]);
+            } catch (\Throwable) {
+                // Ignore when API route has no session middleware.
+            }
+        }
+
         // Với PayPal: giữ tồn kho trong TTL, sau TTL nếu chưa thanh toán thành công thì hoàn tồn lại.
         if ($paymentMethod === Order::PAYMENT_METHOD_PAYPAL && $reservationExpiresAt) {
             ReleaseExpiredStockReservationJob::dispatch($order->id)
