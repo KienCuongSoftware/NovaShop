@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\RecommendationEvent;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 class RecommendationEventLogger
 {
@@ -15,6 +16,9 @@ class RecommendationEventLogger
 
     public function logImpressions(?User $user, string $variant, array $productIds, array $meta = []): void
     {
+        if (! $this->isAvailable()) {
+            return;
+        }
         $productIds = array_values(array_unique(array_map('intval', array_filter($productIds))));
         if (empty($productIds)) {
             return;
@@ -41,16 +45,25 @@ class RecommendationEventLogger
 
     public function logClick(?User $user, int $productId, string $variant, array $meta = []): void
     {
+        if (! $this->isAvailable()) {
+            return;
+        }
         $this->logSingle(self::EVENT_CLICK, $user, $productId, $variant, $meta);
     }
 
     public function logAddToCart(?User $user, int $productId, string $variant, array $meta = []): void
     {
+        if (! $this->isAvailable()) {
+            return;
+        }
         $this->logSingle(self::EVENT_ADD_TO_CART, $user, $productId, $variant, $meta);
     }
 
     public function logPurchaseForOrder(Order $order, string $defaultVariant = 'v1', array $variantByProduct = []): void
     {
+        if (! $this->isAvailable()) {
+            return;
+        }
         $order->loadMissing('items');
         foreach ($order->items as $item) {
             $pid = (int) ($item->product_id ?? 0);
@@ -94,6 +107,15 @@ class RecommendationEventLogger
             return session()->getId();
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    protected function isAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('recommendation_events');
+        } catch (\Throwable) {
+            return false;
         }
     }
 }
