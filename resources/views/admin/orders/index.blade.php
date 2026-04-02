@@ -79,7 +79,7 @@
                             {{ \App\Models\Order::shippingStatusLabel((string) ($order->shipping_status ?? \App\Models\Order::SHIPPING_STATUS_PENDING)) }}
                         </td>
                         <td class="align-middle small">
-                            {{ $order->payment_method === 'paypal' ? 'PayPal' : 'COD' }}
+                            {{ $order->payment_method === 'paypal' ? 'PayPal' : ($order->payment_method === 'momo' ? 'MoMo' : 'COD') }}
                             @if($order->payment_status === 'paid')
                                 <span class="badge badge-success">Đã TT</span>
                             @elseif(in_array($order->status, ['unpaid', 'payment_failed'], true))

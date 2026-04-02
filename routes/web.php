@@ -16,6 +16,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CompareController;
 use App\Http\Controllers\FlashSaleController;
+use App\Http\Controllers\MomoController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PayPalController;
 use App\Http\Controllers\ProductController;
@@ -175,7 +176,11 @@ Route::middleware(['auth', 'email.verified.otp'])->group(function () {
     Route::post('/orders/{order}/request-return', [OrderController::class, 'requestReturn'])->name('orders.request-return');
     Route::get('/paypal/create-order/{order}', [PayPalController::class, 'createOrder'])->name('paypal.create-order');
     Route::get('/paypal/success/{order}', [PayPalController::class, 'success'])->name('paypal.success');
+    Route::get('/momo/create-order/{order}', [MomoController::class, 'createOrder'])->name('momo.create-order');
+    Route::get('/momo/return/{order}', [MomoController::class, 'handleReturn'])->name('momo.return');
 });
+
+Route::post('/momo/ipn', [MomoController::class, 'ipn'])->name('momo.ipn');
 
 // Route dành cho admin (sử dụng middleware để kiểm tra quyền)
 Route::middleware(['auth', 'email.verified.otp', 'admin'])->group(function () {

@@ -98,7 +98,7 @@
         @if($order->canShowPayButton() || $order->canCancel() || $order->canRequestReturn())
             <div class="mt-2 d-flex flex-wrap align-items-center" style="gap: 0.5rem;">
                 @if($order->canShowPayButton())
-                    <a href="{{ route('paypal.create-order', $order) }}" class="btn btn-danger btn-sm">Thanh toán</a>
+                    <a href="{{ $order->payment_method === \App\Models\Order::PAYMENT_METHOD_MOMO ? route('momo.create-order', $order) : route('paypal.create-order', $order) }}" class="btn btn-danger btn-sm">Thanh toán</a>
                 @endif
                 @if($order->canCancel())
                     <form action="{{ route('orders.cancel', $order) }}" method="POST" class="d-inline" onsubmit="return bsConfirmSubmit(this, 'Bạn có chắc muốn hủy đơn hàng #{{ $order->id }}?');">

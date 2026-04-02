@@ -369,7 +369,9 @@ class ProductController extends Controller
         $previewDistanceKm = null;
         $previewShippingHint = null;
         if (Auth::check()) {
-            $addr = Auth::user()->addresses()->orderByDesc('is_default')->orderBy('id')->first();
+            /** @var \App\Models\User|null $authUser */
+            $authUser = Auth::user();
+            $addr = $authUser?->addresses()->orderByDesc('is_default')->orderBy('id')->first();
             if ($addr && $addr->hasCoordinates()) {
                 $calc = ShippingFeeService::calculate((float) $addr->lat, (float) $addr->lng);
                 $previewShippingFee = $calc['fee'];

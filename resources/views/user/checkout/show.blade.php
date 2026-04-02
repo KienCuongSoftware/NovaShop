@@ -12,7 +12,7 @@
     @csrf
     <div class="row">
         <div class="col-lg-8">
-            <div class="card mb-4">
+            <div class="card mb-4 checkout-shipping-card">
                 <div class="card-header"><strong>Thông tin giao hàng</strong></div>
                 <div class="card-body">
                     @if($addresses->isNotEmpty())
@@ -84,6 +84,10 @@
                             <input type="radio" id="pm_paypal" name="payment_method" value="paypal" class="custom-control-input" {{ old('payment_method') === 'paypal' ? 'checked' : '' }}>
                             <label class="custom-control-label" for="pm_paypal">PayPal</label>
                         </div>
+                        <div class="custom-control custom-radio mt-2">
+                            <input type="radio" id="pm_momo" name="payment_method" value="momo" class="custom-control-input" {{ old('payment_method') === 'momo' ? 'checked' : '' }}>
+                            <label class="custom-control-label" for="pm_momo">MoMo</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -152,6 +156,9 @@
 
 <style>
 #address-suggest-dropdown .address-suggest-item:hover { background: #f8f9fa; }
+.checkout-shipping-card .form-control {
+    border-radius: 1rem;
+}
 </style>
 @push('scripts')
 <script>

@@ -27,7 +27,7 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Đặt hàng từ giỏ (COD hoặc PayPal — PayPal cần mở URL web).
+     * Đặt hàng từ giỏ (COD / PayPal / MoMo — cổng online cần mở URL web).
      */
     public function store(Request $request): JsonResponse
     {
@@ -39,7 +39,7 @@ class CheckoutController extends Controller
         }
 
         $request->validate([
-            'payment_method' => 'required|in:cod,paypal',
+            'payment_method' => 'required|in:cod,paypal,momo',
             'address_id' => 'nullable|integer|exists:addresses,id',
             'full_name' => 'required_without:address_id|string|max:255',
             'phone' => 'required_without:address_id|string|max:20',
@@ -104,11 +104,15 @@ class CheckoutController extends Controller
             ], 201);
         }
 
+        $payUrl = $paymentMethod === Order::PAYMENT_METHOD_MOMO
+            ? route('momo.create-order', ['order' => $order])
+            : route('paypal.create-order', ['order' => $order]);
+
         return response()->json([
             'order' => $orderPayload,
             'next' => [
                 'action' => 'redirect',
-                'url' => route('paypal.create-order', ['order' => $order]),
+                'url' => $payUrl,
             ],
         ], 201);
     }

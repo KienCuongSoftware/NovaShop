@@ -114,7 +114,7 @@
         <div class="card shadow-sm mb-3">
             <div class="card-header bg-light font-weight-bold">Thanh toán</div>
             <div class="card-body">
-                <p class="mb-1">Phương thức: {{ $order->payment_method === 'paypal' ? 'PayPal' : 'COD' }}</p>
+                <p class="mb-1">Phương thức: {{ $order->payment_method === 'paypal' ? 'PayPal' : ($order->payment_method === 'momo' ? 'MoMo' : 'COD') }}</p>
                 <p class="mb-1">Vận chuyển: {{ \App\Models\Order::shippingStatusLabel((string) ($order->shipping_status ?? \App\Models\Order::SHIPPING_STATUS_PENDING)) }}</p>
                 <p class="mb-0">
                     Trạng thái:

@@ -67,7 +67,7 @@ class CheckoutController extends Controller
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
         }
 
-        $request->validate(['payment_method' => 'required|in:cod,paypal'], ['payment_method.required' => 'Vui lòng chọn phương thức thanh toán.']);
+        $request->validate(['payment_method' => 'required|in:cod,paypal,momo'], ['payment_method.required' => 'Vui lòng chọn phương thức thanh toán.']);
 
         $useSavedAddress = $request->filled('address_id');
         $savedAddress = null;
@@ -83,7 +83,7 @@ class CheckoutController extends Controller
                 'shipping_address' => 'required|string|max:500',
                 'lat' => 'required|numeric|between:-90,90',
                 'lng' => 'required|numeric|between:-180,180',
-                'payment_method' => 'required|in:cod,paypal',
+                'payment_method' => 'required|in:cod,paypal,momo',
                 'notes' => 'nullable|string|max:1000',
             ], [
                 'full_name.required' => 'Vui lòng nhập họ tên.',
@@ -131,6 +131,10 @@ class CheckoutController extends Controller
         if ($paymentMethod === Order::PAYMENT_METHOD_COD) {
             return redirect()->route('order.success', ['order' => $order->id])
                 ->with('success', 'Đặt hàng thành công. Bạn sẽ thanh toán khi nhận hàng.');
+        }
+
+        if ($paymentMethod === Order::PAYMENT_METHOD_MOMO) {
+            return redirect()->route('momo.create-order', ['order' => $order->id]);
         }
 
         return redirect()->route('paypal.create-order', ['order' => $order->id]);

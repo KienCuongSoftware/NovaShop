@@ -5,6 +5,20 @@
   Optional: @param array $initialLatLng = [10.762622, 106.660172] (HCM)
   Optional: @param bool $showGeolocate = true (nút "Lấy vị trí hiện tại")
 --}}
+<style>
+.checkout-geolocate-btn {
+    border-radius: 1rem !important;
+    font-weight: 600;
+    padding: 0.65rem 1.35rem !important;
+    font-size: 1rem !important;
+    min-height: 2.75rem;
+    line-height: 1.35;
+}
+.leaflet-address-map {
+    border-radius: 1rem;
+    overflow: hidden;
+}
+</style>
 @php
     $mapId = $mapId ?? 'map';
     $initialLat = $initialLatLng[0] ?? 10.762622;
@@ -16,12 +30,32 @@
 <div class="mb-3">
     @if($showGeolocate ?? true)
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-            <button type="button" id="btn-geolocate" class="btn btn-outline-primary btn-sm">
+            <button type="button" id="btn-geolocate" class="btn btn-danger btn-lg checkout-geolocate-btn">
                 Lấy vị trí hiện tại
             </button>
         </div>
     @endif
-    <div id="{{ $mapId }}" style="height: 380px; border-radius: 0.5rem; border: 1px solid #dee2e6;"></div>
+    <div id="{{ $mapId }}" class="leaflet-address-map" style="height: 380px; border: 1px solid #dee2e6;"></div>
+    @if($showGeolocate ?? true)
+    <div class="modal fade" id="geolocate-error-modal-{{ $mapId }}" tabindex="-1" role="dialog" aria-labelledby="geolocate-error-title-{{ $mapId }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 1rem;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title text-danger" id="geolocate-error-title-{{ $mapId }}">Không lấy được vị trí</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="mb-0">Trình duyệt đã từ chối hoặc chưa cấp quyền vị trí. Bạn có thể bật quyền trong biểu tượng ổ khóa / thông tin trang, hoặc chọn vị trí trên bản đồ và gõ địa chỉ.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" style="border-radius: 0.75rem;">Đã hiểu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 <script>
 (function() {
@@ -139,7 +173,12 @@
                 function() {
                     btnGeolocate.disabled = false;
                     btnGeolocate.textContent = 'Lấy vị trí hiện tại';
-                    alert('Không lấy được vị trí. Kiểm tra quyền trình duyệt.');
+                    var errModal = document.getElementById('geolocate-error-modal-{{ $mapId }}');
+                    if (errModal && typeof window.jQuery !== 'undefined' && jQuery.fn.modal) {
+                        jQuery(errModal).modal('show');
+                    } else {
+                        alert('Không lấy được vị trí. Kiểm tra quyền trình duyệt.');
+                    }
                 }
             );
         });

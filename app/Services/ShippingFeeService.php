@@ -35,7 +35,7 @@ class ShippingFeeService
         $config = Config::get('shipping', []);
         $warehouse = $config['warehouse'] ?? ['lat' => 10.762622, 'lng' => 106.660172];
         $tiers = $config['tiers'] ?? [];
-        $defaultFee = (int) ($config['default_fee_when_no_coordinates'] ?? 25000);
+        $defaultFee = (int) ($config['default_fee_when_no_coordinates'] ?? 100000);
 
         if ($deliveryLat === null || $deliveryLng === null) {
             return ['fee' => $defaultFee, 'distance_km' => null];

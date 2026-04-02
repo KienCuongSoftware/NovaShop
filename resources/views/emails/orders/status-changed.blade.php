@@ -23,7 +23,7 @@
         </tr>
         <tr>
             <td style="padding: 6px 0; color:#6c757d;">Thanh toán</td>
-            <td style="padding: 6px 0; text-align:right;">{{ $order->payment_method === \App\Models\Order::PAYMENT_METHOD_PAYPAL ? 'PayPal' : 'COD' }}</td>
+            <td style="padding: 6px 0; text-align:right;">{{ $order->payment_method === \App\Models\Order::PAYMENT_METHOD_PAYPAL ? 'PayPal' : ($order->payment_method === \App\Models\Order::PAYMENT_METHOD_MOMO ? 'MoMo' : 'COD') }}</td>
         </tr>
         <tr>
             <td style="padding: 6px 0; color:#6c757d;">Vận chuyển</td>
