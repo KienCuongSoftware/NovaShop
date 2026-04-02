@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
+use App\Models\FlashSale;
 use App\Models\FlashSaleItem;
 use App\Models\Product;
 use App\Services\CartPricingService;
@@ -24,24 +25,10 @@ class CartController extends Controller
             $cart = $user->cart()->create();
             $cart->load(['items.product.category', 'items.productVariant', 'coupon']);
         }
-        $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
-        $flashByVariant = $activeFlashSale?->items->keyBy('product_variant_id');
-        $cartSubtotal = (int) round(CartPricingService::cartSubtotal($cart, $flashByVariant));
-        $couponDiscount = 0;
-        $couponError = null;
-        if ($cart->coupon_id && $cart->coupon) {
-            $couponResult = app(CouponService::class)->validateAndComputeDiscount($user, $cart, $cart->coupon);
-            if ($couponResult['ok']) {
-                $couponDiscount = $couponResult['discount'];
-            } else {
-                $couponError = $couponResult['message'];
-                $cart->update(['coupon_id' => null]);
-                $cart->refresh();
-            }
-        }
-        $totalAfterCoupon = max(0, $cartSubtotal - $couponDiscount);
+        $pricing = $this->computeCartMoney($cart, $user);
 
-        return view('user.cart.index', compact('cart', 'activeFlashSale', 'cartSubtotal', 'couponDiscount', 'totalAfterCoupon', 'couponError'));
+        // couponError/couponDiscount/... đều nằm trong $pricing (computeCartMoney)
+        return view('user.cart.index', compact('cart') + $pricing);
     }
 
     public function applyCoupon(Request $request)
@@ -174,9 +161,13 @@ class CartController extends Controller
         $user = Auth::user();
         $cart = $user->cart;
         if (!$cart) {
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => 'Giỏ hàng trống.'], 422);
+            }
+
             return back()->with('error', 'Giỏ hàng trống.');
         }
-        $item = $cart->items()->with('productVariant')->findOrFail($request->input('cart_item_id'));
+        $item = $cart->items()->with(['productVariant', 'product'])->findOrFail($request->input('cart_item_id'));
         $quantity = (int) $request->input('quantity');
         $maxQty = $item->productVariant ? $item->productVariant->stock : (int) $item->product->quantity;
         $flashItem = $item->product_variant_id ? FlashSaleItem::activeForVariant($item->product_variant_id) : null;
@@ -184,10 +175,87 @@ class CartController extends Controller
             $maxQty = min($maxQty, $flashItem->remaining);
         }
         if ($quantity > $maxQty) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Số lượng vượt quá tồn kho.',
+                    'max_quantity' => $maxQty,
+                ], 422);
+            }
+
             return back()->with('error', 'Số lượng vượt quá tồn kho.');
         }
         $item->update(['quantity' => $quantity]);
+
+        if ($request->wantsJson()) {
+            $item->refresh();
+            $item->load(['product', 'productVariant']);
+            $cart->refresh();
+            $cart->load(['items.product', 'items.productVariant', 'coupon']);
+            $pricing = $this->computeCartMoney($cart, $user);
+            $flashByVariant = $pricing['flashByVariant'];
+            $lineTotal = (int) round(CartPricingService::lineTotal($item, $flashByVariant));
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Đã cập nhật giỏ hàng.',
+                'item' => [
+                    'id' => $item->id,
+                    'quantity' => $item->quantity,
+                    'line_total' => $lineTotal,
+                ],
+                'cart_subtotal' => $pricing['cartSubtotal'],
+                'coupon_discount' => $pricing['couponDiscount'],
+                'total_after_coupon' => $pricing['totalAfterCoupon'],
+                'cart_quantity_sum' => (int) $cart->items->sum('quantity'),
+                'coupon_error' => $pricing['couponError'],
+            ]);
+        }
+
         return back()->with('success', 'Đã cập nhật giỏ hàng.');
+    }
+
+    /**
+     * @return array{
+     *   activeFlashSale: \App\Models\FlashSale|null,
+     *   flashByVariant: \Illuminate\Support\Collection|null,
+     *   cartSubtotal: int,
+     *   couponDiscount: int,
+     *   totalAfterCoupon: int,
+     *   couponError: string|null
+     * }
+     */
+    protected function computeCartMoney(Cart $cart, \App\Models\User $user): array
+    {
+        $cart->loadMissing(['items.product', 'items.productVariant', 'coupon']);
+
+        $activeFlashSale = FlashSale::active()->with('items')->first();
+        $flashByVariant = $activeFlashSale?->items->keyBy('product_variant_id');
+
+        $cartSubtotal = (int) round(CartPricingService::cartSubtotal($cart, $flashByVariant));
+        $couponDiscount = 0;
+        $couponError = null;
+        if ($cart->coupon_id && $cart->coupon) {
+            $couponResult = app(CouponService::class)->validateAndComputeDiscount($user, $cart, $cart->coupon);
+            if ($couponResult['ok']) {
+                $couponDiscount = $couponResult['discount'];
+            } else {
+                $couponError = $couponResult['message'];
+                $cart->update(['coupon_id' => null]);
+                $cart->refresh();
+                $cart->load(['items.product', 'items.productVariant', 'coupon']);
+            }
+        }
+        $totalAfterCoupon = max(0, $cartSubtotal - $couponDiscount);
+
+        return [
+            'activeFlashSale' => $activeFlashSale,
+            'flashByVariant' => $flashByVariant,
+            'cartSubtotal' => $cartSubtotal,
+            'couponDiscount' => $couponDiscount,
+            'totalAfterCoupon' => $totalAfterCoupon,
+            'couponError' => $couponError,
+        ];
     }
 
     public function remove(CartItem $cartItem)

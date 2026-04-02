@@ -70,14 +70,20 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            <form action="{{ route('cart.update') }}" method="POST" class="d-inline">
-                                @csrf
-                                @method('PUT')
-                                <input type="hidden" name="cart_item_id" value="{{ $item->id }}">
-                                <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $maxQty }}" class="form-control form-control-sm text-center d-inline-block" style="width: 70px;" onchange="this.form.submit()">
-                            </form>
+                            <input type="number"
+                                name="quantity"
+                                value="{{ $item->quantity }}"
+                                min="1"
+                                max="{{ $maxQty }}"
+                                class="form-control form-control-sm text-center d-inline-block cart-qty-input"
+                                style="width: 70px;"
+                                data-cart-item-id="{{ $item->id }}"
+                                data-max-qty="{{ $maxQty }}"
+                                aria-label="Số lượng {{ $item->product->name }}">
                         </td>
-                        <td class="text-right font-weight-bold text-danger">{{ number_format($subtotal, 0, ',', '.') }}₫</td>
+                        <td class="text-right font-weight-bold text-danger">
+                            <span class="cart-line-total" data-cart-item-id="{{ $item->id }}">{{ number_format($subtotal, 0, ',', '.') }}₫</span>
+                        </td>
                         <td>
                             <form action="{{ route('cart.remove', $item) }}" method="POST" class="d-inline cart-remove-form" id="cart-remove-{{ $item->id }}">
                                 @csrf
@@ -108,17 +114,13 @@
                 </form>
                 @endif
             </div>
-            @if(!empty($couponError))
-                <div class="small text-danger">{{ $couponError }}</div>
-            @endif
+            <div id="cart-coupon-message" class="small text-danger {{ empty($couponError) ? 'd-none' : '' }}">{{ $couponError }}</div>
         </div>
         <div class="d-flex justify-content-between align-items-center flex-wrap">
             <div>
-                <div class="small text-muted">Tạm tính: {{ number_format($cartSubtotal ?? 0, 0, ',', '.') }}₫</div>
-                @if(($couponDiscount ?? 0) > 0)
-                <div class="small text-success">Giảm giá: −{{ number_format($couponDiscount, 0, ',', '.') }}₫</div>
-                @endif
-                <span class="font-weight-bold">Tổng cộng: <span class="text-danger">{{ number_format($totalAfterCoupon ?? ($cartSubtotal ?? 0), 0, ',', '.') }}₫</span></span>
+                <div class="small text-muted">Tạm tính: <span id="cart-subtotal-amount">{{ number_format($cartSubtotal ?? 0, 0, ',', '.') }}₫</span></div>
+                <div id="cart-discount-line" class="small text-success {{ ($couponDiscount ?? 0) > 0 ? '' : 'd-none' }}">Giảm giá: −<span id="cart-discount-amount">{{ number_format($couponDiscount ?? 0, 0, ',', '.') }}₫</span></div>
+                <span class="font-weight-bold">Tổng cộng: <span class="text-danger" id="cart-total-amount">{{ number_format($totalAfterCoupon ?? ($cartSubtotal ?? 0), 0, ',', '.') }}₫</span></span>
             </div>
             <div class="d-flex mt-2 mt-md-0">
                 <a href="{{ route('welcome') }}" class="btn btn-outline-secondary mr-2">Tiếp tục mua sắm</a>
@@ -150,6 +152,134 @@
 </div>
 <script>
 window.addEventListener('load', function() {
+    var cartUpdateUrl = @json(route('cart.update'));
+    var csrfToken = @json(csrf_token());
+
+    function formatVnd(n) {
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '₫';
+    }
+
+    function updateNavbarCartBadge(sum) {
+        var cartLink = document.querySelector('a.navbar-cart-link[title="Giỏ hàng"]');
+        if (!cartLink) return;
+        var badge = cartLink.querySelector('.navbar-cart-badge');
+        if (sum > 0) {
+            var t = sum > 99 ? '99+' : String(sum);
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'navbar-cart-badge';
+                cartLink.appendChild(badge);
+            }
+            badge.textContent = t;
+        } else if (badge) {
+            badge.remove();
+        }
+    }
+
+    document.querySelectorAll('.cart-qty-input').forEach(function(input) {
+        var busy = false;
+        var lastGood = String(input.value);
+
+        function applyTotals(data) {
+            var lineEl = document.querySelector('.cart-line-total[data-cart-item-id="' + data.item.id + '"]');
+            if (lineEl) lineEl.textContent = formatVnd(data.item.line_total);
+            var subEl = document.getElementById('cart-subtotal-amount');
+            var totEl = document.getElementById('cart-total-amount');
+            var discLine = document.getElementById('cart-discount-line');
+            var discAmt = document.getElementById('cart-discount-amount');
+            var msgEl = document.getElementById('cart-coupon-message');
+            if (subEl) subEl.textContent = formatVnd(data.cart_subtotal);
+            if (totEl) totEl.textContent = formatVnd(data.total_after_coupon);
+            if (discLine && discAmt) {
+                if (data.coupon_discount > 0) {
+                    discLine.classList.remove('d-none');
+                    discAmt.textContent = formatVnd(data.coupon_discount);
+                } else {
+                    discLine.classList.add('d-none');
+                }
+            }
+            if (msgEl) {
+                if (data.coupon_error) {
+                    msgEl.textContent = data.coupon_error;
+                    msgEl.classList.remove('d-none');
+                } else {
+                    msgEl.textContent = '';
+                    msgEl.classList.add('d-none');
+                }
+            }
+            updateNavbarCartBadge(data.cart_quantity_sum);
+        }
+
+        function submitQty() {
+            var qty = parseInt(input.value, 10);
+            var maxQ = parseInt(input.getAttribute('max') || input.dataset.maxQty || '9999', 10);
+            if (isNaN(qty) || qty < 1) {
+                input.value = lastGood;
+                return;
+            }
+            if (qty > maxQ) {
+                input.value = String(maxQ);
+                qty = maxQ;
+            }
+            if (String(qty) === lastGood && !busy) return;
+            if (busy) return;
+            busy = true;
+            input.disabled = true;
+
+            fetch(cartUpdateUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    cart_item_id: parseInt(input.dataset.cartItemId, 10),
+                    quantity: qty
+                })
+            }).then(function(r) {
+                return r.json().catch(function() { return {}; }).then(function(data) {
+                    return { ok: r.ok, status: r.status, data: data };
+                });
+            }).then(function(res) {
+                busy = false;
+                input.disabled = false;
+                if (res.ok && res.data && res.data.ok) {
+                    lastGood = String(res.data.item.quantity);
+                    input.value = lastGood;
+                    applyTotals(res.data);
+                } else {
+                    var d = res.data || {};
+                    var msg = d.message || 'Không cập nhật được giỏ hàng.';
+                    if (d.errors && typeof d.errors === 'object') {
+                        var first = Object.keys(d.errors)[0];
+                        if (first && d.errors[first] && d.errors[first][0]) msg = d.errors[first][0];
+                    }
+                    if (d.max_quantity != null) {
+                        input.setAttribute('max', d.max_quantity);
+                        input.dataset.maxQty = String(d.max_quantity);
+                    }
+                    input.value = lastGood;
+                    if (typeof window.alert === 'function') window.alert(msg);
+                }
+            }).catch(function() {
+                busy = false;
+                input.disabled = false;
+                input.value = lastGood;
+                if (typeof window.alert === 'function') window.alert('Lỗi mạng. Thử lại sau.');
+            });
+        }
+
+        input.addEventListener('change', submitQty);
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur();
+            }
+        });
+    });
+
     var formToSubmit = null;
     document.querySelectorAll('.cart-remove-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
