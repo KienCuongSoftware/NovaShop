@@ -730,7 +730,8 @@ window.productHasVariants = true;
         for (var i = 0; i < variants.length; i++) {
             var v = variants[i];
             if ((v.attr[colorAttrName] || '') !== colorVal) continue;
-            if (v.image && v.image !== defaultImage) return v;
+            // Chỉ cần variant cùng màu và có ảnh => ưu tiên ảnh đó cho main image.
+            if (v.image) return v;
         }
         return null;
     }
@@ -857,10 +858,11 @@ window.productHasVariants = true;
                 stockLabel.classList.add('product-stock-status');
             }
             if (mainImg) {
-                mainImg.src = defaultImage || (variants[0] && variants[0].image) || '';
+                // Khi đã chọn đủ thuộc tính (ra được 1 variant cụ thể) => hiển thị đúng ảnh của variant đó.
+                mainImg.src = (v && v.image) ? v.image : (defaultImage || (variants[0] && variants[0].image) || '');
                 mainImg.style.display = mainImg.src ? '' : 'none';
             }
-            setGalleryActive(defaultImage);
+            setGalleryActive(mainImg ? mainImg.src : defaultImage);
         } else {
             variantInput.value = '';
             priceEl.textContent = formatMoneyVn(@json($product->variants->first()->price ?? $product->price));
@@ -924,10 +926,16 @@ window.productHasVariants = true;
                 stockLabel.classList.add('product-stock-status');
             }
             if (mainImg) {
-                mainImg.src = defaultImage || (variants[0] && variants[0].image) || '';
+                // Khi mới chọn Màu nhưng chưa chọn đủ (ví dụ: còn Size) => lấy ảnh của variant đầu tiên cùng màu có ảnh.
+                var preferredImg = defaultImage || (variants[0] && variants[0].image) || '';
+                if (selectedColor && (!sizeAttrName || !selectedSize)) {
+                    var sameColorV = findFirstVariantWithSameColorAndImage(selectedColor);
+                    if (sameColorV && sameColorV.image) preferredImg = sameColorV.image;
+                }
+                mainImg.src = preferredImg;
                 mainImg.style.display = mainImg.src ? '' : 'none';
             }
-            setGalleryActive(defaultImage);
+            setGalleryActive(mainImg ? mainImg.src : defaultImage);
         }
         updateStockNotifyVisibility();
     }
