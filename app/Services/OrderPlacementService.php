@@ -43,12 +43,13 @@ class OrderPlacementService
     public function placeFromCart(User $user, Cart $cart, string $paymentMethod, array $resolvedAddress, ?string $notes = null): array
     {
         $paymentStatus = Order::PAYMENT_STATUS_UNPAID;
-        $initialStatus = $paymentMethod === Order::PAYMENT_METHOD_PAYPAL
+        $isOnlineGateway = in_array($paymentMethod, [Order::PAYMENT_METHOD_PAYPAL, Order::PAYMENT_METHOD_MOMO], true);
+        $initialStatus = $isOnlineGateway
             ? Order::STATUS_UNPAID
             : Order::STATUS_PENDING;
 
         $ttlMinutes = (int) env('STOCK_RESERVATION_TTL_MINUTES', 60);
-        $reservationExpiresAt = $paymentMethod === Order::PAYMENT_METHOD_PAYPAL
+        $reservationExpiresAt = $isOnlineGateway
             ? now()->addMinutes($ttlMinutes)
             : null;
 
@@ -223,7 +224,7 @@ class OrderPlacementService
         }
 
         // Với PayPal: giữ tồn kho trong TTL, sau TTL nếu chưa thanh toán thành công thì hoàn tồn lại.
-        if ($paymentMethod === Order::PAYMENT_METHOD_PAYPAL && $reservationExpiresAt) {
+        if ($isOnlineGateway && $reservationExpiresAt) {
             ReleaseExpiredStockReservationJob::dispatch($order->id)
                 ->delay($reservationExpiresAt);
         }

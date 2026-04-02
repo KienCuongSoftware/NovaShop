@@ -55,6 +55,7 @@ class Order extends Model
 
     public const PAYMENT_METHOD_COD = 'cod';
     public const PAYMENT_METHOD_PAYPAL = 'paypal';
+    public const PAYMENT_METHOD_MOMO = 'momo';
 
     public const PAYMENT_STATUS_UNPAID = 'unpaid';
     public const PAYMENT_STATUS_PAID = 'paid';
@@ -178,14 +179,14 @@ class Order extends Model
     /** Tab "Chờ thanh toán": đơn PayPal chưa thanh toán hoặc thanh toán thất bại (để retry). */
     public function scopePendingPaymentTab($query)
     {
-        return $query->where('payment_method', self::PAYMENT_METHOD_PAYPAL)
+        return $query->whereIn('payment_method', [self::PAYMENT_METHOD_PAYPAL, self::PAYMENT_METHOD_MOMO])
             ->whereIn('status', [self::STATUS_UNPAID, self::STATUS_PAYMENT_FAILED]);
     }
 
     /** Đơn PayPal chưa thanh toán / thất bại → hiển thị nút "Thanh toán" */
     public function canShowPayButton(): bool
     {
-        return $this->payment_method === self::PAYMENT_METHOD_PAYPAL
+        return in_array($this->payment_method, [self::PAYMENT_METHOD_PAYPAL, self::PAYMENT_METHOD_MOMO], true)
             && in_array($this->status, [self::STATUS_UNPAID, self::STATUS_PAYMENT_FAILED], true)
             && $this->payment_status !== self::PAYMENT_STATUS_PAID;
     }
