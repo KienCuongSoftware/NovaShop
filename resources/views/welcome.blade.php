@@ -686,10 +686,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
 
 @if(isset($suggestedProducts) && $suggestedProducts->isNotEmpty())
 <section class="suggested-today mt-5 pt-4 border-top" data-rec-variant="{{ $recVariant ?? 'v1' }}">
-    <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #f28b82;">
-        GỢI Ý HÔM NAY
-        <small class="text-muted" style="font-size: .65rem;">({{ strtoupper($recVariant ?? 'v1') }})</small>
-    </h2>
+    <h2 class="text-center mb-4 font-weight-bold" style="font-size: 1.25rem; color: #f28b82;">GỢI Ý HÔM NAY</h2>
     <div class="row">
         @foreach($suggestedProducts as $product)
         <div class="col-6 col-md-4 col-lg-3 mb-4">
