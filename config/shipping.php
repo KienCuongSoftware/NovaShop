@@ -31,5 +31,5 @@ return [
     /*
     | Phí mặc định khi không có tọa độ (địa chỉ cũ không có lat/lng)
     */
-    'default_fee_when_no_coordinates' => 25000,
+    'default_fee_when_no_coordinates' => 100000,
 ];
