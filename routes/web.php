@@ -224,7 +224,7 @@ Route::middleware(['auth', 'email.verified.otp', 'admin'])->prefix('admin')->nam
 
     // User/admin management modules
     Route::namespace('App\Http\Controllers\Admin')->group(function () {
-        Route::resource('/users', 'UserController');
+        Route::resource('/users', 'UserController')->except(['destroy']);
         Route::resource('/coupons', 'CouponController', ['parameters' => ['coupons' => 'coupon']]);
         Route::resource('/search-synonyms', 'SearchSynonymController', ['parameters' => ['search-synonyms' => 'search_synonym']]);
         Route::get('/profile', 'ProfileController@edit')->name('profile.edit');

@@ -16,13 +16,14 @@ class UserController extends Controller
         $q = trim((string) $request->input('q', ''));
         $users = User::when($q !== '', function ($query) use ($q) {
             $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
-            $query->where('name', 'like', '%' . $esc . '%')
-                ->orWhere('email', 'like', '%' . $esc . '%');
+            $query->where('name', 'like', '%'.$esc.'%')
+                ->orWhere('email', 'like', '%'.$esc.'%');
         })
             ->oldest()
             ->paginate(7)
             ->withQueryString();
         session(['admin.users.page' => $users->currentPage()]);
+
         return view('admin.users.index', compact('users', 'q'));
     }
 
@@ -65,6 +66,7 @@ class UserController extends Controller
         User::create($data);
 
         $page = session('admin.users.page', 1);
+
         return redirect()->route('admin.users.index', ['page' => $page])
             ->with('success', 'Đã thêm người dùng thành công.');
     }
@@ -83,7 +85,7 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'birthday' => 'nullable|date',
             'is_admin' => 'nullable|boolean',
@@ -118,18 +120,8 @@ class UserController extends Controller
         $user->update($data);
 
         $page = session('admin.users.page', 1);
+
         return redirect()->route('admin.users.index', ['page' => $page])
             ->with('success', 'Đã cập nhật người dùng thành công.');
-    }
-
-    public function destroy(User $user)
-    {
-        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-            Storage::disk('public')->delete($user->avatar);
-        }
-        $user->delete();
-        $page = session('admin.users.page', 1);
-        return redirect()->route('admin.users.index', ['page' => $page])
-            ->with('success', 'Đã xóa người dùng thành công.');
     }
 }
