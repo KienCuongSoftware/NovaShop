@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class AuthController extends Controller
+{
+    public function showLoginForm()
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+        if ($user) {
+            return ($user->is_admin ?? false)
+                ? redirect()->route('admin.dashboard')
+                : redirect()->route('welcome');
+        }
+
+        return view('admin.auth.login');
+    }
+
+    public function login(Request $request)
+    {
+        /** @var User|null $currentUser */
+        $currentUser = Auth::user();
+        if ($currentUser) {
+            return ($currentUser->is_admin ?? false)
+                ? redirect()->route('admin.dashboard')
+                : redirect()->route('welcome');
+        }
+
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không hợp lệ.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
+        ]);
+
+        $remember = $request->boolean('remember');
+
+        if (! Auth::attempt($credentials, $remember)) {
+            return back()->withErrors([
+                'email' => 'Email hoặc mật khẩu không đúng.',
+            ])->onlyInput('email');
+        }
+
+        $request->session()->regenerate();
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user || ! ($user->is_admin ?? false)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Tài khoản này không có quyền quản trị.',
+            ])->onlyInput('email');
+        }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->forceFill([
+                'email_verified_at' => now(),
+                'email_verification_otp' => null,
+                'email_verification_otp_expires_at' => null,
+            ])->save();
+        }
+
+        return redirect()->intended(route('admin.dashboard'))
+            ->with('success', 'Đăng nhập admin thành công.');
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('admin.login')
+            ->with('success', 'Đã đăng xuất khỏi trang quản trị.');
+    }
+}
