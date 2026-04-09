@@ -273,7 +273,7 @@
                         <span class="text-danger font-weight-bold" id="product-price" style="font-size: 1.5rem;">{{ number_format($hasVariants ? ($product->variants->first()->price ?? $product->price) : $product->price, 0, ',', '.') }}₫</span>
                     </div>
 
-                    @include('products._shipping_estimate')
+                    @include('user.products._shipping_estimate')
 
                     @if($hasVariants)
                     <div class="mb-3" id="variant-options-wrap">
@@ -504,7 +504,7 @@
             {{-- Đánh giá sản phẩm --}}
             <div class="row mt-4">
                 <div class="col-12">
-                    @include('products._reviews_block', [
+                    @include('user.products._reviews_block', [
                         'product' => $product,
                         'reviewCount' => $reviewCount,
                         'avgRating' => $avgRating,

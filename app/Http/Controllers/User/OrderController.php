@@ -32,9 +32,9 @@ class OrderController extends Controller
 
         if ($q !== '') {
             $query->where(function ($qb) use ($q) {
-                $qb->where('id', 'like', '%' . $q . '%')
+                $qb->where('id', 'like', '%'.$q.'%')
                     ->orWhereHas('items.product', function ($pq) use ($q) {
-                        $pq->where('name', 'like', '%' . $q . '%');
+                        $pq->where('name', 'like', '%'.$q.'%');
                     });
             });
         }
@@ -60,7 +60,8 @@ class OrderController extends Controller
         if ($order->user_id !== Auth::id()) {
             abort(403);
         }
-        return view('user.order-success', compact('order'));
+
+        return view('user.orders.success', compact('order'));
     }
 
     public function cancel(Order $order)
@@ -68,7 +69,7 @@ class OrderController extends Controller
         if ($order->user_id !== Auth::id()) {
             abort(403);
         }
-        if (!$order->canCancel()) {
+        if (! $order->canCancel()) {
             return redirect()->route('orders.index')->with('error', 'Đơn hàng không thể hủy.');
         }
 
@@ -103,6 +104,7 @@ class OrderController extends Controller
                 'payment_status' => $order->payment_method === Order::PAYMENT_METHOD_PAYPAL ? Order::PAYMENT_STATUS_FAILED : $order->payment_status,
             ]);
         });
+
         return redirect()
             ->route('orders.show', $order)
             ->with('success', 'Đã hủy đơn hàng #'.$order->id.'. Chúng tôi đã gửi email xác nhận.');

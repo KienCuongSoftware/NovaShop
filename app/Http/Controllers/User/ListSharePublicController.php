@@ -21,7 +21,7 @@ class ListSharePublicController extends Controller
             ->filter()
             ->values();
 
-        return view('share.wishlist', compact('products', 'share'));
+        return view('user.share.wishlist', compact('products', 'share'));
     }
 
     public function showCompare(string $token): View
@@ -50,6 +50,6 @@ class ListSharePublicController extends Controller
         $attributeNames = array_keys($attributeNames);
         sort($attributeNames);
 
-        return view('share.compare', compact('products', 'attributeNames', 'share'));
+        return view('user.share.compare', compact('products', 'attributeNames', 'share'));
     }
 }

@@ -18,7 +18,7 @@ class AuthController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view('auth.register');
+        return view('user.auth.register');
     }
 
     public function register(Request $request)
@@ -60,7 +60,7 @@ class AuthController extends Controller
                 : redirect()->route('welcome');
         }
 
-        return view('auth.login');
+        return view('user.auth.login');
     }
 
     public function login(Request $request)
@@ -128,7 +128,7 @@ class AuthController extends Controller
             return redirect()->route('welcome');
         }
 
-        return view('auth.verify-otp');
+        return view('user.auth.verify-otp');
     }
 
     public function verifyOtp(Request $request)

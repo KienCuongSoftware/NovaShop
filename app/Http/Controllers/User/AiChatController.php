@@ -55,7 +55,7 @@ PROMPT;
 
     public function index()
     {
-        return view('ai-chat.index');
+        return view('user.ai-chat.index');
     }
 
     public function history(Request $request)

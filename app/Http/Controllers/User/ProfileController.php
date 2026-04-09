@@ -16,22 +16,23 @@ class ProfileController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(403);
         }
-        return view('profile.edit', compact('user'));
+
+        return view('user.profile.edit', compact('user'));
     }
 
     public function profileUpdate(Request $request)
     {
         /** @var User|null $user */
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(403);
         }
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'birthday' => 'nullable|date|before_or_equal:today',
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',

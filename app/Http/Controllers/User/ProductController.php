@@ -19,7 +19,8 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = Product::with('category')->oldest()->get();
-        return view('products.index', compact('products'));
+
+        return view('user.products.index', compact('products'));
     }
 
     public function show(Product $product, Request $request)
@@ -99,7 +100,7 @@ class ProductController extends Controller
             $canReviewProduct = Auth::check()
                 && Order::userHasDeliveredPurchase((int) Auth::id(), (int) $product->id);
 
-            return view('products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews', 'myReview', 'canReviewProduct'));
+            return view('user.products._reviews_block', compact('product', 'reviewCount', 'avgRating', 'reviewDistribution', 'reviews', 'myReview', 'canReviewProduct'));
         }
 
         $myReview = null;
@@ -185,7 +186,7 @@ class ProductController extends Controller
             'hint' => $previewShippingHint,
         ];
 
-        return view('products.show', compact(
+        return view('user.products.show', compact(
             'product',
             'activeFlashSale',
             'flashItemsByVariantId',
