@@ -199,10 +199,10 @@
                 <a class="nav-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}" href="{{ route('admin.profile.edit') }}">
                     Thông tin tài khoản
                 </a>
-                <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();">
+                <a class="nav-link" href="{{ route('admin.logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();">
                     Đăng xuất
                 </a>
-                <form id="admin-logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                <form id="admin-logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
                     @csrf
                 </form>
             </nav>

@@ -1,30 +1,18 @@
 <?php
 
-use App\Http\Controllers\AddressController;
-use App\Http\Controllers\AiChatController;
-use App\Http\Controllers\Admin\AdminCouponController;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AdminInventoryLogController;
-use App\Http\Controllers\AdminOrderController;
-use App\Http\Controllers\AdminProfileController;
-use App\Http\Controllers\Admin\AdminSearchSynonymController;
-use App\Http\Controllers\AttributeController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BrandController;
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\CompareController;
-use App\Http\Controllers\FlashSaleController;
-use App\Http\Controllers\MomoController;
-use App\Http\Controllers\OrderController;
-use App\Http\Controllers\PayPalController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\StockAlertInboxController;
-use App\Http\Controllers\StockNotificationController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\WelcomeController;
-use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\Admin\AttributeController;
+use App\Http\Controllers\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\FlashSaleController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\User\AiChatController;
+use App\Http\Controllers\User\AuthController;
+use App\Http\Controllers\User\ListSharePublicController;
+use App\Http\Controllers\User\ProductController as UserProductController;
+use App\Http\Controllers\User\ProductReviewController;
+use App\Http\Controllers\User\SearchSuggestionController;
+use App\Http\Controllers\User\WelcomeController;
 use App\Services\CatalogCache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -108,6 +96,9 @@ Route::get('/all-categories', [WelcomeController::class, 'allCategories'])->name
 // Trang danh sách sản phẩm theo danh mục
 Route::get('/categories/{category}', [WelcomeController::class, 'categoryProducts'])->name('category.products');
 Route::get('/search', [WelcomeController::class, 'search'])->name('search');
+Route::get('/search/suggestions', [SearchSuggestionController::class, 'suggestions'])
+    ->middleware('throttle:60,1')
+    ->name('search.suggestions');
 
 // Trợ lý AI (OpenAI — khóa API chỉ dùng phía server)
 Route::get('/ai-chat', [AiChatController::class, 'index'])->name('ai-chat.index');
@@ -120,10 +111,11 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/ai-chat/history', [AiChatController::class, 'history'])->name('ai-chat.history');
 });
 
-// React SPA demo (Vite: npm run dev — proxy /api → Laravel :8000)
-Route::view('/spa', 'spa')->name('spa');
-
 // Xác thực và phân quyền - Route đăng ký và đăng nhập người dùng
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
+});
 Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register');
 Route::post('register', [AuthController::class, 'register']);
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -138,107 +130,121 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Quản lý tài khoản, giỏ hàng, đặt hàng - cho người dùng đã đăng nhập
-Route::middleware(['auth', 'email.verified.otp'])->group(function () {
-    Route::get('/profile', [UserController::class, 'profile'])->name('profile');
-    Route::put('/profile', [UserController::class, 'profileUpdate'])->name('profile.update');
-    Route::get('/addresses', [AddressController::class, 'index'])->name('addresses.index');
-    Route::get('/addresses/create', [AddressController::class, 'create'])->name('addresses.create');
-    Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
-    Route::get('/addresses/{address}/edit', [AddressController::class, 'edit'])->name('addresses.edit');
-    Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
-    Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
-    Route::post('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.set-default');
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-    Route::put('/cart/update', [CartController::class, 'update'])->name('cart.update');
-    Route::delete('/cart/remove/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
-    Route::post('/cart/coupon', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
-    Route::delete('/cart/coupon', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
-    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
-    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
-    Route::post('/wishlist/share', [WishlistController::class, 'share'])->name('wishlist.share');
-    Route::delete('/wishlist/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
-    Route::get('/compare', [CompareController::class, 'index'])->name('compare.index');
-    Route::post('/compare/add', [CompareController::class, 'add'])->name('compare.add');
-    Route::post('/compare/share', [CompareController::class, 'share'])->name('compare.share');
-    Route::delete('/compare/{product}', [CompareController::class, 'remove'])->name('compare.remove');
-    Route::post('/compare/clear', [CompareController::class, 'clear'])->name('compare.clear');
-    Route::post('/stock-notifications', [StockNotificationController::class, 'store'])->name('stock-notifications.store');
-    Route::delete('/stock-notifications/{product}', [StockNotificationController::class, 'destroy'])->name('stock-notifications.destroy');
-    Route::get('/notifications/stock', [StockAlertInboxController::class, 'index'])->name('stock-alerts.index');
-    Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
-    Route::get('/checkout/shipping-fee', [CheckoutController::class, 'shippingFee'])->name('checkout.shipping-fee');
-    Route::post('/checkout/place-order', [CheckoutController::class, 'placeOrder'])->name('checkout.place-order');
-    Route::get('/order-success/{order}', [OrderController::class, 'success'])->name('order.success');
-    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
-    Route::post('/orders/{order}/request-return', [OrderController::class, 'requestReturn'])->name('orders.request-return');
-    Route::get('/paypal/create-order/{order}', [PayPalController::class, 'createOrder'])->name('paypal.create-order');
-    Route::get('/paypal/success/{order}', [PayPalController::class, 'success'])->name('paypal.success');
-    Route::get('/momo/create-order/{order}', [MomoController::class, 'createOrder'])->name('momo.create-order');
-    Route::get('/momo/return/{order}', [MomoController::class, 'handleReturn'])->name('momo.return');
+Route::namespace('App\Http\Controllers\User')->middleware(['auth', 'email.verified.otp'])->group(function () {
+    Route::get('/profile', 'ProfileController@profile')->name('profile');
+    Route::put('/profile', 'ProfileController@profileUpdate')->name('profile.update');
+    Route::get('/addresses', 'AddressController@index')->name('addresses.index');
+    Route::get('/addresses/create', 'AddressController@create')->name('addresses.create');
+    Route::post('/addresses', 'AddressController@store')->name('addresses.store');
+    Route::get('/addresses/{address}/edit', 'AddressController@edit')->name('addresses.edit');
+    Route::put('/addresses/{address}', 'AddressController@update')->name('addresses.update');
+    Route::delete('/addresses/{address}', 'AddressController@destroy')->name('addresses.destroy');
+    Route::post('/addresses/{address}/default', 'AddressController@setDefault')->name('addresses.set-default');
+    Route::get('/cart', 'CartController@index')->name('cart.index');
+    Route::post('/cart/add', 'CartController@add')->name('cart.add');
+    Route::put('/cart/update', 'CartController@update')->name('cart.update');
+    Route::delete('/cart/remove/{cartItem}', 'CartController@remove')->name('cart.remove');
+    Route::post('/cart/coupon', 'CartController@applyCoupon')->name('cart.coupon.apply');
+    Route::delete('/cart/coupon', 'CartController@removeCoupon')->name('cart.coupon.remove');
+    Route::get('/wishlist', 'WishlistController@index')->name('wishlist.index');
+    Route::post('/wishlist/toggle', 'WishlistController@toggle')->name('wishlist.toggle');
+    Route::post('/wishlist/share', 'WishlistController@share')->name('wishlist.share');
+    Route::delete('/wishlist/{product}', 'WishlistController@remove')->name('wishlist.remove');
+    Route::get('/compare', 'CompareController@index')->name('compare.index');
+    Route::post('/compare/add', 'CompareController@add')->name('compare.add');
+    Route::post('/compare/share', 'CompareController@share')->name('compare.share');
+    Route::delete('/compare/{product}', 'CompareController@remove')->name('compare.remove');
+    Route::post('/compare/clear', 'CompareController@clear')->name('compare.clear');
+    Route::post('/stock-notifications', 'StockNotificationController@store')->name('stock-notifications.store');
+    Route::delete('/stock-notifications/{product}', 'StockNotificationController@destroy')->name('stock-notifications.destroy');
+    Route::get('/notifications/stock', 'StockAlertInboxController@index')->name('stock-alerts.index');
+    Route::get('/checkout', 'CheckoutController@show')->name('checkout.show');
+    Route::get('/checkout/shipping-fee', 'CheckoutController@shippingFee')->name('checkout.shipping-fee');
+    Route::post('/checkout/place-order', 'CheckoutController@placeOrder')->name('checkout.place-order');
+    Route::get('/order-success/{order}', 'OrderController@success')->name('order.success');
+    Route::get('/orders', 'OrderController@index')->name('orders.index');
+    Route::get('/orders/{order}', 'OrderController@show')->name('orders.show');
+    Route::post('/orders/{order}/cancel', 'OrderController@cancel')->name('orders.cancel');
+    Route::post('/orders/{order}/request-return', 'OrderController@requestReturn')->name('orders.request-return');
+    Route::get('/paypal/create-order/{order}', 'PayPalController@createOrder')->name('paypal.create-order');
+    Route::get('/paypal/success/{order}', 'PayPalController@success')->name('paypal.success');
+    Route::get('/momo/create-order/{order}', 'MomoController@createOrder')->name('momo.create-order');
+    Route::get('/momo/return/{order}', 'MomoController@handleReturn')->name('momo.return');
 });
 
-Route::post('/momo/ipn', [MomoController::class, 'ipn'])->name('momo.ipn');
+Route::post('/momo/ipn', 'App\Http\Controllers\User\MomoController@ipn')->name('momo.ipn');
 
 // Route dành cho admin (sử dụng middleware để kiểm tra quyền)
-Route::middleware(['auth', 'email.verified.otp', 'admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    // Sửa lỗi gõ nhầm: /admin/procucts/... → /admin/products/...
-    Route::get('/admin/procucts/{path}', function (string $path) {
-        return redirect('/admin/products/'.$path, 301);
-    })->where('path', '.*');
-    // URL cũ /admin/products/update/{id}: GET → redirect sang edit, POST → gọi update (tránh MethodNotAllowedHttpException)
-    Route::get('/admin/products/update/{id}', function (int $id) {
-        $product = \App\Models\Product::findOrFail($id);
+Route::middleware(['auth', 'email.verified.otp', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+    // Dashboard
+    Route::namespace('App\Http\Controllers\Admin')->group(function () {
+        Route::get('/dashboard', 'DashboardController@dashboard')->name('dashboard');
+    });
 
-        return redirect()->route('admin.products.edit', $product, 301);
-    })->name('admin.products.update.redirect');
-    Route::post('/admin/products/update/{id}', function (Illuminate\Http\Request $request, int $id) {
-        $product = \App\Models\Product::findOrFail($id);
+    // Products module
+    Route::prefix('')->group(function () {
+        // Sửa lỗi gõ nhầm: /admin/procucts/... → /admin/products/...
+        Route::get('/procucts/{path}', function (string $path) {
+            return redirect('/admin/products/'.$path, 301);
+        })->where('path', '.*');
 
-        return app(ProductController::class)->update($request, $product);
-    })->name('admin.products.update.post');
-    // Đặt tiền tố 'admin' cho tất cả các route của products
-    Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
-    Route::post('/admin/products/{product}/variants', [ProductController::class, 'storeVariant'])->name('admin.products.variants.store');
-    Route::put('/admin/products/{product}/variants/{variant}', [ProductController::class, 'updateVariant'])->name('admin.products.variants.update');
-    // GET tới variants-bulk (vd: mở link, refresh) → redirect về trang sửa sản phẩm
-    Route::get('/admin/products/{product}/variants-bulk', function (\App\Models\Product $product) {
-        return redirect()->route('admin.products.edit', $product, 302);
-    })->name('admin.products.variants.bulk.redirect');
-    Route::put('/admin/products/{product}/variants-bulk', [ProductController::class, 'updateVariantsBulk'])->name('admin.products.variants.bulk');
-    Route::delete('/admin/products/{product}/variants/{variant}', [ProductController::class, 'destroyVariant'])->name('admin.products.variants.destroy');
-    // Đặt tiền tố 'admin' cho tất cả các route của categories
-    Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
-    Route::resource('/admin/brands', BrandController::class, ['as' => 'admin']);
-    Route::resource('/admin/users', UserController::class, ['as' => 'admin']);
-    Route::resource('/admin/attributes', AttributeController::class, ['as' => 'admin'])->except(['show']);
-    Route::post('/admin/attributes/{attribute}/values', [AttributeController::class, 'storeValue'])->name('admin.attributes.values.store');
-    Route::delete('/admin/attributes/{attribute}/values/{attributeValue}', [AttributeController::class, 'destroyValue'])->name('admin.attributes.values.destroy');
-    Route::resource('/admin/coupons', AdminCouponController::class, ['as' => 'admin', 'parameters' => ['coupons' => 'coupon']]);
-    Route::resource('/admin/search-synonyms', AdminSearchSynonymController::class, ['as' => 'admin', 'parameters' => ['search-synonyms' => 'search_synonym']]);
-    Route::resource('/admin/flash-sales', FlashSaleController::class, ['as' => 'admin']);
-    Route::post('/admin/flash-sales/{flash_sale}/items', [FlashSaleController::class, 'storeItem'])->name('admin.flash_sales.items.store');
-    Route::put('/admin/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'updateItem'])->name('admin.flash_sales.items.update');
-    Route::delete('/admin/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'destroyItem'])->name('admin.flash_sales.items.destroy');
-    // Đơn hàng: danh sách + chi tiết + cập nhật trạng thái
-    Route::get('/admin/orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
-    Route::get('/admin/orders/{order}', [AdminOrderController::class, 'show'])->name('admin.orders.show');
-    Route::put('/admin/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('admin.orders.update-status');
-    Route::get('/admin/inventory-logs', [AdminInventoryLogController::class, 'index'])->name('admin.inventory-logs.index');
+        // URL cũ /admin/products/update/{id}: GET → redirect sang edit, POST → gọi update
+        Route::get('/products/update/{id}', function (int $id) {
+            $product = \App\Models\Product::findOrFail($id);
+            return redirect()->route('admin.products.edit', $product, 301);
+        })->name('products.update.redirect');
+        Route::post('/products/update/{id}', function (Illuminate\Http\Request $request, int $id) {
+            $product = \App\Models\Product::findOrFail($id);
+            return app(AdminProductController::class)->update($request, $product);
+        })->name('products.update.post');
 
-    // Duyệt đánh giá sản phẩm (review moderation + ảnh)
-    Route::get('/admin/product-reviews', [\App\Http\Controllers\Admin\AdminProductReviewController::class, 'index'])
-        ->name('admin.product-reviews.index');
-    Route::post('/admin/product-reviews/{review}/approve', [\App\Http\Controllers\Admin\AdminProductReviewController::class, 'approve'])
-        ->name('admin.product-reviews.approve');
-    Route::post('/admin/product-reviews/{review}/reject', [\App\Http\Controllers\Admin\AdminProductReviewController::class, 'reject'])
-        ->name('admin.product-reviews.reject');
+        Route::resource('/products', AdminProductController::class);
+        Route::post('/products/{product}/variants', [AdminProductController::class, 'storeVariant'])->name('products.variants.store');
+        Route::put('/products/{product}/variants/{variant}', [AdminProductController::class, 'updateVariant'])->name('products.variants.update');
+        Route::get('/products/{product}/variants-bulk', function (\App\Models\Product $product) {
+            return redirect()->route('admin.products.edit', $product, 302);
+        })->name('products.variants.bulk.redirect');
+        Route::put('/products/{product}/variants-bulk', [AdminProductController::class, 'updateVariantsBulk'])->name('products.variants.bulk');
+        Route::delete('/products/{product}/variants/{variant}', [AdminProductController::class, 'destroyVariant'])->name('products.variants.destroy');
+    });
 
-    Route::get('/admin/profile', [AdminProfileController::class, 'edit'])->name('admin.profile.edit');
-    Route::put('/admin/profile', [AdminProfileController::class, 'update'])->name('admin.profile.update');
+    // Catalog modules
+    Route::prefix('')->group(function () {
+        Route::resource('/categories', CategoryController::class);
+        Route::resource('/brands', BrandController::class);
+        Route::resource('/attributes', AttributeController::class)->except(['show']);
+        Route::post('/attributes/{attribute}/values', [AttributeController::class, 'storeValue'])->name('attributes.values.store');
+        Route::delete('/attributes/{attribute}/values/{attributeValue}', [AttributeController::class, 'destroyValue'])->name('attributes.values.destroy');
+        Route::resource('/flash-sales', FlashSaleController::class);
+        Route::post('/flash-sales/{flash_sale}/items', [FlashSaleController::class, 'storeItem'])->name('flash_sales.items.store');
+        Route::put('/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'updateItem'])->name('flash_sales.items.update');
+        Route::delete('/flash-sales/{flash_sale}/items/{item}', [FlashSaleController::class, 'destroyItem'])->name('flash_sales.items.destroy');
+    });
+
+    // User/admin management modules
+    Route::namespace('App\Http\Controllers\Admin')->group(function () {
+        Route::resource('/users', 'UserController');
+        Route::resource('/coupons', 'CouponController', ['parameters' => ['coupons' => 'coupon']]);
+        Route::resource('/search-synonyms', 'SearchSynonymController', ['parameters' => ['search-synonyms' => 'search_synonym']]);
+        Route::get('/profile', 'ProfileController@edit')->name('profile.edit');
+        Route::put('/profile', 'ProfileController@update')->name('profile.update');
+    });
+
+    // Orders + inventory module
+    Route::namespace('App\Http\Controllers\Admin')->group(function () {
+        Route::get('/orders', 'OrderController@index')->name('orders.index');
+        Route::get('/orders/{order}', 'OrderController@show')->name('orders.show');
+        Route::put('/orders/{order}/status', 'OrderController@updateStatus')->name('orders.update-status');
+        Route::get('/inventory-logs', 'InventoryLogController@index')->name('inventory-logs.index');
+    });
+
+    // Review moderation module
+    Route::namespace('App\Http\Controllers\Admin')->group(function () {
+        Route::get('/product-reviews', 'ProductReviewController@index')->name('product-reviews.index');
+        Route::post('/product-reviews/{review}/approve', 'ProductReviewController@approve')->name('product-reviews.approve');
+        Route::post('/product-reviews/{review}/reject', 'ProductReviewController@reject')->name('product-reviews.reject');
+    });
 });
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)
@@ -327,16 +333,16 @@ Route::get('/product/show', function () {
 })->name('product.show.redirect');
 
 // Public share links for wishlist/compare (read-only)
-Route::get('/share/wishlist/{token}', [\App\Http\Controllers\ListSharePublicController::class, 'showWishlist'])
+Route::get('/share/wishlist/{token}', [ListSharePublicController::class, 'showWishlist'])
     ->name('share.wishlist.show');
-Route::get('/share/compare/{token}', [\App\Http\Controllers\ListSharePublicController::class, 'showCompare'])
+Route::get('/share/compare/{token}', [ListSharePublicController::class, 'showCompare'])
     ->name('share.compare.show');
 
 // Route cho người dùng bình thường (đã đăng nhập)
 Route::middleware(['auth', 'email.verified.otp'])->group(function () {
-    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-    Route::get('/products/{product}', [ProductController::class, 'show_normal'])->name('products.show');
+    Route::get('/products', [UserProductController::class, 'index'])->name('products.index');
+    Route::get('/products/{product}', [UserProductController::class, 'show'])->name('products.show');
 
-    Route::post('/products/{product}/reviews', [\App\Http\Controllers\ProductReviewController::class, 'store'])
+    Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store'])
         ->name('products.reviews.store');
 });

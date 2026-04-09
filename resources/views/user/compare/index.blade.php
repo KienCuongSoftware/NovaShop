@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="page-header mb-4">
-    <h2>So sánh (tối đa {{ \App\Http\Controllers\CompareController::MAX_ITEMS }})</h2>
+    <h2>So sánh (tối đa {{ \App\Http\Controllers\User\CompareController::MAX_ITEMS }})</h2>
     <div>
         <form action="{{ route('compare.share') }}" method="POST" class="d-inline-block mr-2 mb-2">
             @csrf

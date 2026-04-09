@@ -1511,7 +1511,7 @@
                     if (getHistory().length > 0) openDropdown(); else closeDropdown();
                     return;
                 }
-                fetch("{{ route('api.v1.search.suggestions') }}?q=" + encodeURIComponent(q) + "&limit=8", {
+                fetch("{{ route('search.suggestions') }}?q=" + encodeURIComponent(q) + "&limit=8", {
                     headers: { 'Accept': 'application/json' }
                 })
                 .then(function(res) { return res.ok ? res.json() : { data: [] }; })

@@ -227,8 +227,12 @@
             var checked = document.querySelector('input.address-option:checked');
             if (checked && checked.value) {
                 var lat = checked.getAttribute('data-lat'), lng = checked.getAttribute('data-lng');
-                if (lat && lng) fetchShippingFee(lat, lng);
-                else { shippingFeeEl.textContent = formatVnd(25000); shippingFee = 25000; updateTotal(); }
+                if (lat && lng) {
+                    fetchShippingFee(lat, lng);
+                } else {
+                    // Không có tọa độ => lấy phí mặc định từ backend/config thay vì hardcode.
+                    fetchShippingFee(null, null);
+                }
             } else {
                 shippingFeeEl.textContent = '—';
                 shippingFee = 0;
