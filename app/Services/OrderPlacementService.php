@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\ReleaseExpiredStockReservationJob;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
@@ -12,7 +13,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
-use App\Jobs\ReleaseExpiredStockReservationJob;
+use App\Observers\OrderObserver;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -204,6 +205,9 @@ class OrderPlacementService
         if (! $order) {
             return ['ok' => false, 'error' => 'Không thể tạo đơn hàng. Vui lòng thử lại.'];
         }
+
+        $order->refresh();
+        OrderObserver::notifyStatusChange($order, null, (string) $order->status);
 
         try {
             $defaultRecVariant = (string) session('rec_ab_variant', RecommendationService::VARIANT_V1);

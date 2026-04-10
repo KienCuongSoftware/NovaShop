@@ -21,6 +21,11 @@
                             <img src="/images/avatars/{{ basename($user->avatar) }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 200px; height: 200px; object-fit: cover;">
                             <span class="text-muted small d-block">Ảnh hiện tại</span>
                         </div>
+                    @else
+                        <div>
+                            <x-user-avatar :user="$user" :size="200" class="rounded-circle img-thumbnail" />
+                            <span class="text-muted small d-block">Ảnh hiện tại (chữ cái)</span>
+                        </div>
                     @endif
                     <div id="preview-avatar" class="image-preview-wrap" style="display: none;">
                         <img src="" alt="Preview" class="img-thumbnail rounded-circle" style="width: 200px; height: 200px; object-fit: cover;">

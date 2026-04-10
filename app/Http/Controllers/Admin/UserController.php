@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\UserInitialsAvatarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -59,6 +60,7 @@ class UserController extends Controller
             'password' => Hash::make($request->input('password')),
             'is_admin' => (bool) $request->boolean('is_admin'),
             'is_vip' => (bool) $request->boolean('is_vip'),
+            'avatar_palette_index' => UserInitialsAvatarService::randomPaletteIndex(),
         ];
         if ($request->hasFile('avatar')) {
             $data['avatar'] = $request->file('avatar')->store('avatars', 'public');

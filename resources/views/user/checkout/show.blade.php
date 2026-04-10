@@ -196,8 +196,12 @@
 
     var addrNew = document.getElementById('addr_new');
     var newFields = document.getElementById('new-address-fields');
+    /** Không có radio "địa chỉ mới" khi user chưa lưu địa chỉ nào — luôn coi là nhập mới. */
+    function usingNewAddressFlow() {
+        return !addrNew || addrNew.checked;
+    }
     function toggle() {
-        var useNew = !addrNew || addrNew.checked;
+        var useNew = usingNewAddressFlow();
         if (newFields) newFields.classList.toggle('d-none', !useNew);
         var req = document.querySelectorAll('#full_name, #phone, #address, #lat, #lng');
         req.forEach(function(el) { if (el) el.removeAttribute('required'); });
@@ -213,7 +217,7 @@
         updateShippingFromSelection();
     }
     function updateShippingFromSelection() {
-        var useNew = !addrNew || addrNew.checked;
+        var useNew = usingNewAddressFlow();
         if (useNew) {
             var latInput = document.getElementById('lat'), lngInput = document.getElementById('lng');
             if (latInput && lngInput && latInput.value && lngInput.value) {
@@ -246,15 +250,18 @@
     var latInput = document.getElementById('lat'), lngInput = document.getElementById('lng');
     if (latInput && lngInput) {
         function onLatLngChange() {
-            if (addrNew && addrNew.checked && latInput.value && lngInput.value) fetchShippingFee(latInput.value, lngInput.value);
+            if (usingNewAddressFlow() && latInput.value && lngInput.value) {
+                fetchShippingFee(latInput.value, lngInput.value);
+            }
         }
         latInput.addEventListener('change', onLatLngChange);
         lngInput.addEventListener('change', onLatLngChange);
-        var observer = new MutationObserver(onLatLngChange);
-        observer.observe(latInput, { attributes: true, attributeFilter: ['value'] });
-        observer.observe(lngInput, { attributes: true, attributeFilter: ['value'] });
+        latInput.addEventListener('input', onLatLngChange);
+        lngInput.addEventListener('input', onLatLngChange);
         setInterval(function() {
-            if (addrNew && addrNew.checked && latInput.value && lngInput.value && shippingFeeEl.textContent === 'Chọn địa chỉ trên bản đồ') fetchShippingFee(latInput.value, lngInput.value);
+            if (usingNewAddressFlow() && latInput.value && lngInput.value && shippingFeeEl.textContent === 'Chọn địa chỉ trên bản đồ') {
+                fetchShippingFee(latInput.value, lngInput.value);
+            }
         }, 1500);
     }
     toggle();

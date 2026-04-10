@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Mail\EmailVerificationOtpMail;
 use App\Models\User;
+use App\Services\UserInitialsAvatarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -40,6 +41,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'avatar_palette_index' => UserInitialsAvatarService::randomPaletteIndex(),
         ]);
 
         Auth::login($user);

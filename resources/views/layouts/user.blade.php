@@ -1168,11 +1168,7 @@
                     <a href="{{ route('register') }}">Đăng ký</a>
                     @else
                     <div class="user-menu-wrap">
-                        @if(auth()->user()->avatar ?? null)
-                            <img src="/images/avatars/{{ basename(auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover; border: 2px solid rgba(255,255,255,0.8);">
-                        @else
-                            <span class="rounded-circle bg-white text-dark d-inline-flex align-items-center justify-content-center font-weight-bold" style="width: 28px; height: 28px; font-size: 0.8rem;">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
-                        @endif
+                        <x-user-avatar :user="auth()->user()" :size="28" class="rounded-circle" extra-style="border: 2px solid rgba(255,255,255,0.8);" />
                         <span class="text-white">{{ auth()->user()->name }}</span>
                         <div class="user-menu-dropdown">
                             <a href="{{ route('profile') }}">Quản lý tài khoản</a>

@@ -11,12 +11,14 @@
 <div class="card">
     <div class="card-body">
         <dl class="row mb-0">
-            @if($user->avatar)
             <dt class="col-sm-3">Ảnh đại diện:</dt>
             <dd class="col-sm-9">
-                <img src="/images/avatars/{{ basename($user->avatar) }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
+                @if($user->avatar)
+                    <img src="/images/avatars/{{ basename($user->avatar) }}" alt="{{ $user->name }}" class="rounded-circle img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
+                @else
+                    <x-user-avatar :user="$user" :size="120" class="rounded-circle img-thumbnail" />
+                @endif
             </dd>
-            @endif
             <dt class="col-sm-3">Tên:</dt>
             <dd class="col-sm-9">{{ $user->name }}</dd>
             <dt class="col-sm-3">Email:</dt>

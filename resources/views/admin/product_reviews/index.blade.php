@@ -37,17 +37,8 @@
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center" style="gap:10px;">
-                                        @if($rv->user?->avatar)
-                                            <img
-                                                src="/images/avatars/{{ basename($rv->user->avatar) }}"
-                                                alt=""
-                                                style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid rgba(0,0,0,0.08);"
-                                            >
-                                        @else
-                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted font-weight-bold"
-                                                 style="width:34px;height:34px;border:1px solid rgba(0,0,0,0.08);">
-                                                {{ strtoupper(substr($rv->user->name ?? 'U', 0, 1)) }}
-                                            </div>
+                                        @if($rv->user)
+                                            <x-user-avatar :user="$rv->user" :size="34" class="rounded-circle" extra-style="border:1px solid rgba(0,0,0,0.08);" />
                                         @endif
                                         <div>
                                             <div class="font-weight-bold">{{ $rv->user?->name ?? '—' }}</div>

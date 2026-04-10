@@ -24,6 +24,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
         'email',
         'birthday',
         'avatar',
+        'avatar_palette_index',
         'password',
         'google_id',
         'is_admin',
@@ -57,7 +58,24 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'is_vip' => 'boolean',
             'birthday' => 'date',
             'email_verification_otp_expires_at' => 'datetime',
+            'avatar_palette_index' => 'integer',
         ];
+    }
+
+    /**
+     * Query-string version for browser/CDN cache busting when name or palette changes.
+     */
+    public function initialsAvatarVersion(): string
+    {
+        return substr(hash('sha256', $this->name.'|'.($this->avatar_palette_index ?? '').'|'.$this->id), 0, 12);
+    }
+
+    public function initialsAvatarUrl(): string
+    {
+        return route('avatars.initials', [
+            'user' => $this->id,
+            'v' => $this->initialsAvatarVersion(),
+        ]);
     }
 
     /**

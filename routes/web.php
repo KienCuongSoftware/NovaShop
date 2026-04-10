@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\User\AiChatController;
 use App\Http\Controllers\User\AuthController;
+use App\Http\Controllers\User\InitialsAvatarController;
 use App\Http\Controllers\User\ListSharePublicController;
 use App\Http\Controllers\User\ProductController as UserProductController;
 use App\Http\Controllers\User\ProductReviewController;
@@ -25,6 +26,11 @@ Route::get('/favicon.ico', function () {
     }
     abort(404);
 });
+// Avatar chữ cái (SVG, cache app + Cache-Control; ?v= bắn lại khi đổi tên/màu)
+Route::get('/avatars/initial/{user}', InitialsAvatarController::class)
+    ->middleware('throttle:120,1')
+    ->name('avatars.initials');
+
 Route::get('/favicon.svg', function () {
     $path = public_path('favicon.svg');
     if (! file_exists($path)) {
@@ -192,10 +198,12 @@ Route::middleware(['auth', 'email.verified.otp', 'admin'])->prefix('admin')->nam
         // URL cũ /admin/products/update/{id}: GET → redirect sang edit, POST → gọi update
         Route::get('/products/update/{id}', function (int $id) {
             $product = \App\Models\Product::findOrFail($id);
+
             return redirect()->route('admin.products.edit', $product, 301);
         })->name('products.update.redirect');
         Route::post('/products/update/{id}', function (Illuminate\Http\Request $request, int $id) {
             $product = \App\Models\Product::findOrFail($id);
+
             return app(AdminProductController::class)->update($request, $product);
         })->name('products.update.post');
 

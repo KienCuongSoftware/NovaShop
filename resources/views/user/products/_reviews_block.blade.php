@@ -244,12 +244,8 @@
                 <div class="review-item mb-3">
                     <div class="d-flex align-items-start" style="gap: 12px;">
                         <div>
-                            @if($rv->user?->avatar)
-                                <img src="/images/avatars/{{ basename($rv->user->avatar) }}" alt="{{ $rv->user->name }}" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover; border:1px solid rgba(0,0,0,0.08);">
-                            @else
-                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center text-muted font-weight-bold" style="width:36px;height:36px;border:1px solid rgba(0,0,0,0.08);">
-                                    {{ strtoupper(substr($rv->user->name ?? 'U', 0, 1)) }}
-                                </div>
+                            @if($rv->user)
+                                <x-user-avatar :user="$rv->user" :size="36" class="rounded-circle" extra-style="border:1px solid rgba(0,0,0,0.08);" />
                             @endif
                         </div>
                         <div class="flex-grow-1">

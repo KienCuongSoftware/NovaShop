@@ -79,9 +79,21 @@
 
     var marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
 
-    function updateLocation(lat, lng) {
+    function notifyLatLngInputsChanged() {
+        ['input', 'change'].forEach(function(ev) {
+            latInput.dispatchEvent(new Event(ev, { bubbles: true }));
+            lngInput.dispatchEvent(new Event(ev, { bubbles: true }));
+        });
+    }
+
+    function setLatLngValues(lat, lng) {
         latInput.value = lat;
         lngInput.value = lng;
+        notifyLatLngInputsChanged();
+    }
+
+    function updateLocation(lat, lng) {
+        setLatLngValues(lat, lng);
         fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=vi', {
             headers: { 'Accept': 'application/json' }
         }).then(function(r) { return r.json(); }).then(function(data) {
@@ -124,8 +136,7 @@
                         var lat = parseFloat(place.lat), lng = parseFloat(place.lon);
                         map.setView([lat, lng], 16);
                         marker.setLatLng([lat, lng]);
-                        latInput.value = lat;
-                        lngInput.value = lng;
+                        setLatLngValues(lat, lng);
                         addressInput.value = place.display_name;
                         dropdown.innerHTML = '';
                         dropdown.classList.add('d-none');
@@ -137,8 +148,7 @@
                 var lat = parseFloat(place.lat), lng = parseFloat(place.lon);
                 map.setView([lat, lng], 16);
                 marker.setLatLng([lat, lng]);
-                latInput.value = lat;
-                lngInput.value = lng;
+                setLatLngValues(lat, lng);
                 addressInput.value = place.display_name;
             }
         }).catch(function() {});
@@ -191,5 +201,12 @@
         if (m) { m.invalidateSize(); }
     };
     setTimeout(function() { map.invalidateSize(); }, 300);
+
+    // Đồng bộ hidden lat/lng với marker lúc khởi tạo (gọi phí ship checkout; tránh chỉ .value không bắn sự kiện).
+    if (!latInput.value || !lngInput.value) {
+        setLatLngValues(initialLat, initialLng);
+    } else {
+        notifyLatLngInputsChanged();
+    }
 })();
 </script>
