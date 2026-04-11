@@ -83,6 +83,16 @@ class AuthController extends Controller
             /** @var User|null $user */
             $user = Auth::user();
 
+            if ($user && ($user->is_blocked ?? false)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Tài khoản đã bị khóa.',
+                ])->onlyInput('email');
+            }
+
             if ($user && ($user->is_admin ?? false)) {
                 Auth::logout();
                 $request->session()->invalidate();
@@ -218,6 +228,11 @@ class AuthController extends Controller
         $user = User::where('google_id', $googleUser->getId())->first();
 
         if ($user) {
+            if ($user->is_blocked ?? false) {
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Tài khoản đã bị khóa.',
+                ]);
+            }
             if (! $user->hasVerifiedEmail()) {
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
@@ -229,6 +244,11 @@ class AuthController extends Controller
         $user = User::where('email', $googleUser->getEmail())->first();
 
         if ($user) {
+            if ($user->is_blocked ?? false) {
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Tài khoản đã bị khóa.',
+                ]);
+            }
             $user->forceFill([
                 'google_id' => $googleUser->getId(),
                 'email_verified_at' => $user->email_verified_at ?: now(),

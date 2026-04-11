@@ -232,6 +232,7 @@ Route::middleware(['auth', 'email.verified.otp', 'admin'])->prefix('admin')->nam
 
     // User/admin management modules
     Route::namespace('App\Http\Controllers\Admin')->group(function () {
+        Route::post('/users/{user}/toggle-block', 'UserController@toggleBlocked')->name('users.toggle-block');
         Route::resource('/users', 'UserController')->except(['destroy']);
         Route::resource('/coupons', 'CouponController', ['parameters' => ['coupons' => 'coupon']]);
         Route::resource('/search-synonyms', 'SearchSynonymController', ['parameters' => ['search-synonyms' => 'search_synonym']]);

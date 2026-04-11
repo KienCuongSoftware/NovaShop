@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\AccountBlockedMail;
 use App\Models\User;
 use App\Services\UserInitialsAvatarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
@@ -125,5 +128,56 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index', ['page' => $page])
             ->with('success', 'Đã cập nhật người dùng thành công.');
+    }
+
+    public function toggleBlocked(Request $request, User $user)
+    {
+        $actor = $request->user();
+        if ($actor && $actor->id === $user->id) {
+            return back()->with('error', 'Bạn không thể khóa chính mình.');
+        }
+
+        $wasBlocked = (bool) $user->is_blocked;
+        $user->is_blocked = ! $wasBlocked;
+        $user->save();
+
+        if ($user->is_blocked && ! $wasBlocked) {
+            $mailOk = false;
+            $mailError = null;
+            $to = trim((string) $user->email);
+            if ($to === '') {
+                Log::warning('Account blocked: user has no email', ['user_id' => $user->id]);
+                $mailError = 'empty_email';
+            } else {
+                try {
+                    Mail::to($to)->send(new AccountBlockedMail($user->name, $to));
+                    $mailOk = true;
+                } catch (\Throwable $e) {
+                    Log::error('Account blocked email failed', [
+                        'user_id' => $user->id,
+                        'email' => $to,
+                        'message' => $e->getMessage(),
+                    ]);
+                    $mailError = $e->getMessage();
+                }
+            }
+
+            $msg = 'Đã chặn tài khoản. Người dùng không thể đăng nhập.';
+            if ($mailOk) {
+                $driver = (string) config('mail.default');
+                $msg .= ' Đã xử lý gửi thông báo tới '.$to.'.';
+                if (in_array($driver, ['log', 'array'], true)) {
+                    $msg .= ' Bạn đang dùng MAIL_MAILER='.$driver.' — email không đến hộp thư mà chỉ ghi trong storage/logs/laravel.log (hoặc bộ nhớ). Đặt MAIL_MAILER=smtp và cấu hình Gmail/SMTP trong .env để gửi thật.';
+                }
+            } elseif ($mailError === 'empty_email') {
+                $msg .= ' Không gửi được email: tài khoản không có địa chỉ email.';
+            } else {
+                $msg .= ' Gửi email thất bại. Kiểm tra .env (MAIL_MAILER, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS) và xem chi tiết trong storage/logs/laravel.log.';
+            }
+
+            return back()->with('success', $msg);
+        }
+
+        return back()->with('success', 'Đã bỏ chặn tài khoản.');
     }
 }

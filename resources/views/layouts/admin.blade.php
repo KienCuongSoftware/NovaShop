@@ -255,7 +255,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body" id="globalConfirmModalBody">Bạn có chắc muốn thực hiện thao tác này?</div>
+                <div class="modal-body" id="globalConfirmModalBody" style="white-space: pre-line;">Bạn có chắc muốn thực hiện thao tác này?</div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Hủy</button>
                     <button type="button" class="btn btn-danger" id="globalConfirmModalOk">Đồng ý</button>

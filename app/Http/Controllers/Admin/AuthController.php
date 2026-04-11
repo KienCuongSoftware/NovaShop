@@ -53,6 +53,16 @@ class AuthController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
+        if ($user && ($user->is_blocked ?? false)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Tài khoản đã bị khóa.',
+            ])->onlyInput('email');
+        }
+
         if (! $user || ! ($user->is_admin ?? false)) {
             Auth::logout();
             $request->session()->invalidate();
