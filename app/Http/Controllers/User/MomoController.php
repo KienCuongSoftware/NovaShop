@@ -72,6 +72,26 @@ class MomoController extends Controller
         return hash_equals($expected, $provided);
     }
 
+    /**
+     * MoMo yêu cầu orderId (partner reference) là duy nhất theo từng lần tạo giao dịch.
+     * Dùng "{id}_{random}" để thanh toán lại không bị lỗi trùng orderId; IPN/return vẫn gửi cùng chuỗi này.
+     */
+    protected function resolveInternalOrderIdFromMomoOrderId(string $momoOrderId): ?int
+    {
+        $momoOrderId = trim($momoOrderId);
+        if ($momoOrderId === '') {
+            return null;
+        }
+        if (preg_match('/^(\d+)_/', $momoOrderId, $m)) {
+            return (int) $m[1];
+        }
+        if (ctype_digit($momoOrderId)) {
+            return (int) $momoOrderId;
+        }
+
+        return null;
+    }
+
     public function createOrder(Order $order)
     {
         if ($order->user_id !== Auth::id()) {
@@ -89,7 +109,7 @@ class MomoController extends Controller
         }
 
         $requestId = (string) $order->id.'-'.now()->format('YmdHis').'-'.bin2hex(random_bytes(4));
-        $orderId = (string) $order->id;
+        $orderId = $order->id.'_'.bin2hex(random_bytes(5));
         $redirectUrl = route('momo.return', ['order' => $order->id]);
         $ipnUrl = route('momo.ipn');
         $extraData = '';
@@ -219,9 +239,9 @@ class MomoController extends Controller
     public function ipn(Request $request)
     {
         $payload = $request->all();
-        $orderId = (int) ($payload['orderId'] ?? 0);
+        $orderId = $this->resolveInternalOrderIdFromMomoOrderId((string) ($payload['orderId'] ?? ''));
         $resultCode = $this->normalizeResultCode($payload['resultCode'] ?? null);
-        if ($orderId <= 0) {
+        if ($orderId === null || $orderId <= 0) {
             return response()->json(['resultCode' => 1, 'message' => 'invalid order id']);
         }
         $order = Order::query()->find($orderId);
