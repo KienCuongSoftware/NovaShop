@@ -19,7 +19,7 @@
         <div class="dash-nova__hero-aside">
             <span class="dash-nova__clock">{{ now()->locale('vi')->translatedFormat('l, d/m/Y') }}</span>
             <p class="dash-nova__greet">Xin chào, <strong>{{ auth()->user()->name }}</strong></p>
-            <a href="{{ route('admin.orders.index') }}" class="dash-nova__link-arrow">Đi tới đơn hàng →</a>
+            <a href="{{ route('staff.orders.index') }}" class="dash-nova__link-arrow">Đi tới đơn hàng (nhân viên) →</a>
         </div>
     </header>
 
@@ -168,7 +168,7 @@
                     <h2 class="dash-panel__title">Đơn gần đây</h2>
                     <p class="dash-panel__hint mb-0">Năm đơn mới nhất.</p>
                 </div>
-                <a href="{{ route('admin.orders.index') }}" class="dash-nova__btn-ghost">Tất cả đơn</a>
+                <a href="{{ route('staff.orders.index') }}" class="dash-nova__btn-ghost">Tất cả đơn</a>
             </div>
             <div class="dash-panel__body p-0">
                 @if($recentOrders->isEmpty())
@@ -188,7 +188,7 @@
                             <tbody>
                                 @foreach($recentOrders as $order)
                                 <tr>
-                                    <td class="dash-table__td--order-id"><a href="{{ route('admin.orders.show', $order) }}" class="dash-table__link">#{{ $order->id }}</a></td>
+                                    <td class="dash-table__td--order-id"><a href="{{ route('staff.orders.show', $order) }}" class="dash-table__link">#{{ $order->id }}</a></td>
                                     <td class="dash-table__cell--customer">
                                         @php $custName = $order->user->name ?? '—'; @endphp
                                         <span class="dash-table__ellipsis-inline" title="{{ $custName }}">{{ $custName }}</span>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -24,7 +24,7 @@ class AuthController extends Controller
             return redirect()->route('welcome');
         }
 
-        return view('admin.auth.login');
+        return view('staff.auth.login');
     }
 
     public function login(Request $request)
@@ -73,13 +73,13 @@ class AuthController extends Controller
             ])->onlyInput('email');
         }
 
-        if (! $user || ! ($user->is_admin ?? false)) {
+        if (! $user || (! ($user->is_staff ?? false) && ! ($user->is_admin ?? false))) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return back()->withErrors([
-                'email' => 'Tài khoản này không có quyền quản trị.',
+                'email' => 'Tài khoản này không có quyền nhân viên hoặc quản trị.',
             ])->onlyInput('email');
         }
 
@@ -91,8 +91,8 @@ class AuthController extends Controller
             ])->save();
         }
 
-        return redirect()->intended(route('admin.dashboard'))
-            ->with('success', 'Đăng nhập admin thành công.');
+        return redirect()->intended(route('staff.dashboard'))
+            ->with('success', 'Đăng nhập nhân viên thành công.');
     }
 
     public function logout(Request $request)
@@ -102,7 +102,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login')
-            ->with('success', 'Đã đăng xuất khỏi trang quản trị.');
+        return redirect()->route('staff.login')
+            ->with('success', 'Đã đăng xuất.');
     }
 }

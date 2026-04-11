@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.staff')
 
 @section('title', 'Đơn hàng #' . $order->id)
 
@@ -6,7 +6,7 @@
 <div class="page-header">
     <h2>Đơn hàng #{{ $order->id }}</h2>
     <div class="admin-toolbar">
-        <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">← Danh sách đơn</a>
+        <a href="{{ route('staff.orders.index') }}" class="btn btn-outline-secondary">← Danh sách đơn</a>
     </div>
 </div>
 
@@ -130,7 +130,7 @@
         <div class="card shadow-sm">
             <div class="card-header bg-light font-weight-bold">Cập nhật trạng thái đơn</div>
             <div class="card-body">
-                <form action="{{ route('admin.orders.update-status', $order) }}" method="POST">
+                <form action="{{ route('staff.orders.update-status', $order) }}" method="POST">
                     @csrf
                     @method('PUT')
                     <div class="form-group mb-2">

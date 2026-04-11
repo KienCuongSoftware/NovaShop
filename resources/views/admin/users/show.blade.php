@@ -37,6 +37,8 @@
             <dd class="col-sm-9">{{ $user->email }}</dd>
             <dt class="col-sm-3">Quản trị viên:</dt>
             <dd class="col-sm-9">{{ $user->is_admin ? 'Có' : 'Không' }}</dd>
+            <dt class="col-sm-3">Nhân viên:</dt>
+            <dd class="col-sm-9">{{ ($user->is_staff ?? false) ? 'Có — đăng nhập /staff/login' : 'Không' }}</dd>
             <dt class="col-sm-3">Trạng thái tài khoản:</dt>
             <dd class="col-sm-9">
                 @if($user->is_blocked ?? false)

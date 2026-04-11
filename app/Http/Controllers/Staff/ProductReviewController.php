@@ -1,21 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Mail\ProductReviewRejectedMail;
-use App\Models\Product;
 use App\Models\ProductReview;
-use App\Models\ProductVariant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
 
 class ProductReviewController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $reviews = ProductReview::query()
             ->where('is_approved', false)
@@ -23,7 +21,7 @@ class ProductReviewController extends Controller
             ->latest()
             ->paginate(20);
 
-        return view('admin.product_reviews.index', compact('reviews'));
+        return view('staff.product_reviews.index', compact('reviews'));
     }
 
     public function approve(ProductReview $review): RedirectResponse
@@ -34,7 +32,7 @@ class ProductReviewController extends Controller
         $review->rejection_reason = null;
         $review->save();
 
-        return redirect()->route('admin.product-reviews.index')->with('success', 'Đã duyệt đánh giá.');
+        return redirect()->route('staff.product-reviews.index')->with('success', 'Đã duyệt đánh giá.');
     }
 
     public function reject(Request $request, ProductReview $review): RedirectResponse
@@ -62,6 +60,6 @@ class ProductReviewController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.product-reviews.index')->with('success', 'Đã từ chối đánh giá.');
+        return redirect()->route('staff.product-reviews.index')->with('success', 'Đã từ chối đánh giá.');
     }
 }

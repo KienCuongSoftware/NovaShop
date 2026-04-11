@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        $this->call([StaffUserSeeder::class]);
+
         $this->call([
             OrderSeeder::class,
             AddressSeeder::class,

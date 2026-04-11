@@ -1,18 +1,20 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryLog;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $status = $request->query('status', 'all');
         $shippingStatus = $request->query('shipping_status', 'all');
@@ -36,29 +38,30 @@ class OrderController extends Controller
         if ($q !== '') {
             $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
             $query->where(function ($qb) use ($esc) {
-                $qb->where('id', 'like', '%' . $esc . '%')
-                    ->orWhere('phone_snapshot', 'like', '%' . $esc . '%')
-                    ->orWhere('shipping_address_snapshot', 'like', '%' . $esc . '%')
+                $qb->where('id', 'like', '%'.$esc.'%')
+                    ->orWhere('phone_snapshot', 'like', '%'.$esc.'%')
+                    ->orWhere('shipping_address_snapshot', 'like', '%'.$esc.'%')
                     ->orWhereHas('user', function ($uq) use ($esc) {
-                        $uq->where('name', 'like', '%' . $esc . '%')
-                            ->orWhere('email', 'like', '%' . $esc . '%');
+                        $uq->where('name', 'like', '%'.$esc.'%')
+                            ->orWhere('email', 'like', '%'.$esc.'%');
                     });
             });
         }
 
         $orders = $query->paginate(7)->withQueryString();
-        session(['admin.orders.page' => $orders->currentPage()]);
+        session(['staff.orders.page' => $orders->currentPage()]);
 
-        return view('admin.orders.index', compact('orders', 'status', 'shippingStatus', 'q'));
+        return view('staff.orders.index', compact('orders', 'status', 'shippingStatus', 'q'));
     }
 
-    public function show(Order $order)
+    public function show(Order $order): View
     {
         $order->load(['user', 'coupon', 'items.product', 'items.productVariant.attributeValues.attribute']);
-        return view('admin.orders.show', compact('order'));
+
+        return view('staff.orders.show', compact('order'));
     }
 
-    public function updateStatus(Request $request, Order $order)
+    public function updateStatus(Request $request, Order $order): RedirectResponse
     {
         $allowed = [
             Order::STATUS_UNPAID,
@@ -72,7 +75,7 @@ class OrderController extends Controller
             Order::STATUS_RETURN_REFUND,
         ];
         $request->validate([
-            'status' => 'required|in:' . implode(',', $allowed),
+            'status' => 'required|in:'.implode(',', $allowed),
         ], [
             'status.required' => 'Vui lòng chọn trạng thái.',
         ]);
@@ -101,8 +104,8 @@ class OrderController extends Controller
                         'order_id' => $order->id,
                         'type' => 'import',
                         'quantity' => $item->quantity,
-                        'source' => 'admin_cancel',
-                        'note' => 'Admin cập nhật hủy đơn, hoàn tồn kho.',
+                        'source' => 'staff_cancel',
+                        'note' => 'Nhân viên cập nhật hủy đơn, hoàn tồn kho.',
                     ]);
                 }
             }
@@ -118,7 +121,7 @@ class OrderController extends Controller
         });
 
         return redirect()
-            ->route('admin.orders.show', $order)
-            ->with('success', 'Đã cập nhật trạng thái đơn hàng #' . $order->id);
+            ->route('staff.orders.show', $order)
+            ->with('success', 'Đã cập nhật trạng thái đơn hàng #'.$order->id);
     }
 }

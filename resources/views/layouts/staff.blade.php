@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Trang quản trị') - NovaShop</title>
+    <title>@yield('title', 'Nhân viên') - NovaShop</title>
 <link rel="icon" href="{{ url('/favicon.svg') }}" type="image/svg+xml">
     <link rel="icon" href="{{ url('/favicon.ico') }}" type="image/x-icon">
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
@@ -149,51 +149,53 @@
             display: inline-block;
             text-align: center;
         }
+        .staff-panel .btn-primary {
+            background: #dc3545;
+            border-color: #c82333;
+            color: #fff;
+        }
+        .staff-panel .btn-primary:hover {
+            background: #c82333;
+            border-color: #bd2130;
+            color: #fff;
+        }
+        .staff-panel .btn-outline-primary {
+            color: #c62828;
+            border-color: #c62828;
+            background: #fff;
+        }
+        .staff-panel .btn-outline-primary:hover {
+            background: #c62828;
+            border-color: #c62828;
+            color: #fff;
+        }
     </style>
 </head>
-<body>
+<body class="staff-panel">
     <div class="admin-wrapper">
         <!-- Navbar bên trái - cố định, không đổi khi chuyển trang -->
         <aside class="admin-sidebar">
             <div class="brand">
-                <a href="{{ route('admin.dashboard') }}">NovaShop - Quản trị</a>
+                <a href="{{ route('staff.dashboard') }}">NovaShop - Nhân viên</a>
             </div>
             <nav class="nav">
-                <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                    Trang quản trị
+                <a class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}" href="{{ route('staff.dashboard') }}">
+                    Trang làm việc
                 </a>
-                <a class="nav-link {{ request()->routeIs('admin.products.*') ? 'active' : '' }}" href="{{ route('admin.products.index') }}">
-                    Sản phẩm
+                <a class="nav-link {{ request()->routeIs('staff.orders.*') ? 'active' : '' }}" href="{{ route('staff.orders.index') }}">
+                    Đơn hàng
                 </a>
-                <a class="nav-link {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}" href="{{ route('admin.categories.index') }}">
-                    Danh mục
+                <a class="nav-link {{ request()->routeIs('staff.product-reviews.*') ? 'active' : '' }}" href="{{ route('staff.product-reviews.index') }}">
+                    Duyệt đánh giá
                 </a>
-                <a class="nav-link {{ request()->routeIs('admin.brands.*') ? 'active' : '' }}" href="{{ route('admin.brands.index') }}">
-                    Thương hiệu
-                </a>
-                <a class="nav-link {{ request()->routeIs('admin.attributes.*') ? 'active' : '' }}" href="{{ route('admin.attributes.index') }}">
-                    Thuộc tính
-                </a>
-                <a class="nav-link {{ request()->routeIs('admin.flash-sales.*') ? 'active' : '' }}" href="{{ route('admin.flash-sales.index') }}">
-                    Flash Sale
-                </a>
-                <a class="nav-link {{ request()->routeIs('admin.coupons.*') ? 'active' : '' }}" href="{{ route('admin.coupons.index') }}">
-                    Mã giảm giá
-                </a>
-                <a class="nav-link {{ request()->routeIs('admin.search-synonyms.*') ? 'active' : '' }}" href="{{ route('admin.search-synonyms.index') }}">
-                    Search synonyms
-                </a>
-                <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
-                    Người dùng
+                <a class="nav-link {{ request()->routeIs('staff.inventory-logs.*') ? 'active' : '' }}" href="{{ route('staff.inventory-logs.index') }}">
+                    Nhập/xuất kho
                 </a>
                 <div class="nav-divider"></div>
-                <a class="nav-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}" href="{{ route('admin.profile.edit') }}">
-                    Thông tin tài khoản
-                </a>
-                <a class="nav-link" href="{{ route('admin.logout') }}" onclick="event.preventDefault(); document.getElementById('admin-logout-form').submit();">
+                <a class="nav-link" href="{{ route('staff.logout') }}" onclick="event.preventDefault(); document.getElementById('staff-logout-form').submit();">
                     Đăng xuất
                 </a>
-                <form id="admin-logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
+                <form id="staff-logout-form" action="{{ route('staff.logout') }}" method="POST" style="display: none;">
                     @csrf
                 </form>
             </nav>

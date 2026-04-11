@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryLog;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class InventoryLogController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $type = $request->query('type', '');
         $q = trim((string) $request->query('q', ''));
@@ -23,9 +24,9 @@ class InventoryLogController extends Controller
         if ($q !== '') {
             $esc = str_replace(['%', '_'], ['\\%', '\\_'], $q);
             $query->where(function ($qb) use ($esc, $q) {
-                $qb->where('source', 'like', '%' . $esc . '%')
-                    ->orWhere('note', 'like', '%' . $esc . '%')
-                    ->orWhereHas('productVariant.product', fn ($p) => $p->where('name', 'like', '%' . $esc . '%'));
+                $qb->where('source', 'like', '%'.$esc.'%')
+                    ->orWhere('note', 'like', '%'.$esc.'%')
+                    ->orWhereHas('productVariant.product', fn ($p) => $p->where('name', 'like', '%'.$esc.'%'));
                 if (is_numeric($q)) {
                     $qb->orWhere('order_id', (int) $q);
                 }
@@ -33,8 +34,8 @@ class InventoryLogController extends Controller
         }
 
         $logs = $query->paginate(7)->withQueryString();
-        session(['admin.inventory_logs.page' => $logs->currentPage()]);
+        session(['staff.inventory_logs.page' => $logs->currentPage()]);
 
-        return view('admin.inventory_logs.index', compact('logs', 'type', 'q'));
+        return view('staff.inventory_logs.index', compact('logs', 'type', 'q'));
     }
 }

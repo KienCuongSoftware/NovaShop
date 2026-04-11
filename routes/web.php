@@ -6,6 +6,11 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Staff\AuthController as StaffAuthController;
+use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
+use App\Http\Controllers\Staff\InventoryLogController as StaffInventoryLogController;
+use App\Http\Controllers\Staff\OrderController as StaffOrderController;
+use App\Http\Controllers\Staff\ProductReviewController as StaffProductReviewController;
 use App\Http\Controllers\User\AiChatController;
 use App\Http\Controllers\User\AuthController;
 use App\Http\Controllers\User\InitialsAvatarController;
@@ -121,6 +126,11 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
+});
+
+Route::prefix('staff')->name('staff.')->group(function () {
+    Route::get('/login', [StaffAuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [StaffAuthController::class, 'login'])->name('login.submit');
 });
 Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register');
 Route::post('register', [AuthController::class, 'register']);
@@ -240,20 +250,18 @@ Route::middleware(['auth', 'email.verified.otp', 'admin'])->prefix('admin')->nam
         Route::put('/profile', 'ProfileController@update')->name('profile.update');
     });
 
-    // Orders + inventory module
-    Route::namespace('App\Http\Controllers\Admin')->group(function () {
-        Route::get('/orders', 'OrderController@index')->name('orders.index');
-        Route::get('/orders/{order}', 'OrderController@show')->name('orders.show');
-        Route::put('/orders/{order}/status', 'OrderController@updateStatus')->name('orders.update-status');
-        Route::get('/inventory-logs', 'InventoryLogController@index')->name('inventory-logs.index');
-    });
+});
 
-    // Review moderation module
-    Route::namespace('App\Http\Controllers\Admin')->group(function () {
-        Route::get('/product-reviews', 'ProductReviewController@index')->name('product-reviews.index');
-        Route::post('/product-reviews/{review}/approve', 'ProductReviewController@approve')->name('product-reviews.approve');
-        Route::post('/product-reviews/{review}/reject', 'ProductReviewController@reject')->name('product-reviews.reject');
-    });
+Route::middleware(['auth', 'email.verified.otp', 'staff'])->prefix('staff')->name('staff.')->group(function () {
+    Route::post('/logout', [StaffAuthController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [StaffDashboardController::class, 'dashboard'])->name('dashboard');
+    Route::get('/orders', [StaffOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [StaffOrderController::class, 'show'])->name('orders.show');
+    Route::put('/orders/{order}/status', [StaffOrderController::class, 'updateStatus'])->name('orders.update-status');
+    Route::get('/inventory-logs', [StaffInventoryLogController::class, 'index'])->name('inventory-logs.index');
+    Route::get('/product-reviews', [StaffProductReviewController::class, 'index'])->name('product-reviews.index');
+    Route::post('/product-reviews/{review}/approve', [StaffProductReviewController::class, 'approve'])->name('product-reviews.approve');
+    Route::post('/product-reviews/{review}/reject', [StaffProductReviewController::class, 'reject'])->name('product-reviews.reject');
 });
 
 // Serve product images from storage (with cache; mime by extension to avoid 500 on .webp/Windows)

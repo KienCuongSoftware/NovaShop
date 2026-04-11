@@ -56,6 +56,14 @@
             </div>
             <div class="form-group">
                 <div class="custom-control custom-checkbox">
+                    <input type="hidden" name="is_staff" value="0">
+                    <input type="checkbox" class="custom-control-input" name="is_staff" id="is_staff" value="1" {{ old('is_staff') ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="is_staff">Là nhân viên (đơn hàng, đánh giá, kho)</label>
+                </div>
+                <small class="form-text text-muted">Đăng nhập tại <code>/staff/login</code>.</small>
+            </div>
+            <div class="form-group">
+                <div class="custom-control custom-checkbox">
                     <input type="hidden" name="is_vip" value="0">
                     <input type="checkbox" class="custom-control-input" name="is_vip" id="is_vip" value="1" {{ old('is_vip') ? 'checked' : '' }}>
                     <label class="custom-control-label" for="is_vip">Khách VIP</label>

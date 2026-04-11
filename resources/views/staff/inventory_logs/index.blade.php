@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.staff')
 
 @section('title', 'Nhập/xuất kho')
 
@@ -9,7 +9,7 @@
 
 <div class="card mb-3">
     <div class="card-body py-3">
-        <form action="{{ route('admin.inventory-logs.index') }}" method="GET" class="admin-search-form d-flex flex-wrap align-items-center" style="gap: 0.5rem;">
+        <form action="{{ route('staff.inventory-logs.index') }}" method="GET" class="admin-search-form d-flex flex-wrap align-items-center" style="gap: 0.5rem;">
             <select name="type" class="form-control" style="max-width: 140px;">
                 <option value="">Loại: Tất cả</option>
                 <option value="import" {{ ($type ?? '') === 'import' ? 'selected' : '' }}>Nhập</option>
@@ -54,16 +54,9 @@
                             @endif
                         </td>
                         <td class="align-middle">
-                            @php
-                                $logProduct = $log->product ?? $log->productVariant?->product;
-                                $canLinkProduct = $logProduct && $logProduct->id && !empty($logProduct->slug);
-                            @endphp
+                            @php $logProduct = $log->product ?? $log->productVariant?->product; @endphp
                             @if($logProduct)
-                                @if($canLinkProduct)
-                                    <a href="{{ route('admin.products.edit', $logProduct) }}">{{ $logProduct->name }}</a>
-                                @else
-                                    <span>{{ $logProduct->name }}</span>
-                                @endif
+                                <span>{{ $logProduct->name }}</span>
                                 @if($log->productVariant)
                                     <br><small class="text-muted">{{ $log->productVariant->display_name }}</small>
                                 @endif
@@ -77,7 +70,7 @@
                         <td class="align-middle small">{{ $log->source ?? '—' }}</td>
                         <td class="align-middle small">
                             @if($log->order_id && $log->order)
-                                <a href="{{ route('admin.orders.show', $log->order) }}">#{{ $log->order_id }}</a>
+                                <a href="{{ route('staff.orders.show', $log->order) }}">#{{ $log->order_id }}</a>
                             @elseif($log->order_id)
                                 #{{ $log->order_id }}
                             @else

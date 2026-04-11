@@ -44,6 +44,7 @@ class UserController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
             'birthday' => 'nullable|date',
             'is_admin' => 'nullable|boolean',
+            'is_staff' => 'nullable|boolean',
             'is_vip' => 'nullable|boolean',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
@@ -62,6 +63,7 @@ class UserController extends Controller
             'email' => $request->input('email'),
             'password' => Hash::make($request->input('password')),
             'is_admin' => (bool) $request->boolean('is_admin'),
+            'is_staff' => (bool) $request->boolean('is_staff'),
             'is_vip' => (bool) $request->boolean('is_vip'),
             'avatar_palette_index' => UserInitialsAvatarService::randomPaletteIndex(),
         ];
@@ -94,6 +96,7 @@ class UserController extends Controller
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'birthday' => 'nullable|date',
             'is_admin' => 'nullable|boolean',
+            'is_staff' => 'nullable|boolean',
             'is_vip' => 'nullable|boolean',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ], [
@@ -111,6 +114,7 @@ class UserController extends Controller
             'email' => $request->input('email'),
             'birthday' => $request->filled('birthday') ? $request->input('birthday') : null,
             'is_admin' => (bool) $request->boolean('is_admin'),
+            'is_staff' => (bool) $request->boolean('is_staff'),
             'is_vip' => (bool) $request->boolean('is_vip'),
         ];
         if ($request->filled('password')) {

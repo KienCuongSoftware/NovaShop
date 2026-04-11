@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('layouts.staff')
 
 @section('title', 'Đơn hàng')
 
@@ -9,21 +9,21 @@
 
 <ul class="nav nav-tabs mb-2">
     <li class="nav-item">
-        <a class="nav-link {{ ($status ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('admin.orders.index', array_filter(['status' => 'all', 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? ''])) }}">Tất cả</a>
+        <a class="nav-link {{ ($status ?? 'all') === 'all' ? 'active' : '' }}" href="{{ route('staff.orders.index', array_filter(['status' => 'all', 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? ''])) }}">Tất cả</a>
     </li>
     @foreach(\App\Models\Order::tabStatusKeys() as $key)
     <li class="nav-item">
-        <a class="nav-link {{ ($status ?? '') === $key ? 'active' : '' }}" href="{{ route('admin.orders.index', array_filter(['status' => $key, 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? ''])) }}">{{ \App\Models\Order::statusLabel($key) }}</a>
+        <a class="nav-link {{ ($status ?? '') === $key ? 'active' : '' }}" href="{{ route('staff.orders.index', array_filter(['status' => $key, 'shipping_status' => $shippingStatus ?? 'all', 'q' => $q ?? ''])) }}">{{ \App\Models\Order::statusLabel($key) }}</a>
     </li>
     @endforeach
 </ul>
-<form method="GET" action="{{ route('admin.orders.index') }}" class="d-flex flex-wrap align-items-center mb-3" style="gap: 0.5rem;">
+<form method="GET" action="{{ route('staff.orders.index') }}" class="d-flex flex-wrap align-items-center mb-3" style="gap: 0.5rem;">
     <input type="hidden" name="status" value="{{ $status ?? 'all' }}">
     @if(trim((string) ($q ?? '')) !== '')
         <input type="hidden" name="q" value="{{ $q }}">
     @endif
-    <label for="admin-order-shipping-filter" class="mb-0 small font-weight-bold text-secondary">Lọc nâng cao</label>
-    <select name="shipping_status" id="admin-order-shipping-filter" class="form-control form-control-sm" style="max-width: 260px;" onchange="this.form.submit()">
+    <label for="staff-order-shipping-filter" class="mb-0 small font-weight-bold text-secondary">Lọc nâng cao</label>
+    <select name="shipping_status" id="staff-order-shipping-filter" class="form-control form-control-sm" style="max-width: 260px;" onchange="this.form.submit()">
         <option value="all" {{ ($shippingStatus ?? 'all') === 'all' ? 'selected' : '' }}>Vận chuyển — tất cả</option>
         @foreach(\App\Models\Order::tabShippingStatusKeys() as $key)
             <option value="{{ $key }}" {{ ($shippingStatus ?? '') === $key ? 'selected' : '' }}>{{ \App\Models\Order::shippingStatusLabel($key) }}</option>
@@ -33,7 +33,7 @@
 
 <div class="card mb-3">
     <div class="card-body py-3">
-        <form action="{{ route('admin.orders.index') }}" method="GET" class="admin-search-form d-flex flex-wrap align-items-center" style="gap: 0.5rem;">
+        <form action="{{ route('staff.orders.index') }}" method="GET" class="admin-search-form d-flex flex-wrap align-items-center" style="gap: 0.5rem;">
             <input type="hidden" name="status" value="{{ $status ?? 'all' }}">
             <input type="hidden" name="shipping_status" value="{{ $shippingStatus ?? 'all' }}">
             <input type="text" name="q" class="form-control" style="max-width: 280px;" placeholder="ID đơn, SĐT, địa chỉ, tên/email khách..." value="{{ $q ?? '' }}">
@@ -62,7 +62,7 @@
                     @forelse($orders as $order)
                     <tr>
                         <td class="align-middle">
-                            <a href="{{ route('admin.orders.show', $order) }}" class="font-weight-bold">#{{ $order->id }}</a>
+                            <a href="{{ route('staff.orders.show', $order) }}" class="font-weight-bold">#{{ $order->id }}</a>
                         </td>
                         <td class="align-middle">
                             <div>{{ $order->user->name ?? '—' }}</div>
@@ -87,7 +87,7 @@
                             @endif
                         </td>
                         <td class="align-middle text-right">
-                            <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                            <a href="{{ route('staff.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
                         </td>
                     </tr>
                     @empty

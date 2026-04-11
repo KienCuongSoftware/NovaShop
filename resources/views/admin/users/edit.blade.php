@@ -47,7 +47,7 @@
                 @error('email')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
             </div>
             <div class="form-group">
-ph                <label for="birthday"><strong>Ngày sinh:</strong></label>
+                <label for="birthday"><strong>Ngày sinh:</strong></label>
                 <input type="date" name="birthday" id="birthday" class="form-control" value="{{ old('birthday', $user->birthday?->format('Y-m-d')) }}">
                 <small class="form-text text-muted">Dùng cho mã giảm giá theo sinh nhật (tuỳ chọn).</small>
                 @error('birthday')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
@@ -68,6 +68,14 @@ ph                <label for="birthday"><strong>Ngày sinh:</strong></label>
                     <input type="checkbox" class="custom-control-input" name="is_admin" id="is_admin" value="1" {{ old('is_admin', $user->is_admin) ? 'checked' : '' }}>
                     <label class="custom-control-label" for="is_admin">Là quản trị viên</label>
                 </div>
+            </div>
+            <div class="form-group">
+                <div class="custom-control custom-checkbox">
+                    <input type="hidden" name="is_staff" value="0">
+                    <input type="checkbox" class="custom-control-input" name="is_staff" id="is_staff" value="1" {{ old('is_staff', $user->is_staff ?? false) ? 'checked' : '' }}>
+                    <label class="custom-control-label" for="is_staff">Là nhân viên (đơn hàng, đánh giá, kho)</label>
+                </div>
+                <small class="form-text text-muted">Đăng nhập tại <code>/staff/login</code>.</small>
             </div>
             <div class="form-group">
                 <div class="custom-control custom-checkbox">

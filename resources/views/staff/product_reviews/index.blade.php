@@ -1,11 +1,11 @@
-@extends('layouts.admin')
+@extends('layouts.staff')
 
 @section('title', 'Duyệt đánh giá sản phẩm')
 
 @section('content')
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap">
     <h2 class="mb-0">Duyệt đánh giá sản phẩm</h2>
-    <a class="btn btn-outline-primary" href="{{ route('admin.dashboard') }}">Quay lại</a>
+    <a class="btn btn-outline-primary" href="{{ route('staff.dashboard') }}">Quay lại</a>
 </div>
 
 <div class="card mt-3">
@@ -90,12 +90,12 @@
                                     {{ optional($rv->created_at)->format('Y-m-d H:i') }}
                                 </td>
                                 <td class="text-right">
-                                    <form action="{{ route('admin.product-reviews.approve', $rv) }}" method="POST" style="display:inline-block;">
+                                    <form action="{{ route('staff.product-reviews.approve', $rv) }}" method="POST" style="display:inline-block;">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-success font-weight-bold mb-1">Duyệt</button>
                                     </form>
 
-                                    <form action="{{ route('admin.product-reviews.reject', $rv) }}" method="POST" style="display:inline-block;">
+                                    <form action="{{ route('staff.product-reviews.reject', $rv) }}" method="POST" style="display:inline-block;">
                                         @csrf
                                         <div class="form-group mb-2" style="min-width:240px;">
                                             <input
@@ -122,4 +122,3 @@
     </div>
 </div>
 @endsection
-

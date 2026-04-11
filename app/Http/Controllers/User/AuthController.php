@@ -57,9 +57,14 @@ class AuthController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
         if ($user) {
-            return ($user->is_admin ?? false)
-                ? redirect()->route('admin.dashboard')
-                : redirect()->route('welcome');
+            if ($user->is_admin ?? false) {
+                return redirect()->route('admin.dashboard');
+            }
+            if ($user->is_staff ?? false) {
+                return redirect()->route('staff.dashboard');
+            }
+
+            return redirect()->route('welcome');
         }
 
         return view('user.auth.login');
@@ -100,6 +105,15 @@ class AuthController extends Controller
 
                 return redirect()->route('admin.login')
                     ->withErrors(['email' => 'Tài khoản quản trị vui lòng đăng nhập tại trang admin.']);
+            }
+
+            if ($user && ($user->is_staff ?? false) && ! ($user->is_admin ?? false)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('staff.login')
+                    ->withErrors(['email' => 'Tài khoản nhân viên vui lòng đăng nhập tại trang nhân viên (/staff/login).']);
             }
 
             if ($user && ! $user->hasVerifiedEmail()) {
