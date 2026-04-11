@@ -16,9 +16,10 @@
         <p><strong>Bắt đầu:</strong> {{ $flash_sale->start_time->format('d/m/Y H:i') }}</p>
         <p><strong>Kết thúc:</strong> {{ $flash_sale->end_time->format('d/m/Y H:i') }}</p>
         <p><strong>Trạng thái:</strong>
-            @if($flash_sale->status === 'active')
+            @php $ds = $flash_sale->derivedStatus(); @endphp
+            @if($ds === 'active')
                 <span class="badge badge-success">Đang diễn ra</span>
-            @elseif($flash_sale->status === 'scheduled')
+            @elseif($ds === 'scheduled')
                 <span class="badge badge-info">Sắp diễn ra</span>
             @else
                 <span class="badge badge-secondary">Đã kết thúc</span>

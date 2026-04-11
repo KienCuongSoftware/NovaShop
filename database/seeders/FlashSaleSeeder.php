@@ -55,7 +55,6 @@ class FlashSaleSeeder extends Seeder
         // Quanh ngày hiện tại để seed không “cũ” so với lịch máy
         $startDate = Carbon::today()->subDays(2)->startOfDay();
         $endDate = Carbon::today()->addDays(21)->endOfDay();
-        $now = now();
 
         $created = 0;
         $timestamps = now();
@@ -71,18 +70,11 @@ class FlashSaleSeeder extends Seeder
                     ? sprintf('Flash Sale %s - %02d:00→24:00', $date->format('d/m'), $startHour)
                     : sprintf('Flash Sale %s - %02d:00→%02d:00', $date->format('d/m'), $startHour, $endHour);
 
-                $status = FlashSale::STATUS_SCHEDULED;
-                if ($startTime->lte($now) && $endTime->gt($now)) {
-                    $status = FlashSale::STATUS_ACTIVE;
-                } elseif ($endTime->lte($now)) {
-                    $status = FlashSale::STATUS_ENDED;
-                }
-
                 $flashSale = FlashSale::create([
                     'name' => $name,
                     'start_time' => $startTime,
                     'end_time' => $endTime,
-                    'status' => $status,
+                    'status' => FlashSale::computeStatus($startTime, $endTime),
                 ]);
 
                 $items = [];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -21,6 +22,25 @@ class FlashSale extends Model
     public function items(): HasMany
     {
         return $this->hasMany(FlashSaleItem::class, 'flash_sale_id');
+    }
+
+    /** Trạng thái suy ra từ thời gian (ưu tiên hiển thị admin / đồng bộ khi lưu). */
+    public function derivedStatus(): string
+    {
+        return self::computeStatus($this->start_time, $this->end_time);
+    }
+
+    public static function computeStatus(Carbon $start, Carbon $end): string
+    {
+        $now = now();
+        if ($now->lt($start)) {
+            return self::STATUS_SCHEDULED;
+        }
+        if ($now->lt($end)) {
+            return self::STATUS_ACTIVE;
+        }
+
+        return self::STATUS_ENDED;
     }
 
     /** Scope: khung giờ đang diễn ra (start_time <= now < end_time). Không dùng cột status — status chỉ để admin/seed ghi nhận. */

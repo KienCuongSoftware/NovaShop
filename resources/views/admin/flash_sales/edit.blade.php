@@ -2,6 +2,18 @@
 
 @section('title', 'Sửa Flash Sale')
 
+@php
+    $normDt = function (?string $v): string {
+        if ($v === null || $v === '') {
+            return '';
+        }
+
+        return str_replace('T', ' ', $v);
+    };
+    $fpStart = $normDt(old('start_time', $flash_sale->start_time->format('Y-m-d H:i')));
+    $fpEnd = $normDt(old('end_time', $flash_sale->end_time->format('Y-m-d H:i')));
+@endphp
+
 @section('content')
 <div class="page-header">
     <h2>Sửa: {{ $flash_sale->name }}</h2>
@@ -38,24 +50,27 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="start_time">Thời gian bắt đầu <span class="text-danger">*</span></label>
-                        <input type="datetime-local" name="start_time" id="start_time" class="form-control" value="{{ old('start_time', $flash_sale->start_time->format('Y-m-d\TH:i')) }}" required>
+                        <input type="text" name="start_time" id="start_time" class="form-control" value="{{ $fpStart }}" placeholder="dd/mm/yyyy hh:mm" autocomplete="off" required>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="end_time">Thời gian kết thúc <span class="text-danger">*</span></label>
-                        <input type="datetime-local" name="end_time" id="end_time" class="form-control" value="{{ old('end_time', $flash_sale->end_time->format('Y-m-d\TH:i')) }}" required>
+                        <input type="text" name="end_time" id="end_time" class="form-control" value="{{ $fpEnd }}" placeholder="dd/mm/yyyy hh:mm" autocomplete="off" required>
                     </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label for="status">Trạng thái</label>
-                <select name="status" id="status" class="form-control">
-                    <option value="active" {{ old('status', $flash_sale->status) === 'active' ? 'selected' : '' }}>Đang diễn ra</option>
-                    <option value="scheduled" {{ old('status', $flash_sale->status) === 'scheduled' ? 'selected' : '' }}>Sắp diễn ra</option>
-                    <option value="ended" {{ old('status', $flash_sale->status) === 'ended' ? 'selected' : '' }}>Đã kết thúc</option>
-                </select>
-            </div>
+            @php $derived = $flash_sale->derivedStatus(); @endphp
+            <p class="mb-3"><strong>Trạng thái (theo thời gian):</strong>
+                @if($derived === 'active')
+                    <span class="badge badge-success">Đang diễn ra</span>
+                @elseif($derived === 'scheduled')
+                    <span class="badge badge-info">Sắp diễn ra</span>
+                @else
+                    <span class="badge badge-secondary">Đã kết thúc</span>
+                @endif
+            </p>
+            <p class="text-muted small">Không thể đặt thời gian bắt đầu về quá khứ (trừ khi giữ nguyên giá trị hiện tại). Thời gian kết thúc phải sau bắt đầu và sau &quot;bây giờ&quot;, trừ khi bạn giữ nguyên khi chương trình đã kết thúc.</p>
             <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
         </form>
     </div>
@@ -90,7 +105,7 @@
                 </div>
                 <div class="col-md-2">
                     <label for="sale_price">Giá sale (₫)</label>
-                    <input type="number" name="sale_price" id="sale_price" class="form-control" min="0" value="{{ old('sale_price') }}" required>
+                    <input type="number" name="sale_price" id="sale_price" class="form-control" min="0" step="1" value="{{ old('sale_price') }}" required title="Không được lớn hơn giá gốc biến thể">
                 </div>
                 <div class="col-md-2">
                     <label for="quantity">Số lượng</label>
@@ -144,11 +159,18 @@
     </div>
 </div>
 
+@include('admin.flash_sales._flatpickr_24h', ['fpMode' => 'edit'])
+
 <script>
 document.getElementById('product_variant_id')?.addEventListener('change', function() {
     var opt = this.options[this.selectedIndex];
+    var saleInput = document.getElementById('sale_price');
+    if (!saleInput) return;
     if (opt && opt.value && opt.dataset.price) {
-        document.getElementById('sale_price').value = opt.dataset.price;
+        saleInput.value = opt.dataset.price;
+        saleInput.setAttribute('max', opt.dataset.price);
+    } else {
+        saleInput.removeAttribute('max');
     }
 });
 </script>

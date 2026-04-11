@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\FlashSale;
 use App\Models\FlashSaleItem;
 use App\Models\ProductVariant;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class FlashSaleController extends Controller
 {
@@ -37,18 +39,36 @@ class FlashSaleController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
-            'status' => 'nullable|in:active,ended,scheduled',
+            'end_time' => 'required|date',
         ], [
             'name.required' => 'Vui lòng nhập tên chương trình.',
-            'end_time.after' => 'Thời gian kết thúc phải sau thời gian bắt đầu.',
         ]);
+
+        $start = Carbon::parse($request->input('start_time'))->startOfMinute();
+        $end = Carbon::parse($request->input('end_time'))->startOfMinute();
+        $now = now()->startOfMinute();
+
+        if ($start->lt($now)) {
+            throw ValidationException::withMessages([
+                'start_time' => 'Thời gian bắt đầu không được là quá khứ.',
+            ]);
+        }
+        if (! $end->gt($start)) {
+            throw ValidationException::withMessages([
+                'end_time' => 'Thời gian kết thúc phải sau thời gian bắt đầu.',
+            ]);
+        }
+        if ($end->lte($now)) {
+            throw ValidationException::withMessages([
+                'end_time' => 'Thời gian kết thúc phải sau thời điểm hiện tại.',
+            ]);
+        }
 
         $flashSale = FlashSale::create([
             'name' => $request->input('name'),
-            'start_time' => $request->input('start_time'),
-            'end_time' => $request->input('end_time'),
-            'status' => $request->input('status', FlashSale::STATUS_ACTIVE),
+            'start_time' => $start,
+            'end_time' => $end,
+            'status' => FlashSale::computeStatus($start, $end),
         ]);
 
         return redirect()->route('admin.flash-sales.edit', $flashSale)
@@ -78,14 +98,35 @@ class FlashSaleController extends Controller
             'name' => 'required|string|max:255',
             'start_time' => 'required|date',
             'end_time' => 'required|date',
-            'status' => 'nullable|in:active,ended,scheduled',
         ]);
+
+        $start = Carbon::parse($request->input('start_time'))->startOfMinute();
+        $end = Carbon::parse($request->input('end_time'))->startOfMinute();
+        $now = now()->startOfMinute();
+        $origStart = $flash_sale->start_time->copy()->startOfMinute();
+        $origEnd = $flash_sale->end_time->copy()->startOfMinute();
+
+        if ($start->lt($now) && ! $start->equalTo($origStart)) {
+            throw ValidationException::withMessages([
+                'start_time' => 'Thời gian bắt đầu không được đặt về quá khứ.',
+            ]);
+        }
+        if (! $end->gt($start)) {
+            throw ValidationException::withMessages([
+                'end_time' => 'Thời gian kết thúc phải sau thời gian bắt đầu.',
+            ]);
+        }
+        if ($end->lte($now) && ! $end->equalTo($origEnd)) {
+            throw ValidationException::withMessages([
+                'end_time' => 'Thời gian kết thúc phải sau thời điểm hiện tại (hoặc giữ nguyên nếu chương trình đã kết thúc).',
+            ]);
+        }
 
         $flash_sale->update([
             'name' => $request->input('name'),
-            'start_time' => $request->input('start_time'),
-            'end_time' => $request->input('end_time'),
-            'status' => $request->input('status', $flash_sale->status),
+            'start_time' => $start,
+            'end_time' => $end,
+            'status' => FlashSale::computeStatus($start, $end),
         ]);
 
         return back()->with('success', 'Đã cập nhật chương trình.');
@@ -107,6 +148,11 @@ class FlashSaleController extends Controller
         ]);
 
         $variant = ProductVariant::findOrFail($request->input('product_variant_id'));
+        if ((float) $request->input('sale_price') > (float) $variant->price) {
+            throw ValidationException::withMessages([
+                'sale_price' => 'Giá Flash Sale không được lớn hơn giá gốc biến thể ('.number_format((float) $variant->price, 0, ',', '.').'₫).',
+            ]);
+        }
         $exists = FlashSaleItem::where('flash_sale_id', $flash_sale->id)
             ->where('product_variant_id', $variant->id)->exists();
         if ($exists) {
@@ -129,8 +175,17 @@ class FlashSaleController extends Controller
         if ($item->flash_sale_id != $flash_sale->id) {
             abort(404);
         }
+        $variant = $item->productVariant;
+        if (! $variant) {
+            return back()->with('error', 'Không tìm thấy biến thể sản phẩm.');
+        }
+
         $request->validate([
-            'sale_price' => 'required|numeric|min:0',
+            'sale_price' => ['required', 'numeric', 'min:0', function (string $attribute, mixed $value, \Closure $fail) use ($variant) {
+                if ((float) $value > (float) $variant->price) {
+                    $fail('Giá Flash Sale không được lớn hơn giá gốc biến thể ('.number_format((float) $variant->price, 0, ',', '.').'₫).');
+                }
+            }],
             'quantity' => 'required|integer|min:0',
         ]);
         $quantity = (int) $request->input('quantity');

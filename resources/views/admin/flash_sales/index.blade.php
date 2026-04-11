@@ -40,9 +40,10 @@
                         <td>{{ $fs->start_time->format('d/m/Y H:i') }}</td>
                         <td>{{ $fs->end_time->format('d/m/Y H:i') }}</td>
                         <td>
-                            @if($fs->status === 'active')
+                            @php $ds = $fs->derivedStatus(); @endphp
+                            @if($ds === 'active')
                                 <span class="badge badge-success">Đang diễn ra</span>
-                            @elseif($fs->status === 'scheduled')
+                            @elseif($ds === 'scheduled')
                                 <span class="badge badge-info">Sắp diễn ra</span>
                             @else
                                 <span class="badge badge-secondary">Đã kết thúc</span>
