@@ -51,7 +51,12 @@ class DashboardController extends Controller
             ? Product::query()->withTrashed()->whereIn('id', $productIds)->get()->keyBy('id')
             : collect();
         $variantsById = $variantIds !== []
-            ? ProductVariant::query()->withTrashed()->whereIn('id', $variantIds)->get()->keyBy('id')
+            ? ProductVariant::query()
+                ->withTrashed()
+                ->with(['attributeValues.attribute'])
+                ->whereIn('id', $variantIds)
+                ->get()
+                ->keyBy('id')
             : collect();
 
         $topSkus = $topSkuRows->map(function ($row) use ($productsById, $variantsById) {
@@ -59,12 +64,18 @@ class DashboardController extends Controller
             $variant = $row->product_variant_id ? $variantsById->get($row->product_variant_id) : null;
             $name = $product?->name ?? ('Sản phẩm #'.$row->product_id);
             $sku = $variant && $variant->sku ? $variant->sku : null;
+            $variantDisplay = null;
+            if ($variant) {
+                $label = $variant->display_name;
+                $variantDisplay = ($label !== '' && $label !== '—') ? $label : ($sku ?: null);
+            }
 
             return [
                 'product_id' => (int) $row->product_id,
                 'product_variant_id' => $row->product_variant_id ? (int) $row->product_variant_id : null,
                 'name' => $name,
                 'sku' => $sku,
+                'variant_display' => $variantDisplay,
                 'qty_sold' => (int) $row->qty_sold,
             ];
         });

@@ -33,5 +33,8 @@ class DatabaseSeeder extends Seeder
 
         // Yêu thích / so sánh / thông báo / coupon mẫu (cần đã có sản phẩm trong DB)
         $this->call([NovaShopFeaturesSampleSeeder::class]);
+
+        // Flash sale nhiều sản phẩm (1 biến thể đại diện / SP), khung giờ gồm cả tối
+        $this->call([FlashSaleSeeder::class]);
     }
 }

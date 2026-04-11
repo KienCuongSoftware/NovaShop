@@ -143,7 +143,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
     @php
         $flashDisplayItems = $activeFlashSale->items->filter(fn ($i) => $i->remaining > 0 && ($i->productVariant->product_id ?? null))
             ->unique(fn ($i) => $i->productVariant->product_id)
-            ->take(12)
+            ->take(24)
             ->values();
         @endphp
     <div class="flash-sale-track-wrap position-relative">
@@ -200,7 +200,7 @@ container{{ ($showSidebarAndFilter ?? false) ? ' products-container-wide' : ' pr
     function renderProducts(items) {
         var track = document.getElementById('welcome-flash-track');
         if (!track || !items || !items.length) return;
-        var take = 12;
+        var take = 24;
         var html = '';
         var count = 0;
         var seenProductIds = {};

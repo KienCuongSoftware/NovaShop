@@ -18,7 +18,25 @@
             'flash_remaining' => $flash ? (int) $flash['remaining'] : null,
         ];
     })->values()->all();
-    $showFlashCountdown = ($activeFlashSale ?? null) && !empty($flashItemsByVariantId);
+    $anyFlashOnProduct = false;
+    foreach ($product->variants as $v) {
+        $f = $flashItemsByVariantId[$v->id] ?? null;
+        if ($f && (int) ($f['remaining'] ?? 0) > 0) {
+            $anyFlashOnProduct = true;
+            break;
+        }
+    }
+    $showFlashCountdown = ($activeFlashSale ?? null) && $anyFlashOnProduct;
+    $initialFlashVariant = null;
+    if ($anyFlashOnProduct) {
+        foreach ($product->variants as $v) {
+            $f = $flashItemsByVariantId[$v->id] ?? null;
+            if ($f && (int) ($f['remaining'] ?? 0) > 0) {
+                $initialFlashVariant = $v;
+                break;
+            }
+        }
+    }
     $hasVariants = $product->hasVariants();
     $defaultImage = $product->image ? '/images/products/' . basename($product->image) : null;
     $normalizeUrl = function ($url) {
@@ -266,7 +284,77 @@
                     <p class="text-muted small mb-2">Thương hiệu: {{ $product->brand->name }}</p>
                     @endif
 
-                    <div class="mb-3" id="product-price-wrap">
+                    @if($hasVariants && $showFlashCountdown && !empty($flashSaleEndTime ?? null))
+                    <div class="flash-sale-card mb-3" id="flash-sale-card">
+                        <div class="flash-sale-banner d-flex align-items-center justify-content-between flex-wrap" id="flash-sale-countdown-wrap">
+                            <div class="d-flex align-items-center flash-sale-title-inline">
+                                <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
+                                @include('partials.icon-flash-bolt')
+                                <span class="flash-sale-banner-title text-white font-weight-bold">ASH SALE</span>
+                            </div>
+                            <div class="d-flex align-items-center flex-wrap">
+                                <svg class="flash-sale-clock-icon mr-1" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span class="flash-sale-ends-label text-white mr-2">KẾT THÚC TRONG</span>
+                                <span class="flash-sale-countdown-boxes d-inline-flex align-items-center" id="flash-sale-countdown">
+                                    <span class="flash-sale-box" id="flash-sale-h">00</span>
+                                    <span class="flash-sale-sep">:</span>
+                                    <span class="flash-sale-box" id="flash-sale-m">00</span>
+                                    <span class="flash-sale-sep">:</span>
+                                    <span class="flash-sale-box" id="flash-sale-s">00</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flash-sale-price-row" id="flash-sale-price-row">
+                            <div class="d-flex flex-column flex-sm-row flex-wrap align-items-stretch align-items-sm-end" style="gap: 0.75rem 1.5rem;">
+                                <div class="flash-sale-price-block">
+                                    <span class="flash-sale-label text-muted text-uppercase">Giá Flash Sale</span>
+                                    <span class="flash-sale-price d-block" id="flash-sale-price">
+                                        @if($initialFlashVariant)
+                                            {{ number_format((float) ($flashItemsByVariantId[$initialFlashVariant->id]['sale_price'] ?? 0), 0, ',', '.') }}₫
+                                        @else
+                                            0₫
+                                        @endif
+                                    </span>
+                                </div>
+                                <div class="flash-sale-after-block">
+                                    <span class="flash-sale-label text-muted text-uppercase">Giá sau Flash Sale</span>
+                                    <span class="flash-sale-after-price d-block font-weight-bold text-dark" id="flash-sale-after-price">
+                                        @if($initialFlashVariant)
+                                            {{ number_format((float) $initialFlashVariant->price, 0, ',', '.') }}₫
+                                        @else
+                                            —
+                                        @endif
+                                    </span>
+                                    <span class="flash-sale-after-hint small text-muted">Áp dụng khi hết khung Flash Sale hoặc hết suất.</span>
+                                </div>
+                                <div class="align-self-sm-center ml-sm-auto">
+                                    <span class="flash-sale-discount badge badge-light text-danger" id="flash-sale-discount" style="display:none;">-0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                    .flash-sale-card { border-radius: 8px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.1); border: 1px solid rgba(198,40,40,0.2); }
+                    .flash-sale-banner { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); padding: 0.5rem 1rem; }
+                    .flash-sale-title-inline .flash-sale-lightning-icon { flex-shrink: 0; margin: 0 -0.05rem 0 0.15rem; vertical-align: middle; }
+                    .flash-sale-title-inline .flash-sale-banner-title:last-child { margin-left: -0.45rem; }
+                    .flash-sale-banner-title { font-size: 1rem; letter-spacing: 0.02em; }
+                    .flash-sale-clock-icon { flex-shrink: 0; color: #fff; }
+                    .flash-sale-ends-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; display: inline-flex; align-items: center; height: 1.75rem; line-height: 1; }
+                    .flash-sale-countdown-boxes { font-weight: 700; font-size: 1rem; }
+                    .flash-sale-box { background: #1a1a1a; color: #fff; min-width: 2.25rem; height: 1.75rem; padding: 0 0.45rem; text-align: center; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.15rem; }
+                    .flash-sale-sep { color: #fff; margin: 0 0.1rem; font-weight: 700; }
+                    .flash-sale-price-row { background: #fff5f5; padding: 0.85rem 1rem; }
+                    .flash-sale-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; display: block; margin-bottom: 0.2rem; }
+                    #product-price-wrap { background: #fff0f1; padding: 0.55rem 1rem; border-radius: 4px; }
+                    .flash-sale-price { color: #dc3545; font-weight: 900; font-size: 1.45rem; letter-spacing: 0.01em; line-height: 1.2; }
+                    .flash-sale-after-price { font-size: 1.1rem; }
+                    .flash-sale-after-hint { display: block; margin-top: 0.15rem; max-width: 16rem; line-height: 1.3; }
+                    .flash-sale-discount { font-weight: 800; font-size: 0.85rem; padding: 0.35rem 0.5rem; }
+                    </style>
+                    @endif
+
+                    <div class="mb-3" id="product-price-wrap" @if($hasVariants && $anyFlashOnProduct) style="display:none;" @endif>
                         @if($product->old_price !== null)
                             <span class="text-muted mr-2" id="product-old-price" style="text-decoration: line-through; font-size: 1rem;">{{ number_format($product->old_price, 0, ',', '.') }}₫</span>
                         @endif
@@ -277,51 +365,6 @@
 
                     @if($hasVariants)
                     <div class="mb-3" id="variant-options-wrap">
-                        @if(!empty($showFlashCountdown) && !empty($flashSaleEndTime ?? null))
-                        <div class="flash-sale-card mb-3" id="flash-sale-card" style="{{ $showFlashCountdown ? '' : 'display:none;' }}">
-                            <div class="flash-sale-banner d-flex align-items-center justify-content-between flex-wrap" id="flash-sale-countdown-wrap">
-                                <div class="d-flex align-items-center flash-sale-title-inline">
-                                    <span class="flash-sale-banner-title text-white font-weight-bold">F</span>
-                                    @include('partials.icon-flash-bolt')
-                                    <span class="flash-sale-banner-title text-white font-weight-bold">ASH SALE</span>
-                                </div>
-                                <div class="d-flex align-items-center flex-wrap">
-                                    <svg class="flash-sale-clock-icon mr-1" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                    <span class="flash-sale-ends-label text-white mr-2">KẾT THÚC TRONG</span>
-                                    <span class="flash-sale-countdown-boxes d-inline-flex align-items-center" id="flash-sale-countdown">
-                                        <span class="flash-sale-box" id="flash-sale-h">00</span>
-                                        <span class="flash-sale-sep">:</span>
-                                        <span class="flash-sale-box" id="flash-sale-m">00</span>
-                                        <span class="flash-sale-sep">:</span>
-                                        <span class="flash-sale-box" id="flash-sale-s">00</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="flash-sale-price-row d-flex align-items-center flex-wrap" id="flash-sale-price-row">
-                            <span class="flash-sale-price" id="flash-sale-price">0₫</span>
-                            <span class="flash-sale-old-price text-white-50 ml-2" id="flash-sale-old-price" style="display:none;"><s>0₫</s></span>
-                            <span class="flash-sale-discount badge badge-light text-danger ml-2" id="flash-sale-discount" style="display:none;">-0%</span>
-                        </div>
-                        </div>
-                        <style>
-                        .flash-sale-card { border-radius: 4px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
-                        .flash-sale-banner { background: linear-gradient(90deg, #c62828 0%, #b71c1c 100%); padding: 0.5rem 1rem; }
-                        .flash-sale-title-inline .flash-sale-lightning-icon { flex-shrink: 0; margin: 0 -0.05rem 0 0.15rem; vertical-align: middle; }
-                        .flash-sale-title-inline .flash-sale-banner-title:last-child { margin-left: -0.45rem; }
-                        .flash-sale-banner-title { font-size: 1rem; letter-spacing: 0.02em; }
-                        .flash-sale-clock-icon { flex-shrink: 0; color: #fff; }
-                        .flash-sale-ends-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; display: inline-flex; align-items: center; height: 1.75rem; line-height: 1; }
-                        .flash-sale-countdown-boxes { font-weight: 700; font-size: 1rem; }
-                        .flash-sale-box { background: #1a1a1a; color: #fff; min-width: 2.25rem; height: 1.75rem; padding: 0 0.45rem; text-align: center; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.15rem; }
-                        .flash-sale-sep { color: #fff; margin: 0 0.1rem; font-weight: 700; }
-                        .flash-sale-price-row { background: #fff0f1; padding: 0.55rem 1rem; }
-                        /* Khi KHÔNG có flash sale thì vẫn giữ nền/padding giống block flash để UI đồng nhất */
-                        #product-price-wrap { background: #fff0f1; padding: 0.55rem 1rem; border-radius: 4px; }
-                        .flash-sale-price { color: #dc3545; font-weight: 900; font-size: 1.35rem; letter-spacing: 0.01em; }
-                        .flash-sale-old-price { color: rgba(0,0,0,0.5) !important; }
-                        .flash-sale-discount { font-weight: 800; }
-                        </style>
-                        @endif
                         @foreach($attributeOptions as $attrName => $values)
                         <p class="mb-2 font-weight-bold">{{ $attrName }}</p>
                         <div class="d-flex flex-wrap mb-3 variant-buttons" data-attribute="{{ $attrName }}">
@@ -657,7 +700,7 @@ window.productHasVariants = true;
     }
     var flashPriceRow = document.getElementById('flash-sale-price-row');
     var flashPriceEl = document.getElementById('flash-sale-price');
-    var flashOldPriceEl = document.getElementById('flash-sale-old-price');
+    var flashAfterPriceEl = document.getElementById('flash-sale-after-price');
     var flashDiscountEl = document.getElementById('flash-sale-discount');
     var variantInput = document.getElementById('product_variant_id');
     var stockEl = document.getElementById('variant-stock');
@@ -821,9 +864,8 @@ window.productHasVariants = true;
                     if (flashCardEl) flashCardEl.style.display = '';
                     flashPriceRow.style.display = '';
                     flashPriceEl.textContent = formatMoneyVn(effectivePrice);
-                    if (flashOldPriceEl) {
-                        flashOldPriceEl.style.display = '';
-                        flashOldPriceEl.innerHTML = '<s>' + formatMoneyVn(v.price) + '</s>';
+                    if (flashAfterPriceEl) {
+                        flashAfterPriceEl.textContent = formatMoneyVn(v.price);
                     }
                     if (flashDiscountEl) {
                         var pct = v.price > 0 ? Math.round((1 - (effectivePrice / v.price)) * 100) : 0;
@@ -887,9 +929,8 @@ window.productHasVariants = true;
                     if (flashCardEl) flashCardEl.style.display = '';
                     flashPriceRow.style.display = '';
                     flashPriceEl.textContent = formatMoneyVn(eff);
-                    if (flashOldPriceEl) {
-                        flashOldPriceEl.style.display = '';
-                        flashOldPriceEl.innerHTML = '<s>' + formatMoneyVn(firstFlash.price) + '</s>';
+                    if (flashAfterPriceEl) {
+                        flashAfterPriceEl.textContent = formatMoneyVn(firstFlash.price);
                     }
                     if (flashDiscountEl) {
                         var pct = firstFlash.price > 0 ? Math.round((1 - (eff / firstFlash.price)) * 100) : 0;

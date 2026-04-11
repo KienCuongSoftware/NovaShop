@@ -48,9 +48,14 @@ class ProductController extends Controller
         $activeFlashSale = \App\Models\FlashSale::active()->with('items')->first();
         $flashItemsByVariantId = [];
         $flashSaleEndTime = null;
-        if ($activeFlashSale) {
+        $thisProductVariantIds = $product->variants->modelKeys();
+        if ($activeFlashSale && $thisProductVariantIds !== []) {
             $flashSaleEndTime = $activeFlashSale->end_time->toIso8601String();
+            $allowed = array_flip($thisProductVariantIds);
             foreach ($activeFlashSale->items as $item) {
+                if (! isset($allowed[$item->product_variant_id])) {
+                    continue;
+                }
                 $flashItemsByVariantId[$item->product_variant_id] = [
                     'sale_price' => (float) $item->sale_price,
                     'remaining' => $item->remaining,

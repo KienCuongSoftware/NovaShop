@@ -23,11 +23,14 @@ class FlashSale extends Model
         return $this->hasMany(FlashSaleItem::class, 'flash_sale_id');
     }
 
-    /** Scope: khung giờ đang diễn ra (start_time <= now < end_time). */
+    /** Scope: khung giờ đang diễn ra (start_time <= now < end_time). Không dùng cột status — status chỉ để admin/seed ghi nhận. */
     public function scopeActive($query)
     {
         $now = now();
-        return $query->where('start_time', '<=', $now)->where('end_time', '>', $now);
+
+        return $query->where('start_time', '<=', $now)
+            ->where('end_time', '>', $now)
+            ->orderBy('start_time');
     }
 
     /** Scope: các slot trong ngày (theo ngày start_time). */
@@ -40,8 +43,10 @@ class FlashSale extends Model
     public static function getCurrentOrNext()
     {
         $now = now();
-        $current = static::where('start_time', '<=', $now)
+        $current = static::query()
+            ->where('start_time', '<=', $now)
             ->where('end_time', '>', $now)
+            ->orderBy('start_time')
             ->with('items.productVariant.product')
             ->first();
         if ($current) {

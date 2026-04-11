@@ -125,32 +125,34 @@
                     <p class="dash-table-empty">Chưa có dữ liệu bán.</p>
                 @else
                     <div class="dash-table-wrap">
-                        <table class="dash-table">
+                        <table class="dash-table dash-table--bestsellers">
                             <thead>
                                 <tr>
-                                    <th scope="col" class="dash-table__th--narrow">#</th>
+                                    <th scope="col" class="dash-table__th--narrow">STT</th>
                                     <th scope="col">Sản phẩm</th>
-                                    <th scope="col">Mã / biến thể</th>
-                                    <th scope="col" class="dash-table__th--num">Đã bán</th>
+                                    <th scope="col" class="dash-table__th--variant">Mã / biến thể</th>
+                                    <th scope="col" class="dash-table__th--num dash-table__th--sold">Đã bán</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($topSkus as $i => $row)
                                 <tr>
                                     <td class="dash-table__muted">{{ $i + 1 }}</td>
-                                    <td>
-                                        <a href="{{ route('admin.products.edit', $row['product_id']) }}" class="dash-table__link">{{ $row['name'] }}</a>
+                                    <td class="dash-table__cell--product">
+                                        <a href="{{ route('admin.products.edit', $row['product_id']) }}" class="dash-table__link dash-table__name-ellipsis" title="{{ $row['name'] }}">{{ $row['name'] }}</a>
                                     </td>
-                                    <td>
-                                        @if(!empty($row['sku']))
+                                    <td class="dash-table__cell--variant">
+                                        @if(!empty($row['variant_display']))
+                                            <span class="dash-pill dash-pill--variant" title="{{ $row['variant_display'] }}">{{ $row['variant_display'] }}</span>
+                                        @elseif(!empty($row['sku']))
                                             <span class="dash-pill dash-pill--sku">{{ $row['sku'] }}</span>
                                         @elseif(!empty($row['product_variant_id']))
-                                            <span class="dash-pill dash-pill--ghost">Biến thể #{{ $row['product_variant_id'] }}</span>
+                                            <span class="dash-table__muted">Biến thể</span>
                                         @else
                                             <span class="dash-table__muted">Mặc định</span>
                                         @endif
                                     </td>
-                                    <td class="dash-table__num">{{ number_format($row['qty_sold']) }}</td>
+                                    <td class="dash-table__num dash-table__td--sold">{{ number_format($row['qty_sold']) }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -172,31 +174,37 @@
                 @if($recentOrders->isEmpty())
                     <p class="dash-table-empty">Chưa có đơn hàng.</p>
                 @else
-                    <div class="dash-table-wrap">
-                        <table class="dash-table">
+                    <div class="dash-table-wrap dash-table-wrap--recent">
+                        <table class="dash-table dash-table--recent">
                             <thead>
                                 <tr>
-                                    <th scope="col">Mã</th>
-                                    <th scope="col">Khách</th>
-                                    <th scope="col" class="dash-table__th--num">Tổng</th>
-                                    <th scope="col">Trạng thái</th>
-                                    <th scope="col">Thời điểm</th>
+                                    <th scope="col" class="dash-table__th--order-id">Mã</th>
+                                    <th scope="col" class="dash-table__th--customer">Khách</th>
+                                    <th scope="col" class="dash-table__th--num dash-table__th--total">Tổng</th>
+                                    <th scope="col" class="dash-table__th--status">Trạng thái</th>
+                                    <th scope="col" class="dash-table__th--time">Thời điểm</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($recentOrders as $order)
                                 <tr>
-                                    <td><a href="{{ route('admin.orders.show', $order) }}" class="dash-table__link">#{{ $order->id }}</a></td>
-                                    <td>{{ $order->user->name ?? '—' }}</td>
-                                    <td class="dash-table__num">{{ number_format($order->total_amount, 0, ',', '.') }}₫</td>
-                                    <td>
+                                    <td class="dash-table__td--order-id"><a href="{{ route('admin.orders.show', $order) }}" class="dash-table__link">#{{ $order->id }}</a></td>
+                                    <td class="dash-table__cell--customer">
+                                        @php $custName = $order->user->name ?? '—'; @endphp
+                                        <span class="dash-table__ellipsis-inline" title="{{ $custName }}">{{ $custName }}</span>
+                                    </td>
+                                    <td class="dash-table__num dash-table__td--total"><span class="dash-table__ellipsis-inline" title="{{ number_format($order->total_amount, 0, ',', '.') }}₫">{{ number_format($order->total_amount, 0, ',', '.') }}₫</span></td>
+                                    <td class="dash-table__td--status">
                                         @php
                                             $st = $order->status;
                                             $tone = $st === 'completed' ? 'ok' : (in_array($st, ['cancelled', 'return_refund'], true) ? 'muted' : 'wait');
                                         @endphp
                                         <span class="dash-tag dash-tag--{{ $tone }}">{{ \App\Models\Order::statusLabel($st) }}</span>
                                     </td>
-                                    <td class="dash-table__muted dash-table__time">{{ $order->created_at->format('d/m/Y · H:i') }}</td>
+                                    <td class="dash-table__muted dash-table__time dash-table__td--time">
+                                        @php $orderTime = $order->created_at->format('d/m/Y · H:i'); @endphp
+                                        <span class="dash-table__ellipsis-inline" title="{{ $orderTime }}">{{ $orderTime }}</span>
+                                    </td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -522,7 +530,12 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 @media (min-width: 1200px) {
-    .dash-nova__grid--tables { grid-template-columns: 1fr 1fr; }
+    /* minmax(0,…) + min-width:0 trên panel để cột không ép tràn ngang */
+    .dash-nova__grid--tables { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+
+.dash-nova__grid--tables > .dash-panel {
+    min-width: 0;
 }
 
 .dash-panel {
@@ -684,7 +697,12 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Tables */
 .dash-table-wrap { overflow-x: auto; }
 
+.dash-table-wrap--recent {
+    overflow-x: hidden;
+}
+
 .dash-table {
+    table-layout: fixed;
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
@@ -714,9 +732,96 @@ document.addEventListener('DOMContentLoaded', function() {
     vertical-align: middle;
 }
 
-.dash-table__th--narrow { width: 2.5rem; }
+.dash-table__th--narrow { width: 2.75rem; }
+
+/* Hàng bán chạy: cột Đã bán hẹp, nhường chỗ cho tên SP / biến thể */
+.dash-table--bestsellers .dash-table__th--narrow,
+.dash-table--bestsellers tbody td:first-child {
+    width: 2.25rem;
+    padding-left: 0.65rem;
+    padding-right: 0.35rem;
+}
+
+.dash-table--bestsellers .dash-table__th--variant,
+.dash-table--bestsellers .dash-table__cell--variant {
+    width: 30%;
+}
+
+.dash-table--bestsellers .dash-table__th--sold,
+.dash-table--bestsellers .dash-table__td--sold {
+    width: 3.1rem;
+    min-width: 3.1rem;
+    max-width: 3.5rem;
+    padding-left: 0.35rem;
+    padding-right: 0.45rem;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.dash-table__cell--product { max-width: 0; }
+.dash-table__name-ellipsis {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .dash-table__th--num, .dash-table__num { text-align: right; }
 .dash-table__num { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.dash-table__ellipsis-inline {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Đơn gần đây: cột cố định theo %, ellipsis — tránh scrollbar ngang */
+.dash-table--recent thead th,
+.dash-table--recent tbody td {
+    padding: 0.65rem 0.45rem;
+}
+
+.dash-table--recent .dash-table__th--order-id,
+.dash-table--recent .dash-table__td--order-id {
+    width: 10%;
+}
+
+.dash-table--recent .dash-table__th--customer,
+.dash-table--recent .dash-table__cell--customer {
+    width: 22%;
+    overflow: hidden;
+}
+
+.dash-table--recent .dash-table__th--total,
+.dash-table--recent .dash-table__td--total {
+    width: 20%;
+    overflow: hidden;
+}
+
+.dash-table--recent .dash-table__th--status,
+.dash-table--recent .dash-table__td--status {
+    width: 24%;
+}
+
+.dash-table--recent .dash-table__th--time,
+.dash-table--recent .dash-table__td--time {
+    width: 24%;
+    white-space: normal;
+    overflow: hidden;
+}
+
+.dash-table--recent .dash-table__td--status {
+    overflow: hidden;
+}
+
+.dash-table--recent .dash-table__td--status .dash-tag {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
 
 .dash-table__muted {
     color: var(--dash-muted);
@@ -755,6 +860,21 @@ document.addEventListener('DOMContentLoaded', function() {
 .dash-pill--sku {
     background: #f3f4f6;
     color: #374151;
+    border: 1px solid var(--dash-line);
+}
+
+.dash-pill--variant {
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.35;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    background: #fafafa;
+    color: var(--dash-ink);
     border: 1px solid var(--dash-line);
 }
 
